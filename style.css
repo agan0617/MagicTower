@@ -31,7 +31,10 @@ button { font: inherit; color: inherit; }
 /* ── 版面：直向（手機）── */
 #stage {
   --map: min(calc(100vw - 12px), calc(100dvh - var(--safe-t) - var(--safe-b) - 306px));
-  height: 100%; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 6px 6px 8px;
+  height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 6px 6px 8px;
+}
+@media (max-aspect-ratio: 5/4) and (min-height: 760px) {
+  #pad { transform: scale(1.18); margin: 34px 0 24px; }
 }
 #stage.under { visibility: hidden; }
 #hud {
@@ -111,6 +114,7 @@ button { font: inherit; color: inherit; }
 .tmenu { position: relative; display: flex; flex-direction: column; align-items: stretch; gap: 10px; width: min(88vw, 340px); text-align: center; }
 #tTitle { margin: 0; font-family: "Noto Serif TC", "Songti TC", "Yu Mincho", serif; font-size: clamp(56px, 16vmin, 96px); letter-spacing: 8px; color: #fff3c0;
   text-shadow: 0 0 18px #c07cf5, 0 0 40px #6a34a8, 0 4px 0 #3a1a5a; }
+html[lang=en] #tTitle { font-size: clamp(40px, 12vmin, 76px); letter-spacing: 2px; line-height: 1.05; }
 #tSub { margin: -6px 0 22px; font-size: clamp(16px, 4.6vmin, 24px); color: #d8c8ff; letter-spacing: 4px; text-shadow: 0 2px 8px #000; }
 .btn { border: 1px solid var(--line); background: var(--panel2); color: var(--ink); border-radius: 10px; padding: 10px 16px; font-size: 15px; cursor: pointer; }
 .btn:hover:not(:disabled) { border-color: #6a60a0; }

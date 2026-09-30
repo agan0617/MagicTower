@@ -335,10 +335,11 @@
   }
   const playMusic = name => MT.Audio.play(name, st ? st.layers : ['base']);
 
+  let scripting = 0; // 劇本播到一半不存檔（旗標已設、道具還沒給的狀態不能留下來）
   async function runScript(id) {
     const cmds = MT.SCRIPTS[id];
     if (!cmds) return;
-    busy++;
+    busy++; scripting++;
     try {
       for (const c of cmds) {
         switch (c[0]) {
@@ -381,7 +382,7 @@
           default: MT.applyCmd(st, c);
         }
       }
-    } finally { if (busy > 0 && mode === 'game') busy--; }
+    } finally { scripting--; if (busy > 0 && mode === 'game') busy--; }
     renderHud();
   }
 
@@ -821,7 +822,7 @@
   }
 
   function autosave() {
-    if (!st || st.done || mode !== 'game') return;
+    if (!st || st.done || mode !== 'game' || scripting) return;
     tickPlay();
     const sl = MT.Sync.save('auto', MT.pack(st));
     lastAutoAt = sl.at;
@@ -993,7 +994,7 @@
   }
   let endScreen = false;
   $('#cine').addEventListener('pointerdown', e => { if (e.target.id === 'cineSkip' || endScreen) return; e.preventDefault(); MT.Audio.init(); cineNext(); });
-  $('#cineSkip').addEventListener('click', e => { e.stopPropagation(); cineQueue = cineQueue.filter(s => s.keep); cineNext(); });
+  $('#cineSkip').addEventListener('click', e => { e.stopPropagation(); clearInterval(typing); typing = null; cineQueue = cineQueue.filter(s => s.keep); cineNext(); });
 
   const PROLOGUE = [
     { scene: 'town', text: 'pro_1', music: 'title' },
@@ -1085,7 +1086,7 @@
     view.banner = { text: MT.t('arrive', { n: st.floor }), t0: now() };
     if (fresh) {
       const id = MT.stepTrigger(st);
-      autosave();
+      if (!id) autosave();
       if (id) setTimeout(() => runScript(id).then(autosave), 700);
     } else lastAutoAt = (MT.Sync.get('auto') || {}).at || 0;
   }
@@ -1120,5 +1121,15 @@
   if ('serviceWorker' in navigator && location.protocol === 'https:' && !/MagicTowerApp/.test(navigator.userAgent)) {
     navigator.serviceWorker.register('sw.js').catch(() => { /* 不支援就算了 */ });
   }
+  /* Android App 呼叫：返回鍵先關視窗；切到背景前存檔上傳 */
+  MT.onBack = () => {
+    if (!$('#confirm').hidden) { const b = $('#cButtons button'); if (b) b.click(); return true; }
+    if (!$('#modal').hidden) { closeModal(); return true; }
+    if (mode === 'game' && !busy) { openMenu(); return true; }
+    return false;
+  };
+  MT.appPause = () => { stopHold(); if (mode === 'game') autosave(); MT.Sync.push(true); MT.Audio.suspend(); };
+  MT.appResume = () => { playClock = Date.now(); MT.Audio.resume(); MT.Sync.pull().then(checkCloudNewer); };
+
   MT.debug = { get st() { return st; }, set st(v) { st = v; renderHud(); }, runScript, startEnding, startGame, renderHud };
 })();
