@@ -30,11 +30,11 @@ button { font: inherit; color: inherit; }
 
 /* ── 版面：直向（手機）── */
 #stage {
-  --map: min(calc(100vw - 12px), calc(100dvh - var(--safe-t) - var(--safe-b) - 306px));
+  --map: min(calc(100vw - 12px), calc(100dvh - var(--safe-t) - var(--safe-b) - 300px));
   height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 6px 6px 8px;
 }
 @media (max-aspect-ratio: 5/4) and (min-height: 760px) {
-  #pad { transform: scale(1.18); margin: 34px 0 24px; }
+  #stage #pad { --bw: 84px; --bh: 72px; margin-top: 14px; }
 }
 #stage.under { visibility: hidden; }
 #hud {
@@ -66,11 +66,11 @@ button { font: inherit; color: inherit; }
 #bar button:disabled { opacity: 0.35; }
 #bar button:active:not(:disabled) { background: var(--panel2); }
 
-#pad { position: relative; width: 204px; height: 186px; flex: none; margin-top: 2px; }
-#pad button { position: absolute; width: 70px; height: 62px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel); font-size: 20px; color: var(--muted); touch-action: none; cursor: pointer; }
+#pad { --bw: 70px; --bh: 62px; position: relative; width: calc(var(--bw) * 3 - 6px); height: calc(var(--bh) * 3); flex: none; margin-top: 2px; }
+#pad button { position: absolute; width: var(--bw); height: var(--bh); border-radius: 14px; border: 1px solid var(--line); background: var(--panel); font-size: 20px; color: var(--muted); touch-action: none; cursor: pointer; }
 #pad button:active { background: var(--panel2); color: var(--ink); }
-#pad .up { left: 67px; top: 0; } #pad .down { left: 67px; bottom: 0; }
-#pad .left { left: 0; top: 62px; } #pad .right { right: 0; top: 62px; }
+#pad .up { left: calc(var(--bw) - 3px); top: 0; } #pad .down { left: calc(var(--bw) - 3px); bottom: 0; }
+#pad .left { left: 0; top: var(--bh); } #pad .right { right: 0; top: var(--bh); }
 
 /* ── 版面：橫向（電腦、平板）── */
 @media (min-aspect-ratio: 5/4) {
