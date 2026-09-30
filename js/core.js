@@ -15,7 +15,7 @@
       floor: s.floor, x: s.x, y: s.y, dir: 'up',
       hp: s.hp, atk: s.atk, def: s.def, gold: s.gold,
       keys: clone(s.keys),
-      items: { book: 0, fly: 0, drum: 0, harp: 0 },
+      items: { book: 0, fly: 0, drum: 0, harp: 0, note: 0 },
       pages: [],
       equip: { sword: '', shield: '' },
       layers: [],            // 已經找回的樂器：drums／strings／lead
@@ -129,13 +129,14 @@
 
   MT.pickup = function (st, t) {
     const it = MT.ITEMS[t];
-    const v = it.kind === 'key' || it.kind === 'page' ? 1 : MT.itemValue(t, st.floor);
+    const v = it.kind === 'key' || it.kind === 'page' || it.kind === 'note' ? 1 : MT.itemValue(t, st.floor);
     const got = { kind: it.kind, value: v };
     if (it.kind === 'key') st.keys[it.key]++;
     else if (it.kind === 'hp') st.hp += v;
     else if (it.kind === 'atk') st.atk += v;
     else if (it.kind === 'def') st.def += v;
     else if (it.kind === 'page') { st.pages.push(it.page); got.script = MT.PAGE_SCRIPTS[it.page]; }
+    else if (it.kind === 'note') { st.items.note = 1; got.script = 'noteGet'; }
     if (it.equip) st.equip[it.equip] = t;
     return got;
   };
@@ -215,5 +216,17 @@
       case 'ending': st.done = true; break;
     }
   };
+  // 真結局：三頁日記全撿齊，並帶著失落的音符打倒指揮家
+  MT.isTrueEnding = st => st.pages.length >= 3 && !!st.items.note;
+
+  /* 舊存檔補上新版加的東西：14F 還沒去過就把失落的音符放回去 */
+  MT.migrate = function (st) {
+    if (st.items.note == null) st.items.note = 0;
+    const m = st.maps[14];
+    // 14F 還沒去過、或去過但那間紅門房還沒打開
+    if (m && !st.items.note && m[1][5] === '..' && (!st.visited.includes(14) || m[2][5] === 'Rd')) m[1][5] = 'FN';
+    return st;
+  };
+
   MT.runScriptState = function (st, id) { for (const c of MT.SCRIPTS[id]) MT.applyCmd(st, c); };
 })(typeof window !== 'undefined' ? (window.MT = window.MT || {}) : (globalThis.MT = globalThis.MT || {}));

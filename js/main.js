@@ -259,6 +259,7 @@
     const inst = [];
     if (st.items.drum) inst.push(img('drum', null, 'inst'));
     if (st.items.harp) inst.push(img('harp', null, 'inst'));
+    if (st.items.note) inst.push(img('goldnote', null, 'inst'));
     $('#hInst').innerHTML = inst.join('');
     $('#bFly').disabled = !st.items.fly;
     $('#bBook').disabled = !st.items.book;
@@ -373,6 +374,9 @@
             MT.applyCmd(st, c);
             if (c[3] === 'M2') { flash('#ffd84a', 600); sparkle(c[1], c[2], 30); }
             break;
+          case 'branch':
+            if (c[1] === 'trueEnd' && MT.isTrueEnding(st)) await runScript(c[2]);
+            break;
           case 'ending':
             MT.applyCmd(st, c);
             await sleep(600);
@@ -410,6 +414,7 @@
         else if (it.kind === 'atk') { sfx('gem'); floatText(ev.x, ev.y, MT.t('atk') + '+' + g2.value, '#ff8a80'); }
         else if (it.kind === 'def') { sfx('gem'); floatText(ev.x, ev.y, MT.t('def') + '+' + g2.value, '#8ac8ff'); }
         else if (it.kind === 'page') { toast(MT.t('got_page')); }
+        else if (it.kind === 'note') { sfx('fanfare'); toast(MT.t('got_note')); sparkle(ev.x, ev.y, 30); }
         renderHud();
         if (ev.script) { await sleep(120); await runScript(ev.script); autosave(); return false; }
         return true;
@@ -970,6 +975,26 @@
       bigSprite('fairy', null, 200, SIZE - 290 + Math.sin(t / 250) * 10, 4);
       bigSprite('bard', null, 30, SIZE - 150, 4); bigSprite('frog', null, 440, SIZE - 120, 4, true);
     },
+    // 真結局：指揮家站上舞台中央指揮，音符一圈圈流向他
+    festivalTrue: t => {
+      drawSky(t, '#ff9a6a', '#ffe0b0');
+      cg.fillStyle = '#fff6d0'; cg.beginPath(); cg.arc(SIZE / 2, 120, 60 + Math.sin(t / 400) * 4, 0, Math.PI * 2); cg.fill();
+      drawTown(t, true);
+      cg.fillStyle = '#8a4a3e'; cg.fillRect(SIZE / 2 - 120, SIZE - 110, 240, 30);
+      cg.font = 'bold 26px serif'; cg.textAlign = 'center';
+      for (let i = 0; i < 20; i++) {
+        const p = ((t / 2400 + i / 20) % 1), a = i * 1.3 + t / 1500, r = 240 * (1 - p);
+        cg.globalAlpha = Math.sin(p * Math.PI); cg.fillStyle = ['#ffe066', '#aef4ff', '#ff9ccc'][i % 3];
+        cg.fillText('♪♫♬♩'[i % 4], SIZE / 2 + Math.cos(a) * r, SIZE - 210 + Math.sin(a) * r * 0.45);
+      }
+      cg.globalAlpha = 1;
+      const wave = Math.floor(t / 350) % 2;
+      bigSprite('maestro', null, SIZE / 2 - 48, SIZE - 210 - wave * 6, 6);
+      bigSprite('drum', null, 40, SIZE - 150, 5);
+      bigSprite('heroDown', null, 420, SIZE - 190 + (Math.floor(t / 250) % 2) * -6, 5);
+      bigSprite('fairy', null, SIZE / 2 + 50, SIZE - 290 + Math.sin(t / 250) * 10, 4);
+      bigSprite('bard', null, 130, SIZE - 140, 4); bigSprite('frog', null, 330, SIZE - 120, 4, true);
+    },
   };
   function cineRender() {
     requestAnimationFrame(cineRender);
@@ -1104,7 +1129,7 @@
   $('#tCloud').addEventListener('click', () => { MT.Audio.init(); openCloud(); });
 
   function startGame(s, fresh) {
-    st = s;
+    st = MT.migrate(s);
     mode = 'game'; busy = 0;
     $('#title').hidden = true; $('#cine').hidden = true; $('#stage').classList.remove('under');
     view.fairy = false; view.move = null; view.dying = null; view.fx = []; view.fade = 0; view.fadeTo = 0; view.fadeCur = 0;
@@ -1124,7 +1149,14 @@
     await sleep(300);
     const secs = Math.round(st.playMs / 1000);
     const tstr = `${Math.floor(secs / 3600)}:${String(Math.floor(secs / 60) % 60).padStart(2, '0')}:${String(secs % 60).padStart(2, '0')}`;
-    await playCine([
+    const trueEnd = MT.isTrueEnding(st);
+    await playCine(trueEnd ? [
+      { scene: 'festivalTrue', text: 'et_1', music: 'ending' },
+      { text: 'et_2', keep: true },
+      { text: 'et_3', keep: true },
+      { text: 'et_4', keep: true },
+      { text: 'ed_true_end', keep: true },
+    ] : [
       { scene: 'festival', text: 'ed_1', music: 'ending' },
       { text: 'ed_2', keep: true },
       { text: 'ed_3', keep: true },
@@ -1134,7 +1166,7 @@
     mode = 'cine';
     $('#cine').hidden = false; $('#stage').classList.add('under');
     $('#cineName').hidden = true;
-    $('#cineBody').innerHTML = `<b>${esc(MT.story('ed_thanks'))}</b><br><span class="small">${esc(MT.t('endStats', { t: tstr, s: st.steps, k: st.kills }))}</span><br><button class="btn primary" id="endBack">${esc(MT.t('backTitle'))}</button>`;
+    $('#cineBody').innerHTML = `<b>${esc(MT.story('ed_thanks'))}</b><br><span class="small">${esc(MT.t(trueEnd ? 'endTrue' : 'endNormal'))}　${esc(MT.t('endStats', { t: tstr, s: st.steps, k: st.kills }))}</span><br>${trueEnd ? '' : `<span class="small">${esc(MT.story('ed_hint'))}</span><br>`}<button class="btn primary" id="endBack">${esc(MT.t('backTitle'))}</button>`;
     cineQueue = []; endScreen = true;
     $('#cineSkip').hidden = true;
     $('#endBack').addEventListener('click', e => { e.stopPropagation(); endScreen = false; $('#cineSkip').hidden = false; $('#cine').hidden = true; showTitle(); });

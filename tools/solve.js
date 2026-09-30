@@ -159,7 +159,7 @@ console.log(Object.values(floorLog).join('\n'));
 console.log('---');
 console.log(log.filter(l => verbose || /祭壇|DG|SR|M1|M2|鑰/.test(l)).join('\n'));
 console.log('---');
-console.log(st.done ? `通關！HP ${st.hp} ATK ${st.atk} DEF ${st.def} 金 ${st.gold} 擊倒 ${st.kills}` : `卡住在 F${maxFloor(st)}（目前 F${st.floor}）：HP ${st.hp} ATK ${st.atk} DEF ${st.def} 金 ${st.gold} 鑰 ${JSON.stringify(st.keys)}`);
+console.log(st.done ? `通關！HP ${st.hp} ATK ${st.atk} DEF ${st.def} 金 ${st.gold} 擊倒 ${st.kills}　${MT.isTrueEnding(st) ? '★ 真結局' : '一般結局'}（日記 ${st.pages.length}/3、失落的音符 ${st.items.note ? '有' : '沒有'}）` : `卡住在 F${maxFloor(st)}（目前 F${st.floor}）：HP ${st.hp} ATK ${st.atk} DEF ${st.def} 金 ${st.gold} 鑰 ${JSON.stringify(st.keys)}`);
 if (!st.done) {
   const reach = collect(st);
   for (const c of frontier(st, reach)) {

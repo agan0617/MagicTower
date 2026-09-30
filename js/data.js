@@ -59,6 +59,7 @@
     P1: { kind: 'page', page: 1, sprite: 'page' },
     P2: { kind: 'page', page: 2, sprite: 'page' },
     P3: { kind: 'page', page: 3, sprite: 'page' },
+    FN: { kind: 'note', sprite: 'goldnote' },   // 失落的音符（真結局條件之一）
   };
 
   MT.DOORS = { Yd: 'y', Bd: 'b', Rd: 'r' };
@@ -269,7 +270,7 @@
     // 14F 前廳
     [
       'DD .. Yk ## HP HP HP ## .. .. UU',
-      '.. rg .. ## at .. df ## .. rg ..',
+      '.. rg .. ## at FN df ## .. rg ..',
       '.. .. .. ## ## Rd ## ## Yk .. ..',
       '## Yd ## .. .. .. .. .. ## Yd ##',
       'hp .. .. .. kn .. kn .. Bd .. hp',
@@ -398,7 +399,8 @@
     ],
     page1: [['sfx', 'page'], ['narr', 'page1_title'], ['narr', 'page1']],
     page2: [['sfx', 'page'], ['narr', 'page2_title'], ['narr', 'page2'], ['fairy', true], ['say', 'doremi', 'page2_r'], ['fairy', false]],
-    page3: [['sfx', 'page'], ['narr', 'page3_title'], ['narr', 'page3'], ['fairy', true], ['say', 'doremi', 'page3_r'], ['say', 'tink', 'page3_t'], ['fairy', false]],
+    page3: [['sfx', 'page'], ['narr', 'page3_title'], ['narr', 'page3'], ['fairy', true], ['say', 'doremi', 'page3_r'], ['say', 'tink', 'page3_t'], ['say', 'doremi', 'page3_hint'], ['fairy', false]],
+    noteGet: [['sfx', 'harp'], ['sparkle', 5, 1], ['narr', 'note_got'], ['fairy', true], ['say', 'doremi', 'note_1'], ['say', 'tink', 'note_2'], ['fairy', false]],
     f13Voice: [
       ['fade', 'out'],
       ['say', 'maestro', 'f13_1'],
@@ -459,9 +461,19 @@
       ['say', 'doremi', 'end_2'],
       ['say', 'maestro', 'end_3'],
       ['say', 'tink', 'end_4'],
+      ['branch', 'trueEnd', 'trueEndTalk'],  // 三頁日記＋失落的音符都到手 → 真結局的對話
       ['flash', '#fff'],
       ['layer', 'lead'],
       ['ending'],
+    ],
+    trueEndTalk: [
+      ['say', 'doremi', 'te_1'],
+      ['sfx', 'harp'], ['sparkle', 5, 1],
+      ['narr', 'te_2'],
+      ['emote', [5, 1], '♪'],
+      ['say', 'maestro', 'te_3'],
+      ['say', 'doremi', 'te_4'],
+      ['say', 'maestro', 'te_5'],
     ],
   };
 
