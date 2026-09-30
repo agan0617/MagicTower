@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0b0a1c">
+<meta name="description" content="經典魔塔的網頁版：15 層原創關卡，找回被偷走的音樂。中文／English／日本語。">
+<title>魔塔：失落的旋律</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+  <div id="stage" class="under">
+    <header id="hud">
+      <div class="hf"><b id="hFloor">1F</b><span id="hInst"></span></div>
+      <div class="hs hp"><span class="hl" id="lHp">生命</span><b id="hHp">0</b></div>
+      <div class="hs atk"><span class="hl" id="lAtk">攻擊</span><b id="hAtk">0</b></div>
+      <div class="hs def"><span class="hl" id="lDef">防禦</span><b id="hDef">0</b></div>
+      <div class="hs gold"><span class="hl" id="lGold">金幣</span><b id="hGold">0</b></div>
+      <div class="hk">
+        <span><img class="px" id="iKy" alt=""><b id="hKy">0</b></span>
+        <span><img class="px" id="iKb" alt=""><b id="hKb">0</b></span>
+        <span><img class="px" id="iKr" alt=""><b id="hKr">0</b></span>
+      </div>
+      <button id="cloudChip" type="button" aria-label="cloud">☁</button>
+    </header>
+    <main id="mapWrap">
+      <canvas id="map"></canvas>
+      <div id="dialog" hidden>
+        <img class="px" id="dPortrait" alt="">
+        <div class="dm"><div id="dName"></div><div id="dText"></div></div>
+        <span id="dMore">▼</span>
+      </div>
+    </main>
+    <nav id="bar">
+      <button id="bBook" type="button"><img class="px" alt=""><span></span></button>
+      <button id="bFly" type="button"><img class="px" alt=""><span></span></button>
+      <button id="bSave" type="button"><img class="px" alt=""><span></span></button>
+      <button id="bMenu" type="button"><img class="px" alt=""><span></span></button>
+    </nav>
+    <div id="pad">
+      <button type="button" data-dir="up" class="up" aria-label="up">▲</button>
+      <button type="button" data-dir="left" class="left" aria-label="left">◀</button>
+      <button type="button" data-dir="right" class="right" aria-label="right">▶</button>
+      <button type="button" data-dir="down" class="down" aria-label="down">▼</button>
+    </div>
+  </div>
+
+  <section id="title" hidden>
+    <canvas id="titleCanvas"></canvas>
+    <div class="tmenu">
+      <h1 id="tTitle">魔塔</h1>
+      <p id="tSub">失落的旋律</p>
+      <button class="btn big primary" id="tContinue" type="button"></button>
+      <button class="btn big" id="tNew" type="button"></button>
+      <button class="btn big" id="tLoad" type="button"></button>
+      <button class="btn big" id="tSettings" type="button"></button>
+      <button class="linkish" id="tCloud" type="button"></button>
+    </div>
+  </section>
+
+  <section id="cine" hidden>
+    <canvas id="cineCanvas"></canvas>
+    <div id="cineText"><div id="cineName"></div><div id="cineBody"></div></div>
+    <button id="cineSkip" type="button"></button>
+  </section>
+
+  <div id="modal" hidden>
+    <div class="panel">
+      <div class="ph"><h2 id="mTitle"></h2><button id="mClose" type="button" aria-label="close">✕</button></div>
+      <div id="mBody"></div>
+    </div>
+  </div>
+  <div id="confirm" hidden>
+    <div class="panel small"><p id="cBody"></p><div id="cButtons" class="row end"></div></div>
+  </div>
+  <div id="toast" hidden></div>
+</div>
+<script>window.MT = { VERSION: '1.0.0' };</script>
+<script src="js/data.js"></script>
+<script src="js/core.js"></script>
+<script src="js/sprites.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/sync.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
