@@ -30,11 +30,9 @@ button { font: inherit; color: inherit; }
 
 /* ── 版面：直向（手機）── */
 #stage {
-  --map: min(calc(100vw - 12px), calc(100dvh - var(--safe-t) - var(--safe-b) - 300px));
-  height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 6px 6px 8px;
-}
-@media (max-aspect-ratio: 5/4) and (min-height: 760px) {
-  #stage #pad { --bw: 84px; --bh: 72px; margin-top: 14px; }
+  /* 地圖盡量大：寬度用滿（左右各留 4px），高度扣掉狀態列＋按鈕列＋搖桿區最小 150px */
+  --map: min(calc(100vw - 8px), calc(100dvh - var(--safe-t) - var(--safe-b) - 290px));
+  height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 6px; padding: 4px 4px 6px;
 }
 #stage.under { visibility: hidden; }
 #hud {
@@ -66,17 +64,22 @@ button { font: inherit; color: inherit; }
 #bar button:disabled { opacity: 0.35; }
 #bar button:active:not(:disabled) { background: var(--panel2); }
 
-#pad { --bw: 70px; --bh: 62px; position: relative; width: calc(var(--bw) * 3 - 6px); height: calc(var(--bh) * 3); flex: none; margin-top: 2px; }
-#pad button { position: absolute; width: var(--bw); height: var(--bh); border-radius: 14px; border: 1px solid var(--line); background: var(--panel); font-size: 20px; color: var(--muted); touch-action: none; cursor: pointer; }
-#pad button:active { background: var(--panel2); color: var(--ink); }
-#pad .up { left: calc(var(--bw) - 3px); top: 0; } #pad .down { left: calc(var(--bw) - 3px); bottom: 0; }
-#pad .left { left: 0; top: var(--bh); } #pad .right { right: 0; top: var(--bh); }
+/* 懸浮搖桿：在這塊區域任何地方按下，搖桿就出現在手指底下 */
+#stick { position: relative; width: var(--map); flex: 1 1 auto; min-height: 150px; touch-action: none; border-radius: 14px; overflow: hidden; }
+#stickHint { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; pointer-events: none; transition: opacity .2s; }
+#stickHint i { width: 96px; height: 96px; border-radius: 50%; border: 2px dashed rgba(164, 158, 200, 0.28); }
+#stickHint span { font-size: 13px; color: rgba(164, 158, 200, 0.6); }
+#stick.active #stickHint { opacity: 0; }
+#stickBase { position: absolute; width: 124px; height: 124px; margin: -62px 0 0 -62px; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, rgba(255, 216, 74, 0.08), rgba(58, 54, 96, 0.35)); border: 2px solid rgba(216, 200, 255, 0.35); }
+#stickKnob { position: absolute; left: 50%; top: 50%; width: 56px; height: 56px; margin: -28px 0 0 -28px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff3c0, #ffd84a 45%, #c9921a); box-shadow: 0 4px 14px rgba(0,0,0,.5); }
 
 /* ── 版面：橫向（電腦、平板）── */
 @media (min-aspect-ratio: 5/4) {
   #stage {
-    --map: min(calc(100dvh - var(--safe-t) - var(--safe-b) - 20px), calc(100vw - 460px));
-    display: grid; grid-template-columns: 230px var(--map) 200px; grid-template-rows: auto 1fr auto; justify-content: center; align-content: center;
+    --map: min(calc(100dvh - var(--safe-t) - var(--safe-b) - 20px), calc(100vw - 420px));
+    display: grid; grid-template-columns: 210px var(--map) 180px; grid-template-rows: auto 1fr auto; justify-content: center; align-content: center;
     column-gap: 14px; row-gap: 10px; padding: 10px;
   }
   #hud { grid-column: 1; grid-row: 1; width: auto; min-width: 0; grid-template-columns: 1fr 1fr; grid-template-rows: none; padding: 12px; gap: 10px; }
@@ -87,11 +90,11 @@ button { font: inherit; color: inherit; }
   #cloudChip { grid-column: 1 / 3; grid-row: auto; width: 100%; border-radius: 8px; height: 30px; }
   #mapWrap { grid-column: 2; grid-row: 1 / 4; }
   #bar { grid-column: 1; grid-row: 2; width: auto; grid-template-columns: 1fr 1fr; align-self: start; }
-  #pad { grid-column: 3; grid-row: 3; align-self: end; }
+  #stick { grid-column: 3; grid-row: 1 / 4; width: auto; min-height: 0; background: rgba(26, 24, 48, 0.5); }
 }
 @media (min-aspect-ratio: 5/4) and (pointer: fine) {
   #stage { --map: min(calc(100dvh - 20px), calc(100vw - 280px)); grid-template-columns: 230px var(--map); }
-  #pad { display: none; }
+  #stick { display: none; }
 }
 
 /* ── 對話框 ── */
