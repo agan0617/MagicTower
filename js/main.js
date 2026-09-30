@@ -269,7 +269,6 @@
     $('#bBook span').textContent = MT.t('btnBook'); $('#bFly span').textContent = MT.t('btnFly');
     $('#bSave span').textContent = MT.t('btnSave'); $('#bMenu span').textContent = MT.t('btnMenu');
     $('#cineSkip').textContent = MT.t('skip');
-    $('#stickHint span').textContent = MT.t('stickHint');
     renderCloudChip();
     if (mode === 'title') renderTitle();
     renderHud();
@@ -557,13 +556,15 @@
     tick();
   }
   function stopHold(d) { if (!d || holdDir === d) { holdDir = null; clearTimeout(holdTimer); } }
-  /* 懸浮搖桿：按下的位置就是搖桿中心，拖離中心超過死區就朝那個方向（取水平／垂直較大的一邊）連續走 */
+  /* 搖桿：固定在搖桿區正中央；在這塊區域任何地方按住，都以搖桿中心判斷方向（取水平／垂直較大的一邊），
+     拖離中心超過死區就朝那個方向連續走，放開搖桿回正 */
   const stick = $('#stick'), stickBase = $('#stickBase'), stickKnob = $('#stickKnob');
-  const STICK_R = 46, DEAD = 14;
-  let stickId = null, stickO = null;
+  const DEAD = 14;
+  let stickId = null;
   function stickMove(e) {
-    const dx = e.clientX - stickO.x, dy = e.clientY - stickO.y;
-    const dist = Math.hypot(dx, dy), k = dist > STICK_R ? STICK_R / dist : 1;
+    const r = stickBase.getBoundingClientRect();
+    const dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
+    const R = r.width / 2 - 20, dist = Math.hypot(dx, dy), k = dist > R ? R / dist : 1;
     stickKnob.style.transform = `translate(${dx * k}px, ${dy * k}px)`;
     if (dist < DEAD) { stopHold(); return; }
     startHold(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'));
@@ -571,26 +572,21 @@
   function stickEnd(e) {
     if (e.pointerId !== stickId) return;
     stickId = null; stopHold();
-    stickBase.hidden = true; stick.classList.remove('active');
+    stickKnob.style.transform = '';
+    stick.classList.remove('active');
   }
   stick.addEventListener('pointerdown', e => {
     e.preventDefault(); MT.Audio.init();
     if (advanceDialog() || stickId !== null) return;
-    const r = stick.getBoundingClientRect();
-    // 太靠邊時把中心往內推，搖桿整個畫得出來
-    const x = Math.min(Math.max(e.clientX - r.left, 62), r.width - 62), y = Math.min(Math.max(e.clientY - r.top, 62), r.height - 62);
-    stickO = { x: r.left + x, y: r.top + y };
     stickId = e.pointerId;
     try { stick.setPointerCapture(e.pointerId); } catch (err) { /* 沒有真的觸控時抓不到，不影響 */ }
-    stickBase.style.left = x + 'px'; stickBase.style.top = y + 'px';
-    stickBase.hidden = false; stick.classList.add('active');
+    stick.classList.add('active');
     stickMove(e);
   });
   stick.addEventListener('pointermove', e => { if (e.pointerId === stickId) stickMove(e); });
   stick.addEventListener('pointerup', stickEnd);
   stick.addEventListener('pointercancel', stickEnd);
-  stick.addEventListener('lostpointercapture', stickEnd);
-  const KEYMAP = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', w: 'up', s: 'down', a: 'left', d: 'right', W: 'up', A: 'left', D: 'right' };
+  stick.addEventListener('lostpointercapture', stickEnd);  const KEYMAP = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', w: 'up', s: 'down', a: 'left', d: 'right', W: 'up', A: 'left', D: 'right' };
   document.addEventListener('keydown', e => {
     MT.Audio.init();
     if (e.target.tagName === 'INPUT') return;
