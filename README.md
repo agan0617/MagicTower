@@ -52,6 +52,7 @@ token 只存在那台裝置的瀏覽器（localStorage）裡；手機弄丟時�
 | `js/main.js` | 畫面、操作、演出、選單 |
 | `tools/solve.js` | 平衡檢查：自動玩家從 1F 打到結局，改關卡或數值後跑 `node tools/solve.js` 確認還打得通 |
 | `tools/count.js` | 每層的鑰匙／門／寶石數量 |
+| `tools/check_reach.js` | 地圖連通檢查：只有牆和 NPC 擋路時，每層有沒有永遠走不到的格子（`--after-talk` 套用 NPC 對話後的變化） |
 | `tools/make_icons.py` | 產生圖示 |
 
 改版時記得把 `sw.js` 的 `VERSION` 加一，否則已經開過的瀏覽器會繼續用快取裡的舊檔。

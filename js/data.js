@@ -349,6 +349,9 @@
       ['say', 'doremi', 'bard_5'],
       ['fairy', false],
       ['flag', 'bardTalked'],
+      // 巴納比退進上方牆邊的凹處，讓出往左下區的路（他原本站的 (3,5) 是唯一通道）
+      ['sfx', 'step'], ['set', 3, 5, '..'], ['set', 3, 4, 'Om'],
+      ['narr', 'bard_move'],
     ],
     bardAgain: [['say', 'bard', 'bard_again']],
     golemIntro: [
