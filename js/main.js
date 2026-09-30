@@ -541,7 +541,7 @@
     else if (Math.abs(x - st.x) + Math.abs(y - st.y) === 1) stepOnce(x > st.x ? 'right' : x < st.x ? 'left' : y > st.y ? 'down' : 'up');
   });
 
-  /* 按住連續走（搖桿與鍵盤共用） */
+  /* 按住連續走（十字鍵與鍵盤共用） */
   let holdDir = null, holdTimer = null;
   function startHold(d) {
     autoPath = null;
@@ -556,37 +556,41 @@
     tick();
   }
   function stopHold(d) { if (!d || holdDir === d) { holdDir = null; clearTimeout(holdTimer); } }
-  /* 搖桿：固定在搖桿區正中央；在這塊區域任何地方按住，都以搖桿中心判斷方向（取水平／垂直較大的一邊），
-     拖離中心超過死區就朝那個方向連續走，放開搖桿回正 */
-  const stick = $('#stick'), stickBase = $('#stickBase'), stickKnob = $('#stickKnob');
-  const DEAD = 14;
-  let stickId = null;
-  function stickMove(e) {
-    const r = stickBase.getBoundingClientRect();
+  /* 十字鍵：按住一顆連續走；不放開直接滑到另一顆就換方向。
+     手指在哪顆按鈕上就走哪個方向；滑到按鈕之間的空隙或十字鍵外面時，改用「離十字鍵中心哪個方向較遠」判斷，換向才不會斷掉 */
+  const pad = $('#pad'), padBtns = [...pad.querySelectorAll('[data-dir]')];
+  let padId = null;
+  function padDir(e) {
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const b = el && el.closest && el.closest('#pad [data-dir]');
+    if (b) return b.dataset.dir;
+    const r = pad.getBoundingClientRect();
     const dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
-    const R = r.width / 2 - 20, dist = Math.hypot(dx, dy), k = dist > R ? R / dist : 1;
-    stickKnob.style.transform = `translate(${dx * k}px, ${dy * k}px)`;
-    if (dist < DEAD) { stopHold(); return; }
-    startHold(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'));
+    if (Math.hypot(dx, dy) < r.height * 0.12) return holdDir; // 正中間：維持原方向
+    return Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
   }
-  function stickEnd(e) {
-    if (e.pointerId !== stickId) return;
-    stickId = null; stopHold();
-    stickKnob.style.transform = '';
-    stick.classList.remove('active');
+  function padShow(d) { padBtns.forEach(b => b.classList.toggle('on', b.dataset.dir === d)); }
+  function padMove(e) {
+    const d = padDir(e);
+    if (d && d !== holdDir) { startHold(d); padShow(d); }
   }
-  stick.addEventListener('pointerdown', e => {
+  function padEnd(e) {
+    if (e.pointerId !== padId) return;
+    padId = null; stopHold(); padShow(null);
+  }
+  pad.addEventListener('pointerdown', e => {
     e.preventDefault(); MT.Audio.init();
-    if (advanceDialog() || stickId !== null) return;
-    stickId = e.pointerId;
-    try { stick.setPointerCapture(e.pointerId); } catch (err) { /* 沒有真的觸控時抓不到，不影響 */ }
-    stick.classList.add('active');
-    stickMove(e);
+    if (advanceDialog() || padId !== null) return;
+    const b = e.target.closest('[data-dir]');
+    if (!b) return;
+    padId = e.pointerId;
+    try { pad.setPointerCapture(e.pointerId); } catch (err) { /* 沒有真的觸控時抓不到，不影響 */ }
+    startHold(b.dataset.dir); padShow(b.dataset.dir);
   });
-  stick.addEventListener('pointermove', e => { if (e.pointerId === stickId) stickMove(e); });
-  stick.addEventListener('pointerup', stickEnd);
-  stick.addEventListener('pointercancel', stickEnd);
-  stick.addEventListener('lostpointercapture', stickEnd);  const KEYMAP = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', w: 'up', s: 'down', a: 'left', d: 'right', W: 'up', A: 'left', D: 'right' };
+  pad.addEventListener('pointermove', e => { if (e.pointerId === padId) padMove(e); });
+  pad.addEventListener('pointerup', padEnd);
+  pad.addEventListener('pointercancel', padEnd);
+  pad.addEventListener('lostpointercapture', padEnd);  const KEYMAP = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', w: 'up', s: 'down', a: 'left', d: 'right', W: 'up', A: 'left', D: 'right' };
   document.addEventListener('keydown', e => {
     MT.Audio.init();
     if (e.target.tagName === 'INPUT') return;

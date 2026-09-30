@@ -64,16 +64,13 @@ button { font: inherit; color: inherit; }
 #bar button:disabled { opacity: 0.35; }
 #bar button:active:not(:disabled) { background: var(--panel2); }
 
-/* 搖桿：固定在搖桿區正中央，區域內任何地方按住都能操作 */
-#stick { position: relative; width: var(--map); flex: 1 1 auto; min-height: 150px; touch-action: none; }
-#stickBase { position: absolute; left: 50%; top: 50%; width: min(150px, calc(100% - 12px)); aspect-ratio: 1; transform: translate(-50%, -50%); border-radius: 50%; pointer-events: none;
-  background: radial-gradient(circle, rgba(255, 216, 74, 0.06), rgba(58, 54, 96, 0.45)); border: 2px solid rgba(216, 200, 255, 0.3); }
-#stickBase::before, #stickBase::after { content: ""; position: absolute; left: 50%; top: 50%; background: rgba(216, 200, 255, 0.12); transform: translate(-50%, -50%); }
-#stickBase::before { width: 2px; height: 78%; } #stickBase::after { width: 78%; height: 2px; }
-#stickKnob { position: absolute; left: 50%; top: 50%; width: 38%; aspect-ratio: 1; margin: -19% 0 0 -19%; border-radius: 50%; z-index: 1;
-  background: radial-gradient(circle at 35% 30%, #fff3c0, #ffd84a 45%, #c9921a); box-shadow: 0 4px 14px rgba(0,0,0,.5); transition: transform .12s ease-out; }
-#stick.active #stickKnob { transition: none; }
-#stick.active #stickBase { border-color: rgba(255, 216, 74, 0.55); }
+/* 十字鍵：固定在操作區正中央，大小跟著操作區的高度縮放；按住一顆後滑到另一顆就換方向 */
+#stick { position: relative; width: var(--map); flex: 1 1 auto; min-height: 150px; touch-action: none; display: flex; align-items: center; justify-content: center; }
+#pad { position: relative; height: min(228px, calc(100% - 8px)); aspect-ratio: 1.1; max-width: 100%; touch-action: none; }
+#pad button { position: absolute; width: 34%; height: 33.4%; border-radius: 16px; border: 1px solid var(--line); background: var(--panel); font-size: clamp(16px, 5vmin, 24px); color: var(--muted); touch-action: none; cursor: pointer; transition: background .08s, transform .08s; }
+#pad button.on { background: var(--panel2); color: var(--accent); border-color: rgba(255, 216, 74, 0.6); transform: scale(0.96); }
+#pad .up { left: 33%; top: 0; } #pad .down { left: 33%; bottom: 0; }
+#pad .left { left: 0; top: 33.3%; } #pad .right { right: 0; top: 33.3%; }
 /* ── 版面：橫向（電腦、平板）── */
 @media (min-aspect-ratio: 5/4) {
   #stage {
