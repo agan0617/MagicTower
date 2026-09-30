@@ -64,13 +64,13 @@ button { font: inherit; color: inherit; }
 #bar button:disabled { opacity: 0.35; }
 #bar button:active:not(:disabled) { background: var(--panel2); }
 
-/* 十字鍵：固定在操作區正中央，大小跟著操作區的高度縮放；按住一顆後滑到另一顆就換方向 */
+/* 十字鍵：固定在操作區正中央、四顆緊靠（單手拇指好按）；整塊操作區都收觸控，手指滑進哪顆就往哪走 */
 #stick { position: relative; width: var(--map); flex: 1 1 auto; min-height: 150px; touch-action: none; display: flex; align-items: center; justify-content: center; }
-#pad { position: relative; height: min(228px, calc(100% - 8px)); aspect-ratio: 1.1; max-width: 100%; touch-action: none; }
-#pad button { position: absolute; width: 34%; height: 33.4%; border-radius: 16px; border: 1px solid var(--line); background: var(--panel); font-size: clamp(16px, 5vmin, 24px); color: var(--muted); touch-action: none; cursor: pointer; transition: background .08s, transform .08s; }
+#pad { position: relative; height: min(162px, calc(100% - 8px)); aspect-ratio: 1; max-width: 100%; touch-action: none; }
+#pad button { position: absolute; width: 34%; height: 34%; border-radius: 12px; border: 1px solid var(--line); background: var(--panel); font-size: clamp(16px, 5vmin, 24px); color: var(--muted); touch-action: none; cursor: pointer; transition: background .08s, transform .08s; }
 #pad button.on { background: var(--panel2); color: var(--accent); border-color: rgba(255, 216, 74, 0.6); transform: scale(0.96); }
 #pad .up { left: 33%; top: 0; } #pad .down { left: 33%; bottom: 0; }
-#pad .left { left: 0; top: 33.3%; } #pad .right { right: 0; top: 33.3%; }
+#pad .left { left: 0; top: 33%; } #pad .right { right: 0; top: 33%; }
 /* ── 版面：橫向（電腦、平板）── */
 @media (min-aspect-ratio: 5/4) {
   #stage {
