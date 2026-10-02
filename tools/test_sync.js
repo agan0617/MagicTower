@@ -8,10 +8,17 @@ const fs = require('fs');
 
 // 假 GitHub：一個檔案，每次 PUT 換 sha，sha 對不上回 409
 const remote = { content: null, sha: null, n: 0, puts: 0 };
+// 舊版寫在 repo 根目錄的 saves.json（1.4.2 以前）
+const stray = { content: null, sha: 'stray1', deleted: 0 };
 async function fakeFetch(url, opt) {
   opt = opt || {};
   const ok = (body, status) => ({ ok: true, status: status || 200, json: async () => body });
   const bad = (status, message) => ({ ok: false, status, json: async () => ({ message }) });
+  if (/\/contents\/saves\.json$/.test(url)) {
+    if (!stray.content) return bad(404, 'Not Found');
+    if (opt.method === 'DELETE') { stray.content = null; stray.deleted++; return ok({}); }
+    return ok({ content: stray.content, sha: stray.sha });
+  }
   if (!/\/contents\/saves\/magictower\.json$/.test(url)) return bad(404, 'Not Found');
   if (!opt.method || opt.method === 'GET') {
     if (!remote.content) return bad(404, 'Not Found');
@@ -73,6 +80,14 @@ function device(name) {
   // B 拉下來拿到 A 存的 s2
   await B.pull();
   assert.strictEqual(B.get('s2').floor, 4);
+  // 舊版頁面把較新的自動存檔寫在根目錄 saves.json：拉取時併進來、推上新位置、刪掉根目錄那份
+  stray.content = Buffer.from(JSON.stringify({ v: 1, slots: { auto: { at: (clock += 1000), device: 'Old', floor: 7, hp: 600, data: { floor: 7, hp: 600 } } } })).toString('base64');
+  r = await A.pull();
+  assert.strictEqual(JSON.stringify(r.changed), '["auto"]');
+  assert.strictEqual(A.get('auto').floor, 7);
+  assert.strictEqual(JSON.parse(Buffer.from(remote.content, 'base64').toString()).slots.auto.floor, 7, '要推上新位置');
+  assert.strictEqual(stray.deleted, 1, '根目錄那份要刪掉');
+  assert.strictEqual(JSON.parse(Buffer.from(remote.content, 'base64').toString()).slots.s2.floor, 4, '其他格不受影響');
   // 離線：fetch 丟例外 → 狀態 offline，本機存檔照樣在
   const C = device('Offline');
   C.api = async () => { const e = new Error('net'); e.status = 0; throw e; };

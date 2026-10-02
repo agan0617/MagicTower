@@ -15,6 +15,7 @@
   const DEFAULT = { owner: 'agan0617', repo: 'CloudSave', token: '' };
   // 存檔 repo 可能跟其他遊戲／K書吧共用，每款遊戲各用 saves/ 底下自己的檔名
   const FILE = 'saves/magictower.json';
+  const OLD_FILE = 'saves.json';
   const SLOTS = ['auto', 's1', 's2', 's3'];
 
   const b64enc = s => { const u = new TextEncoder().encode(s); let bin = ''; for (let i = 0; i < u.length; i += 0x8000) bin += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(bin); };
@@ -86,6 +87,13 @@
         return { data: JSON.parse(b64dec(j.content)), sha: j.sha };
       } catch (e) { if (e.status === 404) return { data: { v: 1, slots: {} }, sha: null }; throw e; }
     },
+    // 1.4.2 以前的版本（含還沒重新載入的舊頁面）把存檔寫在 repo 根目錄的 saves.json
+    async fetchStray() {
+      try {
+        const j = await this.api('contents/' + OLD_FILE);
+        return { data: JSON.parse(b64dec(j.content)), sha: j.sha };
+      } catch (e) { if (e.status === 404) return null; throw e; }
+    },
 
     // 每一格取比較新的
     merge(a, b) {
@@ -105,14 +113,19 @@
       try {
         const r = await this.fetchRemote();
         this.sha = r.sha;
+        const stray = await this.fetchStray();
         const loc = this.local();
-        const merged = this.merge(loc, r.data);
+        const merged = this.merge(stray ? this.merge(loc, stray.data) : loc, r.data);
         const changed = SLOTS.filter(k => merged.slots[k] && (!loc.slots[k] || merged.slots[k].at !== loc.slots[k].at));
         this.writeLocal(merged);
         // 本機有比雲端新的 → 順便推上去
         const needPush = SLOTS.some(k => merged.slots[k] && (!r.data.slots || !r.data.slots[k] || merged.slots[k].at !== r.data.slots[k].at));
         if (needPush) await this.push();
         else this.setStatus('ok');
+        // 根目錄那份已經併進新位置（推上去了才刪）
+        if (stray && this.status === 'ok') {
+          await this.api('contents/' + OLD_FILE, { method: 'DELETE', body: JSON.stringify({ message: '移除根目錄的舊存檔（已併進 ' + FILE + '）', sha: stray.sha }) }).catch(() => {});
+        }
         return { changed };
       } catch (e) { this.fail(e); return { changed: [] }; }
     },
