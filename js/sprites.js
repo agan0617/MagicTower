@@ -127,6 +127,25 @@
       '....kNNkkNNk....',
       '....kkkkkkkk....',
     ] },
+    // 序章第一次看到靜默之塔：眉毛挑高、眼睛瞪大露出眼白、嘴巴張開的驚嚇臉
+    heroSideScared: { rows: [
+      '.....y.yy.y.....',
+      '....kyyyyyyk....',
+      '....knnnnnnk....',
+      '...knnnnnNnnk...',
+      '...knnnnsksk....',
+      '...knnnswkskk...',
+      '...knnnswwsssk..',
+      '....knnssRRsk...',
+      '....kkkkkRkk....',
+      '...kbbnnnnbk.GG.',
+      '...kbbnnnnsk.GG.',
+      '...kbbnnnnskkn..',
+      '....kbnnnnbkn...',
+      '....kbbkbbbk....',
+      '....kNNkkNNk....',
+      '....kkkkkkkk....',
+    ] },
     // 序章說「應該是我害的吧」：眼皮垂下、往下看的心虛臉
     heroSideGuilty: { rows: [
       '.....y.yy.y.....',

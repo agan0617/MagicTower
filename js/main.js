@@ -1280,6 +1280,28 @@
   }
 
   // 夜裡的打鐵鋪：星空、左邊的鐵砧和還沒熄的爐火
+  // 一張圖的純色剪影（影子用）
+  const silCache = new Map();
+  function silhouette(name, sc, color) {
+    const key = name + '|' + sc + '|' + color;
+    let c = silCache.get(key);
+    if (c) return c;
+    c = document.createElement('canvas');
+    c.width = c.height = 16 * sc;
+    const g = c.getContext('2d');
+    g.drawImage(MT.sprite(name, null, sc), 0, 0);
+    g.globalCompositeOperation = 'source-in'; g.fillStyle = color; g.fillRect(0, 0, c.width, c.height);
+    silCache.set(key, c);
+    return c;
+  }
+  // 過場的心跳：跟 audio.js 的 heartbeat 同一個節奏（一下比一下快）。回傳 0～1，咚的那一下最亮
+  const HEART_MS = [];
+  for (let i = 0, at = 150; i < 8; i++) { if (i) at += 950 - i * 70; HEART_MS.push(at); }
+  function heartbeatAt(st) {
+    let v = 0;
+    for (const b of HEART_MS) for (const off of [0, 160]) { const d = st - b - off; if (d >= 0 && d < 260) v = Math.max(v, (1 - d / 260) * (off ? 0.7 : 1)); }
+    return v;
+  }
   function drawForgeNight(t) {
     drawSky(t, '#120c1c', '#3a1a14'); drawStars(t);
     cg.fillStyle = '#2a1a14'; cg.fillRect(0, SIZE - 120, SIZE, 120);
@@ -1591,6 +1613,86 @@
       }
       cg.globalAlpha = 1;
     },
+    // 吼完之後：國王愣住退進黑暗、爐火一點一點熄掉，只剩心跳。白天的笑聲和國王的嘮叨在他身邊打轉、
+    // 一句句鑽進胸口；腳下的影子越拉越長，最後自己站了起來，比他高出一倍，睜開紅色的眼睛
+    forgeShadow: t => {
+      const st = t - cineT0;
+      const fx = 170 + 64, fy = SIZE - 122;                                   // 阿爾特腳底中央
+      const beat = heartbeatAt(st);                                           // 0～1，心跳那一下最亮
+      const amp = st < 600 ? 4 * (1 - st / 600) : beat * 2;
+      cg.translate((Math.random() - 0.5) * amp, (Math.random() - 0.5) * amp);
+      drawForgeNight(t);
+      // 爐火熄掉：蓋一層黑把爐光吃掉
+      const fireOut = Math.min(1, st / 2600);
+      cg.fillStyle = `rgba(6,4,12,${0.55 * fireOut})`; cg.fillRect(0, 0, SIZE, SIZE);
+      // 國王愣在原地、慢慢退進黑暗裡
+      const kingA = Math.max(0, 1 - st / 1300);
+      if (kingA > 0) { cg.globalAlpha = kingA; bigSprite('bard', null, 370 + (1 - kingA) * 30, SIZE - 250, 8); cg.globalAlpha = 1; }
+      // 四周越來越暗，只剩阿爾特身上一圈紅光跟著心跳（先畫，影子才會從紅光裡浮出來）
+      const dark = Math.min(0.85, st / 3200);
+      const vg = cg.createRadialGradient(fx, fy - 70, 60, fx, fy - 70, 420);
+      vg.addColorStop(0, 'rgba(6,4,12,0)'); vg.addColorStop(1, `rgba(6,4,12,${dark})`);
+      cg.fillStyle = vg; cg.fillRect(0, 0, SIZE, SIZE);
+      const red = cg.createRadialGradient(fx + 20, fy - 140, 10, fx + 20, fy - 140, 260 + beat * 50);
+      red.addColorStop(0, `rgba(255,40,40,${0.22 + 0.33 * beat})`); red.addColorStop(1, 'rgba(255,40,40,0)');
+      cg.fillStyle = red; cg.fillRect(0, 0, SIZE, SIZE);
+      // 影子：先躺在地上往右拉長，再從腳底立起來，長到兩倍多高
+      const grow = Math.min(1, Math.max(0, (st - 900) / 1700));
+      const q0 = Math.min(1, Math.max(0, (st - 2600) / 1500)), q = q0 * q0 * (3 - 2 * q0);
+      const L = 40 + 200 * grow;
+      const W = 1 + 0.45 * q, kx = -(L / 128) * (1 - q), ky = 0.1 * (1 - q) + 2.3 * q;
+      const sil = silhouette('heroSideAngry', 8, '#06040c'), rim = silhouette('heroSideAngry', 8, '#8a2240');
+      const wob = Math.sin(t / 160) * 2;
+      cg.save();
+      cg.translate(fx, fy); cg.transform(W, 0, kx + wob * 0.004, ky, 0, 0);
+      cg.globalAlpha = 0.25 + 0.5 * q + 0.25 * beat * q;                    // 站起來之後，邊上透出一圈暗紅
+      for (const [dx, dy] of [[-2, 0], [2, 0], [0, -1.5], [0, 1]]) cg.drawImage(rim, -64 + dx, -128 + dy);
+      cg.globalAlpha = 0.35; cg.drawImage(sil, -64 - 3, -128 - 2);   // 糊開的邊，看起來像煙
+      cg.drawImage(sil, -64 + 3, -128 + 1);
+      cg.globalAlpha = 0.95; cg.drawImage(sil, -64, -128);
+      cg.restore();
+      // 站起來之後往上散的黑煙
+      for (let i = 0; i < 16 && q > 0; i++) {
+        const p = ((t / 1900 + i / 16) % 1);
+        const x = fx + (i % 2 ? 1 : -1) * (30 + (i * 17) % 60) * W, y = fy - ky * 128 * (0.25 + (i * 7 % 10) / 14) - p * 60;
+        cg.globalAlpha = (1 - p) * 0.6 * q; cg.fillStyle = '#06040c';
+        cg.beginPath(); cg.arc(x, y, 8 + p * 12, 0, Math.PI * 2); cg.fill();
+      }
+      cg.globalAlpha = 1;
+      bigSprite('heroSideAngry', null, 170 + Math.sin(t / 30) * 1.5 * (0.4 + beat), SIZE - 250, 8);
+      // 腦海裡的聲音：笑聲和國王的話在他身邊轉，越轉越近，最後鑽進胸口
+      const echoes = MT.story('rage_echo').split('|');
+      cg.textAlign = 'center';
+      for (let i = 0; i < 12; i++) {
+        const t0 = 300 + i * 330, life = 1900, p = (st - t0) / life;
+        if (p < 0 || p > 1) continue;
+        const a = i * 2.4 + p * 1.6, r = 230 * (1 - p * p);
+        const x = fx + Math.cos(a) * r, y = fy - 80 + Math.sin(a) * r * 0.55;
+        cg.globalAlpha = Math.sin(p * Math.PI) * 0.9;
+        cg.fillStyle = i % 3 === 0 ? '#fff3c0' : '#ff7a6a';
+        cg.font = `bold ${Math.round(18 + (1 - p) * 14)}px sans-serif`;
+        cg.fillText(echoes[i % echoes.length], x, y);
+      }
+      cg.globalAlpha = 1;
+      // 影子的頭上睜開兩隻紅眼，再浮出一抹白色的笑（面具的前兆）
+      if (q > 0.85) {
+        const open = Math.min(1, (st - 4000) / 400), hy = fy - ky * 88;
+        if (open > 0) {
+          cg.globalCompositeOperation = 'lighter';
+          for (const u of [-6, 26]) {
+            const ex = fx + u * W;
+            cg.fillStyle = `rgba(255,58,106,${0.45 * open})`; cg.beginPath(); cg.arc(ex, hy, 18, 0, Math.PI * 2); cg.fill();
+            cg.fillStyle = `rgba(255,120,150,${open})`; cg.fillRect(ex - 9, hy - 3 * open, 18, 6 * open);
+          }
+          cg.globalCompositeOperation = 'source-over';
+        }
+        const smile = Math.min(1, Math.max(0, (st - 4700) / 600));
+        if (smile > 0) {
+          cg.strokeStyle = `rgba(239,234,220,${smile * 0.9})`; cg.lineWidth = 5; cg.lineCap = 'round';
+          cg.beginPath(); cg.arc(fx + 10 * W, hy + 22, 34, 0.25 * Math.PI, 0.75 * Math.PI); cg.stroke();
+        }
+      }
+    },
     maestro: t => {
       const { tip, lift } = drawMaestroRise(t);
       // 指揮棒舉起之後，滿天的音符被捲向棒尖、越靠近越暗
@@ -1631,11 +1733,29 @@
     meet: t => {
       drawSky(t, '#3a4060', '#c89a7a'); drawTower(t, SIZE / 2 + 120, 80, '#0e0b16');
       cg.fillStyle = '#4a3a3a'; cg.fillRect(0, SIZE - 90, SIZE, 90);
-      // 多蕾出場：先是一點光，四周的光點往它聚過去、越來越亮，然後「啵」地彈出來（約 1.3 秒）
-      const st = t - cineT0;
+      // 先是阿爾特第一次看到塔：嚇得往後一縮、頭上冒驚嘆號、冷汗直流（1.2 秒）。
+      // 接著多蕾出場：先是一點光，四周的光點往它聚過去、越來越亮，然後「啵」地彈出來（約 1.3 秒）
+      const raw = t - cineT0, st = raw - 1200;
       const fx = 300, fy = SIZE - 300 + Math.sin(t / 250) * 12, fc = [fx + 56, fy + 56];
       const shown = st >= 1300;
-      bigSprite(cinePose || (shown ? 'heroSideShock' : 'heroSideSulk'), null, 90, SIZE - 90 - 128, 8);   // 腳踩在地面上緣；多蕾冒出來那一刻才傻眼
+      const flinch = raw < 350 ? Math.sin(raw / 350 * Math.PI) : 0;
+      const hx = 90 - flinch * 14, hy = SIZE - 90 - 128 - flinch * 18;
+      bigSprite(cinePose || (shown ? 'heroSideShock' : 'heroSideScared'), null, hx, hy, 8);   // 腳踩在地面上緣；看到塔先嚇到，多蕾冒出來再傻眼
+      if (!cinePose && !shown) {
+        if (raw > 120 && raw < 1300) {                                         // 頭上的驚嘆號，彈一下才定住
+          const pop = Math.min(1, (raw - 120) / 140), s = 1 + 0.4 * (1 - pop);
+          cg.globalAlpha = raw > 1100 ? (1300 - raw) / 200 : 1;
+          cg.fillStyle = '#ffe066'; cg.strokeStyle = '#1b1a26'; cg.lineWidth = 5; cg.lineJoin = 'round';
+          cg.font = `900 ${Math.round(64 * s)}px sans-serif`; cg.textAlign = 'center';
+          cg.strokeText('!', hx + 108, hy - 4); cg.fillText('!', hx + 108, hy - 4);
+          cg.globalAlpha = 1;
+        }
+        const p = (raw % 900) / 900;                                           // 額頭滑下來的冷汗
+        cg.globalAlpha = 1 - p; cg.fillStyle = '#aef4ff';
+        cg.fillRect(hx + 66, hy + 32 + p * 22, 7, 10); cg.fillRect(hx + 68, hy + 27 + p * 22, 3, 5);
+        cg.globalAlpha = 1;
+      }
+      if (st < 0) return;
       if (st < 1000) {
         const k = st / 1000;
         const glow = cg.createRadialGradient(fc[0], fc[1], 0, fc[0], fc[1], 10 + k * 50);
@@ -1766,9 +1886,10 @@
     { text: 'pro_3b', speaker: 'smith' },
     { scene: 'forgeKing', text: 'pro_4', speaker: 'bard', delay: 1600 },
     { scene: 'forgeRage', text: 'pro_4b', speaker: 'tink', music: 'none', sfx: 'boom' },
+    { scene: 'forgeShadow', text: 'pro_4c', sfx: 'heartbeat', delay: 900 },
     { scene: 'maestro', text: 'pro_5', sfx: 'harp' },
     { scene: 'tower', text: 'pro_6', delay: 2400 },
-    { scene: 'meet', text: 'pro_7', speaker: 'doremi', delay: 1500 },
+    { scene: 'meet', text: 'pro_7', speaker: 'doremi', delay: 2700 },
     { text: 'pro_8', speaker: 'tink' },
     { text: 'pro_9', speaker: 'doremi' },
     { text: 'pro_10', speaker: 'tink', pose: 'heroSideGuilty' },

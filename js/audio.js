@@ -283,6 +283,18 @@
         tone('square', f, at, 0.07, 0.05 * (1 - i / 26), sfxBus, f * 0.75);
       }
     },
+    // 序章吼完之後的心跳：八下「咚、咚」一下比一下快，底下墊一條慢慢變大的低音（節奏同 main.js 的 HEART_MS）
+    heartbeat: t => {
+      let at = t + 0.15;
+      for (let i = 0; i < 8; i++) {
+        if (i) at += (950 - i * 70) / 1000;
+        kick(at, sfxBus, 1.1); kick(at + 0.16, sfxBus, 0.75);
+      }
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'sawtooth'; o.frequency.setValueAtTime(48, t); o.frequency.linearRampToValueAtTime(62, t + 6);
+      g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.06, t + 5); g.gain.linearRampToValueAtTime(0.0001, t + 7);
+      o.connect(g); g.connect(sfxBus); o.start(t); o.stop(t + 7.1);
+    },
     buy: t => arp('square', ['b5', 'e6'], t, 0.08, 0.18, 0.1),
     error: t => { tone('square', 150, t, 0.1, 0.12); tone('square', 120, t + 0.12, 0.12, 0.12); },
     gate: t => { noise(t, 0.8, 'lowpass', 250, 0.6, sfxBus); tone('square', 60, t, 0.6, 0.08, sfxBus, 45); },
