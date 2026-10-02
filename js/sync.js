@@ -1,6 +1,8 @@
-/* 存檔與雲端同步。
-   每台裝置在 localStorage 存一份全部存檔（自動存檔＋三格手動）；有 token 時跟私有 GitHub repo 裡的
-   saves/magictower.json 對齊：每一格各自比時間，新的贏。做法跟K書吧一樣：token 由使用者在每台裝置貼一次，
+/* 存檔與雲端同步（1.5.0 起，做法對齊K書吧的進度格）。
+   存檔是一條清單：每台裝置一格自動存檔＋全部裝置共用最多 99 格手動存檔，新的在前。
+   每一格有 id，每台裝置只會寫自己的格子（id 帶裝置 id），所以裝置之間不會互相蓋掉；
+   合併＝兩邊的格子聯集，同一個 id 取比較新的。
+   有 token 時跟私有 GitHub repo 裡的 saves/magictower/saves.json 對齊。token 由使用者在每台裝置貼一次，
    只存在那台裝置，直接從瀏覽器打 GitHub API，沒有任何中間伺服器。 */
 (function (MT) {
   'use strict';
@@ -13,10 +15,13 @@
   MT.LS = LS;
 
   const DEFAULT = { owner: 'agan0617', repo: 'CloudSave', token: '' };
-  // 存檔 repo 可能跟其他遊戲／K書吧共用，每款遊戲各用 saves/ 底下自己的檔名
-  const FILE = 'saves/magictower.json';
-  const OLD_FILE = 'saves.json';
-  const SLOTS = ['auto', 's1', 's2', 's3'];
+  // 存檔 repo 可能跟其他遊戲／K書吧共用，每款遊戲各用 saves/ 底下自己的目錄
+  const FILE = 'saves/magictower/saves.json';
+  // 舊格式（固定四格 auto／s1～s3、所有裝置共用）的位置：1.4.2～1.4.4 在 saves/magictower.json，更早在根目錄 saves.json。
+  // 拉取時併進新清單、推上去後刪掉；還沒更新的舊頁面寫回來也會再被併進來
+  const OLD_FILES = ['saves/magictower.json', 'saves.json'];
+  const MANUAL_MAX = 99;
+  const AUTO_MAX = 20;   // 自動存檔一台裝置一格；換瀏覽器、清資料都會變成新裝置，留最新的 20 台
 
   const b64enc = s => { const u = new TextEncoder().encode(s); let bin = ''; for (let i = 0; i < u.length; i += 0x8000) bin += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(bin); };
   const b64dec = s => new TextDecoder().decode(Uint8Array.from(atob(String(s).replace(/\s/g, '')), c => c.charCodeAt(0)));
@@ -30,40 +35,91 @@
     const br = /Edg\//.test(ua) ? 'Edge' : /Chrome\//.test(ua) ? 'Chrome' : /Firefox\//.test(ua) ? 'Firefox' : /Safari\//.test(ua) ? 'Safari' : '';
     return os + (br ? ' ' + br : '');
   }
+  // 裝置 id：第一次用的時候隨機產生，存在這台裝置（跟K書吧一樣）
+  function deviceId() {
+    let id = LS.get('device', null);
+    if (!id) { id = 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); LS.set('device', id); }
+    return id;
+  }
+
+  const EMPTY = () => ({ v: 2, list: [] });
+  // 舊格式 { v:1, slots:{auto,s1,s2,s3} } 轉成清單。id 用存檔時間，本機和雲端轉出同一格就會是同一個 id
+  function fromV1(o) {
+    const list = [];
+    if (o && o.slots) for (const k of Object.keys(o.slots)) {
+      const s = o.slots[k];
+      if (!s || !s.data) continue;
+      list.push({ id: 'L:' + k + ':' + s.at, kind: k === 'auto' ? 'auto' : 'manual', dev: 'old', device: s.device || '', at: s.at, floor: s.floor, hp: s.hp, data: s.data });
+    }
+    return { v: 2, list };
+  }
+  const norm = o => (o && Array.isArray(o.list) ? o : o && o.slots ? fromV1(o) : EMPTY());
+
+  // 聯集＋同 id 取新的，再依時間排序、各自截掉超過的
+  function merge(a, b) {
+    const m = new Map();
+    for (const x of norm(a).list.concat(norm(b).list)) {
+      const y = m.get(x.id);
+      if (!y || x.at > y.at) m.set(x.id, x);
+    }
+    const all = [...m.values()].sort((x, y) => y.at - x.at);
+    return { v: 2, list: all.filter(x => x.kind === 'auto').slice(0, AUTO_MAX).concat(all.filter(x => x.kind !== 'auto').slice(0, MANUAL_MAX)) };
+  }
+  const sig = o => norm(o).list.map(x => x.id + '@' + x.at).sort().join('|');
 
   const Sync = {
     status: 'off', error: '', lastSync: 0, sha: null,
     onStatus: null,
     device: deviceName(),
+    devId: deviceId(),
+    MANUAL_MAX,
 
     conf() { return Object.assign({}, DEFAULT, LS.get('gh', {})); },
     setConf(c) { LS.set('gh', c); },
     connected() { return !!this.conf().token; },
 
     local() {
-      const s = LS.get('saves', null);
-      return s && s.slots ? s : { v: 1, slots: {} };
+      const s = LS.get('saves2', null);
+      if (s && Array.isArray(s.list)) return s;
+      // 第一次跑 1.5.0：把這台裝置舊的四格轉過來（舊的 mt.saves 不刪，退版還讀得到）
+      const v = fromV1(LS.get('saves', null));
+      this.writeLocal(v);
+      return v;
     },
     writeLocal(s) {
-      if (!LS.set('saves', s)) {
+      s = merge(s, EMPTY());
+      if (!LS.set('saves2', s)) {
         // 空間不夠（極少見）：只留自動存檔
-        LS.set('saves', { v: 1, slots: { auto: s.slots.auto } });
+        LS.set('saves2', { v: 2, list: s.list.filter(x => x.kind === 'auto') });
       }
     },
 
-    /* 存一格。data＝MT.pack(state) */
-    save(slot, data) {
+    rec(kind, id, data) {
+      return { id, kind, dev: this.devId, device: this.device, at: Date.now(), floor: data.floor, hp: data.hp, data };
+    },
+    put(r) {
       const s = this.local();
-      s.slots[slot] = { at: Date.now(), device: this.device, floor: data.floor, hp: data.hp, data };
+      s.list = s.list.filter(x => x.id !== r.id);
+      s.list.unshift(r);
       this.writeLocal(s);
       this.schedulePush();
-      return s.slots[slot];
+      return r;
     },
-    get(slot) { return this.local().slots[slot] || null; },
-    newest() {
-      const s = this.local().slots;
-      return SLOTS.map(k => s[k] && Object.assign({ slot: k }, s[k])).filter(Boolean).sort((a, b) => b.at - a.at)[0] || null;
+    /* 自動存檔：這台裝置自己那一格。data＝MT.pack(state) */
+    saveAuto(data) { return this.put(this.rec('auto', 'a:' + this.devId, data)); },
+    /* 手動存檔：沒給 id 就開新的一格；給 id 是覆蓋這台裝置自己存的那格 */
+    saveManual(data, id) {
+      if (id && !this.isMine(this.byId(id))) id = null;
+      return this.put(this.rec('manual', id || 'm:' + this.devId + ':' + Date.now().toString(36), data));
     },
+    isMine(r) { return !!r && r.dev === this.devId; },
+    byId(id) { return this.local().list.find(x => x.id === id) || null; },
+    autos() { return this.local().list.filter(x => x.kind === 'auto'); },
+    manuals() { return this.local().list.filter(x => x.kind !== 'auto'); },
+    myAuto() { return this.byId('a:' + this.devId); },
+    // 「繼續遊戲」用：所有裝置裡最新的自動存檔
+    latestAuto() { return this.autos()[0] || null; },
+    manualFull() { return this.manuals().length >= MANUAL_MAX; },
 
     setStatus(st, err) {
       this.status = st; this.error = err || '';
@@ -81,50 +137,40 @@
       if (!r.ok) { let m = ''; try { m = (await r.json()).message || ''; } catch (e) { /* 沒有內容 */ } throw new GhError(r.status, m || 'HTTP ' + r.status); }
       return r.json();
     },
-    async fetchRemote() {
+    async fetchFile(path) {
       try {
-        const j = await this.api('contents/' + FILE);
-        return { data: JSON.parse(b64dec(j.content)), sha: j.sha };
-      } catch (e) { if (e.status === 404) return { data: { v: 1, slots: {} }, sha: null }; throw e; }
-    },
-    // 1.4.2 以前的版本（含還沒重新載入的舊頁面）把存檔寫在 repo 根目錄的 saves.json
-    async fetchStray() {
-      try {
-        const j = await this.api('contents/' + OLD_FILE);
+        const j = await this.api('contents/' + path);
         return { data: JSON.parse(b64dec(j.content)), sha: j.sha };
       } catch (e) { if (e.status === 404) return null; throw e; }
     },
-
-    // 每一格取比較新的
-    merge(a, b) {
-      const out = { v: 1, slots: {} };
-      for (const k of SLOTS) {
-        const x = a.slots && a.slots[k], y = b.slots && b.slots[k];
-        const w = !x ? y : !y ? x : (y.at > x.at ? y : x);
-        if (w) out.slots[k] = w;
-      }
-      return out;
+    async fetchRemote() {
+      const r = await this.fetchFile(FILE);
+      return r ? { data: norm(r.data), sha: r.sha } : { data: EMPTY(), sha: null };
     },
 
-    /* 拉雲端的下來合併。回傳 { changed: [slot…] }（本機被雲端較新版本取代的格子） */
+    merge,
+
+    /* 拉雲端的下來合併。回傳 { changed: [id…] }（本機原本沒有、或被較新版本取代的格子） */
     async pull() {
       if (!this.connected()) return { changed: [] };
       this.setStatus('sync');
       try {
         const r = await this.fetchRemote();
         this.sha = r.sha;
-        const stray = await this.fetchStray();
+        const olds = [];
+        for (const p of OLD_FILES) { const o = await this.fetchFile(p); if (o) olds.push(Object.assign({ path: p }, o)); }
         const loc = this.local();
-        const merged = this.merge(stray ? this.merge(loc, stray.data) : loc, r.data);
-        const changed = SLOTS.filter(k => merged.slots[k] && (!loc.slots[k] || merged.slots[k].at !== loc.slots[k].at));
+        let merged = merge(loc, r.data);
+        for (const o of olds) merged = merge(merged, o.data);
+        const before = new Map(loc.list.map(x => [x.id, x.at]));
+        const changed = merged.list.filter(x => before.get(x.id) !== x.at).map(x => x.id);
         this.writeLocal(merged);
-        // 本機有比雲端新的 → 順便推上去
-        const needPush = SLOTS.some(k => merged.slots[k] && (!r.data.slots || !r.data.slots[k] || merged.slots[k].at !== r.data.slots[k].at));
-        if (needPush) await this.push();
+        // 本機有雲端沒有的（或舊位置有東西）→ 順便推上去
+        if (sig(merged) !== sig(r.data)) await this.push();
         else this.setStatus('ok');
-        // 根目錄那份已經併進新位置（推上去了才刪）
-        if (stray && this.status === 'ok') {
-          await this.api('contents/' + OLD_FILE, { method: 'DELETE', body: JSON.stringify({ message: '移除根目錄的舊存檔（已併進 ' + FILE + '）', sha: stray.sha }) }).catch(() => {});
+        // 舊位置的已經併進新清單（推上去了才刪）
+        if (this.status === 'ok') for (const o of olds) {
+          await this.api('contents/' + o.path, { method: 'DELETE', body: JSON.stringify({ message: '移除舊格式存檔（已併進 ' + FILE + '）', sha: o.sha }) }).catch(() => {});
         }
         return { changed };
       } catch (e) { this.fail(e); return { changed: [] }; }
@@ -149,7 +195,7 @@
             let remote;
             if (this.sha === null || tries > 0) remote = await this.fetchRemote();
             else remote = { data: null, sha: this.sha };
-            const merged = remote.data ? this.merge(this.local(), remote.data) : this.local();
+            const merged = remote.data ? merge(this.local(), remote.data) : merge(this.local(), EMPTY());
             const body = { message: `存檔 ${this.device} ${new Date().toISOString().slice(0, 16)}`, content: b64enc(JSON.stringify(merged)) };
             if (remote.sha) body.sha = remote.sha;
             const j = await this.api('contents/' + FILE, { method: 'PUT', body: JSON.stringify(body), keepalive: !!keepalive });

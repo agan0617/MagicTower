@@ -23,20 +23,20 @@
 - 4F 與 11F 有祭壇可以用金幣換能力，6F 的呱呱商人賣鑰匙
 - 2F 的老吟遊詩人會給你《風之羽》，可以在去過的樓層之間飛行
 - 怪物特技：**先攻**（開打前先打你一下）、**魔法**（無視防禦）
-- 資源有限，開門和打怪的順序很重要；記得常常存檔（自動存檔＋三格手動存檔）
+- 資源有限，開門和打怪的順序很重要；記得常常存檔（每台裝置一格自動存檔＋最多 99 格手動存檔）
 
 操作：方向鍵／WASD 移動，也可以直接點地圖上的格子，勇者會自己走過去。`B` 圖鑑、`F` 飛行、`Shift+S` 存讀、`Esc` 選單。手機上用地圖下方的十字鍵，按住後不放開直接滑到另一顆就能換方向。
 
 ## 手機和電腦同步進度
 
-做法跟 [K書吧](https://github.com/agan0617/KBookBar) 一樣：進度存在**你自己的私有 repo** 裡的 `saves/magictower.json`，每台裝置貼一次 GitHub fine-grained token，瀏覽器／App 直接跟 GitHub API 對話，沒有任何中間伺服器。
+做法跟 [K書吧](https://github.com/agan0617/KBookBar) 一樣：進度存在**你自己的私有 repo** 裡的 `saves/magictower/saves.json`，每台裝置貼一次 GitHub fine-grained token，瀏覽器／App 直接跟 GitHub API 對話，沒有任何中間伺服器。
 
 一個私有 repo 可以同時給好幾個 App 當雲端存檔，**一支 token 全部通用**，不用每個 App 各建一個 repo、各產生一支 token。每個 App 只讀寫 `saves/` 底下自己的位置，互不干擾，目錄也是 App 自己建的：
 
 | App | 存在 repo 的哪裡 |
 |---|---|
 | [K書吧](https://github.com/agan0617/KBookBar) | `saves/kbookbar/`（書目、書檔、閱讀進度） |
-| [魔塔](https://github.com/agan0617/MagicTower) | `saves/magictower.json` |
+| [魔塔](https://github.com/agan0617/MagicTower) | `saves/magictower/`（存檔） |
 
 已經在其中一個 App 連上的話，其他 App 連線時貼同一支 token、repo 填同一個就好。
 
@@ -44,7 +44,7 @@
 2. 到 GitHub → Settings → Developer settings → Personal access tokens → **Fine-grained tokens** → Generate new token：Repository access 只選那個 repo，Permissions 的 **Contents** 設成 **Read and write**
 3. 遊戲裡按右上角的 ☁（或標題畫面的「雲端同步」）→ 貼上 token → repo 填 `你的帳號/你的 repo` → 連線
 
-同步規則：自動存檔與三格手動存檔各自比時間，新的贏。每次換樓層、打完 Boss、買東西都會自動存檔並在幾秒內上傳；切走 App 或關掉分頁時也會上傳。打開時如果別台裝置有比較新的進度，會問你要不要讀取。
+同步規則跟K書吧的進度格一樣：存檔是一條清單，**每台裝置只寫自己的格子**，所以手機和電腦不會互相蓋掉。每台裝置各有一格自動存檔；手動存檔所有裝置共用、新的在前、最多 99 格（滿了再存會擠掉最舊的），別台裝置存的只能讀不能覆蓋。「繼續遊戲」接的是所有裝置裡最新的自動存檔。每次換樓層、打完 Boss、買東西都會自動存檔並在幾秒內上傳；切走 App 或關掉分頁時也會上傳。打開時如果別台裝置有比較新的進度，會問你要不要讀取。
 
 token 只存在那台裝置的瀏覽器（localStorage）裡；手機弄丟時到 GitHub 把 token 刪掉就好。
 

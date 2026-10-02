@@ -698,30 +698,43 @@
   }
   function slotLine(sl) {
     if (!sl) return `<span class="muted">${esc(MT.t('empty'))}</span>`;
-    return `${MT.t('floorN', { n: sl.floor })} · ${esc(MT.t('hp'))} ${sl.hp} · ${esc(sl.device || '')} · ${esc(timeAgo(sl.at))}`;
+    const dev = (sl.device || '') + (MT.Sync.isMine(sl) ? `（${MT.t('thisDevice')}）` : '');
+    return `${MT.t('floorN', { n: sl.floor })} · ${esc(MT.t('hp'))} ${sl.hp} · ${esc(dev)} · ${esc(timeAgo(sl.at))}`;
   }
+  /* 存檔／讀檔：上面是每台裝置各一格的自動存檔，下面是所有裝置共用、最多 99 格的手動存檔（新的在前）。
+     別台裝置存的格子只能讀，不能覆蓋（跟K書吧一樣，每台裝置只寫自己的格子） */
   function openSaves(fromTitle) {
     if (!fromTitle && (!st || mode !== 'game' || busy)) return;
-    const slots = ['auto', 's1', 's2', 's3'];
-    const html = slots.map(k => {
-      const sl = MT.Sync.get(k);
-      const name = k === 'auto' ? MT.t('slotAuto') : MT.t('slotN', { n: k.slice(1) });
-      return `<div class="slot"><div class="sn">${esc(name)}</div><div class="sd">${slotLine(sl)}</div><div class="sb">
-        ${k !== 'auto' && !fromTitle ? `<button class="btn" data-save="${k}">${esc(MT.t('saveHere'))}</button>` : ''}
-        ${sl ? `<button class="btn primary" data-load="${k}">${esc(MT.t('loadThis'))}</button>` : ''}</div></div>`;
-    }).join('') + `<p class="muted small" id="saveCloud">${esc(MT.t('cloud'))}：${esc(cloudText())}</p>`;
+    const S = MT.Sync, canSave = !fromTitle;
+    const row = (sl, name) => `<div class="slot"><div class="sn">${esc(name)}</div><div class="sd">${slotLine(sl)}</div><div class="sb">
+        ${canSave && sl.kind !== 'auto' && S.isMine(sl) ? `<button class="btn" data-save="${esc(sl.id)}">${esc(MT.t('saveHere'))}</button>` : ''}
+        <button class="btn primary" data-load="${esc(sl.id)}">${esc(MT.t('loadThis'))}</button></div></div>`;
+    const autos = S.autos(), manuals = S.manuals();
+    const html = `<label class="lab">${esc(MT.t('slotAuto'))}</label>`
+      + (autos.length ? autos.map(sl => row(sl, MT.t('slotAuto'))).join('') : `<p class="muted">${esc(MT.t('empty'))}</p>`)
+      + `<label class="lab">${esc(MT.t('slotManual'))}（${manuals.length}／${S.MANUAL_MAX}）</label>`
+      + (canSave ? `<div class="row"><button class="btn" data-new="1">${esc(MT.t('saveNew'))}</button></div>` : '')
+      + (manuals.length ? manuals.map((sl, i) => row(sl, MT.t('slotN', { n: manuals.length - i }))).join('') : `<p class="muted">${esc(MT.t('empty'))}</p>`)
+      + `<p class="muted small" id="saveCloud">${esc(MT.t('cloud'))}：${esc(cloudText())}</p>`;
+    const yesNo = [{ key: 'n', label: MT.t('no') }, { key: 'y', label: MT.t('yes') }];
     openModal(MT.t('saveTitle'), html, body => {
+      const nb = body.querySelector('[data-new]');
+      if (nb) nb.addEventListener('click', async () => {
+        if (S.manualFull() && await ask(MT.t('manualFull', { n: S.MANUAL_MAX }), yesNo) !== 'y') return;
+        S.saveManual(MT.pack(st)); sfx('save'); toast(MT.t('saved'));
+        closeModal(); openSaves();
+      });
       body.querySelectorAll('[data-save]').forEach(b => b.addEventListener('click', async () => {
-        const k = b.dataset.save;
-        if (MT.Sync.get(k) && await ask(MT.t('overwrite'), [{ key: 'n', label: MT.t('no') }, { key: 'y', label: MT.t('yes') }]) !== 'y') return;
-        MT.Sync.save(k, MT.pack(st)); sfx('save'); toast(MT.t('saved'));
+        if (await ask(MT.t('overwrite'), yesNo) !== 'y') return;
+        S.saveManual(MT.pack(st), b.dataset.save); sfx('save'); toast(MT.t('saved'));
         closeModal(); openSaves();
       }));
       body.querySelectorAll('[data-load]').forEach(b => b.addEventListener('click', async () => {
-        const k = b.dataset.load;
-        if (!fromTitle && await ask(MT.t('loadConfirm'), [{ key: 'n', label: MT.t('no') }, { key: 'y', label: MT.t('yes') }]) !== 'y') return;
+        const sl = S.byId(b.dataset.load);
+        if (!sl) return;
+        if (!fromTitle && await ask(MT.t('loadConfirm'), yesNo) !== 'y') return;
         closeModal();
-        startGame(MT.unpack(MT.Sync.get(k).data));
+        startGame(MT.unpack(sl.data));
         toast(MT.t('loaded'));
       }));
     });
@@ -832,7 +845,7 @@
           closeModal();
           toast(MT.t('cs_ok'));
           if (mode === 'title') renderTitle();
-          else checkCloudNewer({ changed: ['auto'] });
+          else checkCloudNewer();
         } catch (err) {
           btn.disabled = false;
           const el = body.querySelector('#cloudErr'); el.hidden = false; el.textContent = MT.Sync.error || MT.t('cs_offline');
@@ -842,10 +855,10 @@
   }
 
   // 別台裝置有比較新的自動存檔 → 問要不要讀
-  async function checkCloudNewer(res) {
-    if (!st || mode !== 'game' || !res.changed.includes('auto')) return;
-    const a = MT.Sync.get('auto');
-    if (!a || a.at <= lastAutoAt || a.device === MT.Sync.device) return;
+  async function checkCloudNewer() {
+    if (!st || mode !== 'game') return;
+    const a = MT.Sync.latestAuto();
+    if (!a || a.at <= lastAutoAt || MT.Sync.isMine(a)) return;
     while (busy) await sleep(200);
     busy++;
     const k = await ask(MT.t('cloudNewer', { device: a.device, floor: a.floor, time: timeAgo(a.at) }), [{ key: 'stay', label: MT.t('cloudStay') }, { key: 'load', label: MT.t('cloudLoad') }]);
@@ -857,7 +870,7 @@
   function autosave() {
     if (!st || st.done || mode !== 'game' || scripting) return;
     tickPlay();
-    const sl = MT.Sync.save('auto', MT.pack(st));
+    const sl = MT.Sync.saveAuto(MT.pack(st));
     lastAutoAt = sl.at;
   }
   function tickPlay() {
@@ -876,7 +889,7 @@
     } else {
       playClock = Date.now();
       MT.Audio.resume();
-      MT.Sync.pull().then(checkCloudNewer);
+      MT.Sync.pull().then(() => checkCloudNewer());
     }
   });
   window.addEventListener('pagehide', () => { if (mode === 'game') autosave(); MT.Sync.push(true); });
@@ -886,7 +899,7 @@
   cine.width = cine.height = SIZE;
   const cg = cine.getContext('2d');
   cg.imageSmoothingEnabled = false;
-  let cineScene = null, cineQueue = [], cineDone = null;
+  let cineScene = null, cineT0 = 0, cineQueue = [], cineDone = null;   // cineT0＝這個場景開始的時間，給有時間軸的演出用
 
   const stars = Array.from({ length: 70 }, (_, i) => [(i * 97) % SIZE, (i * 53) % 300, (i % 3) + 1]);
   function drawTown(t, day) {
@@ -915,8 +928,8 @@
   function floatingNotes(t, n, cx, cy, spread, color, rise) {
     cg.font = 'bold 26px serif'; cg.textAlign = 'center';
     for (let i = 0; i < n; i++) {
-      const p = ((t / 1000 + i * 0.37) % 3) / 3;
-      const x = cx + Math.sin(i * 1.7 + t / 900) * spread;
+      const p = ((t / 2000 + i * 0.37) % 3) / 3;            // 一趟 6 秒（1.4.4 起放慢一半，原本 3 秒）
+      const x = cx + Math.sin(i * 1.7 + t / 1800) * spread;
       const y = cy - p * rise;
       cg.globalAlpha = Math.sin(p * Math.PI); cg.fillStyle = color || ['#ffe066', '#aef4ff', '#ff9ccc'][i % 3];
       cg.fillText('♪♫♬♩'[i % 4], x, y);
@@ -931,7 +944,125 @@
     for (let i = 0; i < 6; i++) cg.fillRect(x - 6, 130 + i * 55, 12, 18);
   }
 
+  /* 序章練唱廳：阿爾特在台上領唱、破音、全場哄笑。st＝場景開始後幾毫秒，laughing＝笑到什麼程度（0～1） */
+  const LAUGH_TEXT = { zh: '哈哈', en: 'HA HA', ja: 'ハハ' };
+  const choir = Array.from({ length: 10 }, (_, i) => ({ x: [70, 120, 170, 358, 408, 458][i % 6] + (i >= 6 ? 25 : 0), row: i >= 6 ? 1 : 0, robe: i % 2 }));
+  const audience = Array.from({ length: 11 }, (_, i) => ({ x: 20 + i * 49 + (i % 2) * 8, h: 30 + (i * 7) % 12 }));
+  function drawRehearsal(t, st, laughing, sprite) {
+    const gr = cg.createLinearGradient(0, 0, 0, SIZE);
+    gr.addColorStop(0, '#2a1426'); gr.addColorStop(1, '#4a2a2a');
+    cg.fillStyle = gr; cg.fillRect(0, 0, SIZE, SIZE);
+    // 布幕
+    for (let i = 0; i < 6; i++) {
+      cg.fillStyle = i % 2 ? '#7a1e2a' : '#9a2a34';
+      cg.fillRect(i * 16, 0, 16, SIZE - 150); cg.fillRect(SIZE - 96 + i * 16, 0, 16, SIZE - 150);
+    }
+    cg.fillStyle = '#5a141e'; cg.fillRect(0, 0, SIZE, 34);
+    // 舞台
+    cg.fillStyle = '#6a4a30'; cg.fillRect(0, SIZE - 150, SIZE, 40);
+    cg.fillStyle = '#3a2618'; cg.fillRect(0, SIZE - 110, SIZE, 110);
+    const bob = i => laughing * Math.abs(Math.sin(t / 95 + i * 1.9)) * 5;
+    // 合唱團：後排兩階，站在王子兩側
+    for (let i = 0; i < choir.length; i++) {
+      const c = choir[i], y = SIZE - 205 - c.row * 30 - bob(i);
+      cg.fillStyle = c.robe ? '#e8e0f0' : '#d0c4e4'; cg.fillRect(c.x - 13, y + 18, 26, 34);
+      cg.fillStyle = '#f7cfa6'; cg.fillRect(c.x - 9, y, 18, 18);
+      cg.fillStyle = '#5a3a1e'; cg.fillRect(c.x - 9, y, 18, 5);
+      cg.fillStyle = '#1b1a26';
+      if (laughing > 0.3) { cg.fillRect(c.x - 5, y + 8, 3, 2); cg.fillRect(c.x + 2, y + 8, 3, 2); cg.fillRect(c.x - 3, y + 12, 6, 4); }   // 瞇眼大笑
+      else { cg.fillRect(c.x - 5, y + 7, 2, 3); cg.fillRect(c.x + 3, y + 7, 2, 3); cg.fillRect(c.x - 2, y + 12, 4, 3); }
+    }
+    // 王子
+    const shake = laughing > 0.3 && sprite === 'heroSing' ? Math.sin(t / 40) * 1.5 : 0;
+    cg.drawImage(MT.sprite(sprite, null, 6), SIZE / 2 - 48 + shake, SIZE - 246);
+    // 台下觀眾剪影
+    for (let i = 0; i < audience.length; i++) {
+      const a = audience[i], y = SIZE - a.h - bob(i + 3);
+      cg.fillStyle = '#150d16';
+      cg.beginPath(); cg.arc(a.x, y, 16, 0, Math.PI * 2); cg.fill();
+      cg.fillRect(a.x - 24, y + 12, 48, 40);
+    }
+  }
+  // 漂在空中的「哈哈」：從人群冒出來往上飄
+  function drawLaughs(t, n, alpha, sizeK) {
+    cg.textAlign = 'center';
+    const word = LAUGH_TEXT[MT.getLang()] || LAUGH_TEXT.en;
+    for (let i = 0; i < n; i++) {
+      const p = ((t / 1500 + i * 0.29) % 1);
+      const src = i % 3 === 0 ? audience[(i * 5) % audience.length].x : choir[(i * 3) % choir.length].x;
+      const y0 = i % 3 === 0 ? SIZE - 70 : SIZE - 230;
+      cg.globalAlpha = alpha * Math.sin(p * Math.PI);
+      cg.fillStyle = '#fff3c0';
+      cg.font = `bold ${Math.round((14 + (i % 3) * 4) * sizeK)}px sans-serif`;
+      cg.fillText(word, src + Math.sin(i * 2.3 + t / 400) * 14, y0 - p * 70);
+    }
+    cg.globalAlpha = 1;
+  }
+
   const SCENES = {
+    rehearsal: t => {
+      const st = t - cineT0;
+      const laughing = Math.min(1, Math.max(0, (st - 1600) / 300));
+      drawRehearsal(t, st, laughing, 'heroSing');
+      cg.textAlign = 'center';
+      // 唱歌時往上飄的音符；1.1 秒那顆最高音破掉：抖一下、裂成兩半往下掉
+      if (st < 1600) {
+        cg.font = 'bold 22px serif';
+        for (let i = 0; i < 3; i++) {
+          const p = ((st / 900 + i / 3) % 1);
+          cg.globalAlpha = Math.sin(p * Math.PI) * 0.8; cg.fillStyle = '#ffe066';
+          cg.fillText('♪♫♩'[i], SIZE / 2 + 40 + Math.sin(i * 2 + st / 300) * 20, SIZE - 260 - p * 80);
+        }
+        cg.globalAlpha = 1;
+      }
+      const cx = SIZE / 2 + 10, cy = SIZE - 330;
+      cg.font = 'bold 54px serif';
+      if (st > 500 && st < 1100) {
+        cg.globalAlpha = (st - 500) / 600; cg.fillStyle = '#ffe066';
+        cg.fillText('♪', cx + (st > 900 ? Math.sin(st / 15) * 4 : 0), cy);
+        cg.globalAlpha = 1;
+      } else if (st >= 1100 && st < 2600) {
+        const k = (st - 1100) / 1500;
+        cg.globalAlpha = 1 - k; cg.fillStyle = '#c9921a';
+        for (const side of [-1, 1]) {
+          cg.save();
+          cg.beginPath(); cg.rect(side < 0 ? cx - 40 : cx, cy - 60, 40, 80); cg.clip();
+          cg.translate(cx + side * k * 30, cy + k * k * 180); cg.rotate(side * k * 1.2);
+          cg.fillText('♪', 0, 0);
+          cg.restore();
+        }
+        cg.globalAlpha = 1;
+      }
+      if (laughing > 0) drawLaughs(t, 12, laughing, 1);
+    },
+    // 笑聲之後：燈全暗，只剩一束光打在低著頭的阿爾特身上；笑聲在黑暗裡越來越遠
+    rehearsalSpot: t => {
+      const st = t - cineT0;
+      const k = Math.min(1, st / 1800), e = 1 - Math.pow(1 - k, 3);          // 先快後慢地收攏
+      const settle = Math.max(0, 1 - st / 3000);                               // 人群的笑慢慢停
+      drawRehearsal(t, st, settle, 'heroSad');
+      const cx = SIZE / 2, cy = SIZE - 200, r = 520 - e * 420 + Math.sin(t / 700) * 3;
+      const dark = cg.createRadialGradient(cx, cy, r * 0.55, cx, cy, r);
+      dark.addColorStop(0, 'rgba(6,4,12,0)'); dark.addColorStop(1, `rgba(6,4,12,${0.93 * e})`);
+      cg.fillStyle = dark; cg.fillRect(0, 0, SIZE, SIZE);
+      // 從上面打下來的光束與地上的光圈
+      cg.globalCompositeOperation = 'lighter';
+      cg.fillStyle = `rgba(255,236,190,${0.10 * e})`;
+      cg.beginPath(); cg.moveTo(cx - 18, 0); cg.lineTo(cx + 18, 0); cg.lineTo(cx + 85, SIZE - 145); cg.lineTo(cx - 85, SIZE - 145); cg.fill();
+      cg.fillStyle = `rgba(255,236,190,${0.16 * e})`;
+      cg.beginPath(); cg.ellipse(cx, SIZE - 150, 80, 16, 0, 0, Math.PI * 2); cg.fill();
+      cg.globalCompositeOperation = 'source-over';
+      // 光圈外的黑暗裡還有零星的笑聲，越來越小、越來越淡
+      drawLaughs(t * 0.6, 7, 0.35 * e * Math.max(0.25, 1 - st / 9000), 0.8);
+      // 眼淚：從閉著的眼角慢慢滑落
+      for (const [ex, ph] of [[-15, 0], [15, 0.5]]) {
+        const p = ((st / 1700 + ph) % 1);
+        if (st < 1200) continue;
+        cg.globalAlpha = (1 - p) * 0.9; cg.fillStyle = '#aef4ff';
+        cg.fillRect(cx + ex - 2, SIZE - 210 + p * 34, 4, 6);
+      }
+      cg.globalAlpha = 1;
+    },
     town: t => { drawSky(t, '#141a3a', '#3a2a5a'); drawStars(t); drawTown(t); floatingNotes(t, 10, SIZE / 2, SIZE - 60, 220, null, 300); bigSprite('bard', null, 130, SIZE - 118, 5); bigSprite('frog', null, 330, SIZE - 118, 5, true); },
     forge: t => {
       drawSky(t, '#2a1810', '#5a2a18');
@@ -1026,7 +1157,7 @@
     if (typing) { clearInterval(typing); typing = null; $('#cineBody').textContent = cineFull; return; }
     const s = cineQueue.shift();
     if (!s) { endCine(); return; }
-    if (s.scene) cineScene = s.scene;
+    if (s.scene) { cineScene = s.scene; cineT0 = now(); }
     if (s.music) MT.Audio.play(s.music, ['base', 'drums', 'strings', 'lead']);
     if (s.sfx) sfx(s.sfx);
     const text = s.text ? MT.story(s.text) : '';
@@ -1060,7 +1191,9 @@
   const PROLOGUE = [
     { scene: 'town', text: 'pro_1', music: 'title' },
     { text: 'pro_2' },
-    { scene: 'forge', text: 'pro_3' },
+    { scene: 'rehearsal', text: 'pro_3', music: 'none', sfx: 'crackLaugh' },
+    { scene: 'rehearsalSpot', text: 'pro_3s' },
+    { scene: 'forge', text: 'pro_3a', music: 'title' },
     { text: 'pro_3b', speaker: 'smith' },
     { scene: 'forgeKing', text: 'pro_4', speaker: 'bard' },
     { text: 'pro_4b', speaker: 'tink', music: 'none', sfx: 'boom' },
@@ -1156,7 +1289,7 @@
   function renderTitle() {
     $('#tTitle').textContent = MT.t('title');
     $('#tSub').textContent = MT.t('subtitle');
-    const auto = MT.Sync.get('auto');
+    const auto = MT.Sync.latestAuto();
     const cont = $('#tContinue');
     cont.hidden = !auto;
     cont.innerHTML = `${esc(MT.t('continue'))}${auto ? `<small>${slotLine(auto)}</small>` : ''}`;
@@ -1173,10 +1306,10 @@
     MT.Audio.play('title', ['base', 'drums', 'strings', 'lead']);
     MT.Sync.pull().then(() => { if (mode === 'title') renderTitle(); });
   }
-  $('#tContinue').addEventListener('click', () => { MT.Audio.init(); const a = MT.Sync.get('auto'); if (a) startGame(MT.unpack(a.data)); });
+  $('#tContinue').addEventListener('click', () => { MT.Audio.init(); const a = MT.Sync.latestAuto(); if (a) startGame(MT.unpack(a.data)); });
   $('#tNew').addEventListener('click', async () => {
     MT.Audio.init();
-    if (MT.Sync.get('auto') && await ask(MT.t('confirmNew'), [{ key: 'n', label: MT.t('no') }, { key: 'y', label: MT.t('yes') }]) !== 'y') return;
+    if (MT.Sync.myAuto() && await ask(MT.t('confirmNew'), [{ key: 'n', label: MT.t('no') }, { key: 'y', label: MT.t('yes') }]) !== 'y') return;
     $('#title').hidden = true;
     await playCine(PROLOGUE);
     const s = MT.newGame();
@@ -1199,7 +1332,7 @@
       const id = MT.stepTrigger(st);
       if (!id) autosave();
       if (id) setTimeout(() => runScript(id).then(autosave), 700);
-    } else lastAutoAt = (MT.Sync.get('auto') || {}).at || 0;
+    } else lastAutoAt = (MT.Sync.latestAuto() || {}).at || 0;
   }
 
   async function startEnding() {
@@ -1235,8 +1368,8 @@
   setupIcons();
   renderStaticText();
   showTitle();
-  // 網頁版離線可玩；App 版檔案已經在手機裡，不需要
-  if ('serviceWorker' in navigator && location.protocol === 'https:' && !/MagicTowerApp/.test(navigator.userAgent)) {
+  // 離線可玩（1.5.0 起 App 也是開線上網址，一樣靠這個離線）
+  if ('serviceWorker' in navigator && location.protocol === 'https:') {
     navigator.serviceWorker.register('sw.js').catch(() => { /* 不支援就算了 */ });
   }
   /* Android App 呼叫：返回鍵先關視窗；切到背景前存檔上傳 */
@@ -1247,7 +1380,7 @@
     return false;
   };
   MT.appPause = () => { stopHold(); if (mode === 'game') autosave(); MT.Sync.push(true); MT.Audio.suspend(); };
-  MT.appResume = () => { playClock = Date.now(); MT.Audio.resume(); MT.Sync.pull().then(checkCloudNewer); };
+  MT.appResume = () => { playClock = Date.now(); MT.Audio.resume(); MT.Sync.pull().then(() => checkCloudNewer()); };
 
   MT.debug = { get st() { return st; }, set st(v) { st = v; renderHud(); }, runScript, startEnding, startGame, renderHud };
 })();

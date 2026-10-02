@@ -275,6 +275,14 @@
       for (let i = 0; i < 8; i++) kick(t + i * 0.23, sfxBus, 1);
       o.start(t); lfo.start(t); o.stop(t + 1.9); lfo.stop(t + 1.9);
     },
+    // 序章練唱：破音 1.6 秒後全場哄笑（一串高低不同的短促「哈」，越後面越稀）
+    crackLaugh: t => {
+      SFX.badsing(t);
+      for (let i = 0; i < 22; i++) {
+        const f = 260 + Math.random() * 380, at = t + 1.6 + i * 0.09 + Math.random() * 0.06 + i * i * 0.004;
+        tone('square', f, at, 0.07, 0.05 * (1 - i / 26), sfxBus, f * 0.75);
+      }
+    },
     buy: t => arp('square', ['b5', 'e6'], t, 0.08, 0.18, 0.1),
     error: t => { tone('square', 150, t, 0.1, 0.12); tone('square', 120, t + 0.12, 0.12, 0.12); },
     gate: t => { noise(t, 0.8, 'lowpass', 250, 0.6, sfxBus); tone('square', 60, t, 0.6, 0.08, sfxBus, 45); },
