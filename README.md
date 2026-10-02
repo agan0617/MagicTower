@@ -29,9 +29,11 @@
 
 ## 手機和電腦同步進度
 
-做法跟 [K書吧](https://github.com/agan0617/KBookBar) 一樣：進度存在**你自己的私有 repo** 裡的 `saves.json`，每台裝置貼一次 GitHub fine-grained token，瀏覽器／App 直接跟 GitHub API 對話，沒有任何中間伺服器。
+做法跟 [K書吧](https://github.com/agan0617/KBookBar) 一樣：進度存在**你自己的私有 repo** 裡的 `saves/magictower.json`，每台裝置貼一次 GitHub fine-grained token，瀏覽器／App 直接跟 GitHub API 對話，沒有任何中間伺服器。
 
-1. 建一個 **Private** repo（預設名稱 `MagicTowerSave`，勾 Add a README file）
+這個 repo 可以跟 K書吧和其他遊戲共用（預設是 `agan0617/CloudSave`）：每款遊戲各寫 `saves/` 底下自己的檔案，不會互相蓋掉。已經有 K書吧的 token 的話，直接貼同一支就好。
+
+1. 建一個 **Private** repo（預設名稱 `CloudSave`，勾 Add a README file）
 2. 到 GitHub → Settings → Developer settings → Personal access tokens → **Fine-grained tokens** → Generate new token：Repository access 只選那個 repo，Permissions 的 **Contents** 設成 **Read and write**
 3. 遊戲裡按右上角的 ☁（或標題畫面的「雲端同步」）→ 貼上 token → repo 填 `你的帳號/你的 repo` → 連線
 

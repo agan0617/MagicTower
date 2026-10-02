@@ -1,6 +1,6 @@
 /* 存檔與雲端同步。
    每台裝置在 localStorage 存一份全部存檔（自動存檔＋三格手動）；有 token 時跟私有 GitHub repo 裡的
-   saves.json 對齊：每一格各自比時間，新的贏。做法跟K書吧一樣：token 由使用者在每台裝置貼一次，
+   saves/magictower.json 對齊：每一格各自比時間，新的贏。做法跟K書吧一樣：token 由使用者在每台裝置貼一次，
    只存在那台裝置，直接從瀏覽器打 GitHub API，沒有任何中間伺服器。 */
 (function (MT) {
   'use strict';
@@ -12,8 +12,9 @@
   };
   MT.LS = LS;
 
-  const DEFAULT = { owner: 'agan0617', repo: 'MagicTowerSave', token: '' };
-  const FILE = 'saves.json';
+  const DEFAULT = { owner: 'agan0617', repo: 'CloudSave', token: '' };
+  // 存檔 repo 可能跟其他遊戲／K書吧共用，每款遊戲各用 saves/ 底下自己的檔名
+  const FILE = 'saves/magictower.json';
   const SLOTS = ['auto', 's1', 's2', 's3'];
 
   const b64enc = s => { const u = new TextEncoder().encode(s); let bin = ''; for (let i = 0; i < u.length; i += 0x8000) bin += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(bin); };

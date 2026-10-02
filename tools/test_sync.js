@@ -12,7 +12,7 @@ async function fakeFetch(url, opt) {
   opt = opt || {};
   const ok = (body, status) => ({ ok: true, status: status || 200, json: async () => body });
   const bad = (status, message) => ({ ok: false, status, json: async () => ({ message }) });
-  if (!/saves\.json$/.test(url)) return bad(404, 'Not Found');
+  if (!/\/contents\/saves\/magictower\.json$/.test(url)) return bad(404, 'Not Found');
   if (!opt.method || opt.method === 'GET') {
     if (!remote.content) return bad(404, 'Not Found');
     return ok({ content: remote.content, sha: remote.sha });
