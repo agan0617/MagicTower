@@ -347,22 +347,23 @@
     ] },
 
     // ── 地形 ──
+    // 上樓梯：側面看往右上爬的四階樓梯，左上角一個黃色向上箭頭
     stairsUp: { rows: [
       '................',
-      '..kkkkkkkkkkkk..',
-      '..kGgggggggggk..',
-      '..kGgkkkkkkggk..',
-      '..kGgk....kggk..',
-      '..kGkkkkkkkkgk..',
-      '..kGgggggggggk..',
-      '..kGGGGGGGGGGk..',
-      '..kkkkkkkkkkkk..',
-      '..kGgggggggggk..',
-      '..kGGGGGGGGGGk..',
-      '..kkkkkkkkkkkk..',
-      '..kGgggggggggk..',
-      '..kGGGGGGGGGGk..',
-      '..kkkkkkkkkkkk..',
+      '...yy.....kkkkk.',
+      '..yyyy....kgggk.',
+      '.yyyyyy...kGGGk.',
+      '...yy..kkkkGGGk.',
+      '...yy..kgggGGGk.',
+      '...yy..kGGGGGGk.',
+      '....kkkkGGGGGGk.',
+      '....kgggGGGGGGk.',
+      '....kGGGGGGGGGk.',
+      '.kkkkGGGGGGGGGk.',
+      '.kgggGGGGGGGGGk.',
+      '.kGGGGGGGGGGGGk.',
+      '.kGGGGGGGGGGGGk.',
+      '.kkkkkkkkkkkkkk.',
       '................',
     ] },
     stairsDown: { rows: [
@@ -396,24 +397,24 @@
 
     // ── 道具 ──
     // 鑰匙分三級，越高級越豪華（pal keyCu／keyAg／keyAu）：
-    // 銅＝小小一把、單齒；銀＝大圓環＋柄上一圈裝飾、雙齒；金＝頂上王冠、環心一顆紅寶石、閃光、雙齒
+    // 銅＝透空的小圓環、樸素的柄、雙齒；銀＝大圓環＋柄上一圈裝飾、雙齒；金＝頂上王冠、環心一顆紅寶石、閃光、雙齒
     key1: { rows: [
-      '................',
       '................',
       '................',
       '......kkkk......',
       '.....k3311k.....',
-      '.....k3kk1k.....',
-      '.....k1kk2k.....',
-      '.....k1122k.....',
+      '....k31kk12k....',
+      '....k1k..k2k....',
+      '....k1k..k2k....',
+      '....k12kk22k....',
+      '.....k1222k.....',
       '......k12k......',
       '......k12k......',
-      '......k12kk.....',
+      '......k12kkk....',
       '......k1222k....',
-      '......k12kk.....',
-      '......k12k......',
-      '.......kk.......',
-      '................',
+      '......k12kkk....',
+      '......k1222k....',
+      '......kkkkkk....',
     ] },
     key2: { rows: [
       '................',
@@ -671,6 +672,20 @@
   };
 
   // 樂譜符號（加圖示用）
+  // 地圖上的原地踏步（勇者鬥惡龍那種）：同一張圖只換最下面三列，A 抬左腳、B 抬右腳，輪流播
+  const STEP = {
+    heroDown: [['....kNNkkbbk..n.', '....kkkk.kNNk...', '.........kkkk...'],
+               ['....kbbkkNNk..n.', '....kNNkkkkk....', '....kkkk........']],
+    heroUp: [['.n..kNNkkbbk....', '....kkkk.kNNk...', '.........kkkk...'],
+             ['.n..kbbkkNNk....', '....kNNkkkkk....', '....kkkk........']],
+    heroSide: [['....kNNkbbbk....', '....kkkkkNNk....', '........kkkk....'],
+               ['....kbbkNNNk....', '....kNNkkkkk....', '....kkkk........']],
+  };
+  for (const [name, [a, b]] of Object.entries(STEP)) {
+    S[name + 'A'] = { rows: S[name].rows.slice(0, 13).concat(a) };
+    S[name + 'B'] = { rows: S[name].rows.slice(0, 13).concat(b) };
+  }
+
   MT.SPRITE_OF = function (code) {
     if (MT.MONSTERS[code]) return MT.MONSTERS[code];
     if (MT.ITEMS[code]) return MT.ITEMS[code];

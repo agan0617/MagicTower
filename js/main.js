@@ -111,13 +111,21 @@
     view.hx = x; view.hy = y;
     let ox = 0, oy = 0;
     if (view.lunge) {
-      const k = Math.min(1, (t - view.lunge.t0) / 140);
+      const k = Math.min(1, (t - view.lunge.t0) / (view.lunge.dur || 140));
       const a = Math.sin(k * Math.PI) * 10;
       ox = view.lunge.dx * a; oy = view.lunge.dy * a;
       if (k >= 1) view.lunge = null;
     }
+    if (view.knock) {                     // 被怪物打中：往後退一下
+      const k = Math.min(1, (t - view.knock.t0) / 120);
+      const a = Math.sin(k * Math.PI) * 5;
+      ox += view.knock.dx * a; oy += view.knock.dy * a;
+      if (k >= 1) view.knock = null;
+    }
     const d = st.dir;
-    const name = d === 'up' ? 'heroUp' : d === 'down' ? 'heroDown' : 'heroSide';
+    // 原地踏步：站著時慢慢左右腳輪流抬，走路時踩快一點
+    const foot = Math.floor(t / (view.move ? 140 : 380)) % 2 ? 'A' : 'B';
+    const name = (d === 'up' ? 'heroUp' : d === 'down' ? 'heroDown' : 'heroSide') + foot;
     const bob = view.move ? (Math.floor(t / 70) % 2 ? -SC : 0) : 0;
     const im = MT.sprite(name, null, SC, d === 'left');
     g.save();
@@ -159,6 +167,19 @@
         for (const [lw, col] of [[9, 'rgba(0,0,0,0.6)'], [5, '#ff4a4a']]) {
           g.lineWidth = lw; g.strokeStyle = col; g.beginPath();
           g.moveTo(f.x - r, f.y - r); g.lineTo(f.x + r, f.y + r); g.moveTo(f.x + r, f.y - r); g.lineTo(f.x - r, f.y + r); g.stroke();
+        }
+        g.restore();
+      } else if (f.kind === 'slash' || f.kind === 'claw') {
+        // slash＝勇者的斜劈（白色，每下方向交替，連打就是交叉的 X）；claw＝怪物的三道爪痕（紅色，方向跟斜劈相反）
+        const r = TILE * (f.kind === 'slash' ? 0.42 : 0.3), p = Math.min(1, k * 2.5), s = f.flip ? -1 : 1;
+        const lines = f.kind === 'slash' ? [0] : [-8, 0, 8];
+        g.save(); g.globalAlpha = 1 - Math.max(0, k - 0.4) / 0.6; g.lineCap = 'round';
+        const layers = f.kind === 'slash' ? [[8, 'rgba(255,255,255,0.35)'], [3, '#ffffff']] : [[6, 'rgba(0,0,0,0.5)'], [3, '#ff5a5a']];
+        for (const [lw, col] of layers) {
+          g.lineWidth = lw; g.strokeStyle = col;
+          for (const o of lines) {
+            g.beginPath(); g.moveTo(f.x - s * r + o, f.y - r); g.lineTo(f.x - s * r + o + s * 2 * r * p, f.y - r + 2 * r * p); g.stroke();
+          }
         }
         g.restore();
       } else if (f.kind === 'note') {
@@ -214,8 +235,22 @@
         g.save();
         if (d.phase === 'die') { g.globalAlpha = Math.max(0, 1 - k); }
         else if (Math.floor(t / 60) % 2 && d.flash > t) g.globalAlpha = 0.3;
-        const sp = spriteFor(d.code);
-        g.drawImage(MT.sprite(sp[0], sp[1], SC), d.x * TILE + (d.phase === 'die' ? 0 : (Math.random() - 0.5) * (d.flash > t ? 4 : 0)), d.y * TILE);
+        const sp = spriteFor(d.code), img = MT.sprite(sp[0], sp[1], SC);
+        let ox = d.phase === 'die' ? 0 : (Math.random() - 0.5) * (d.flash > t ? 4 : 0), oy = 0, lean = 0;
+        // 戰鬥中面對勇者：平常就往勇者那邊靠一點、上半身傾過去；輪到它出手時整隻撲過去
+        if (d.face && d.phase === 'fight') {
+          let a = 2;
+          if (d.lunge) {
+            const lk = Math.min(1, (t - d.lunge.t0) / d.lunge.dur);
+            a += Math.sin(lk * Math.PI) * 12;
+            if (lk >= 1) d.lunge = null;
+          }
+          ox += d.face[0] * a; oy += d.face[1] * a;
+          lean = d.face[0] * (0.12 + (a - 2) / 12 * 0.15);
+        }
+        const px = d.x * TILE + ox, py = d.y * TILE + oy;
+        if (lean) { g.translate(px + TILE / 2, py + TILE); g.transform(1, 0, -lean, 1, 0, 0); g.drawImage(img, -TILE / 2, -TILE); }   // 以腳底為軸往勇者那邊斜
+        else g.drawImage(img, px, py);
         g.restore();
         if (d.hpMax) drawHpBar(d, d.phase === 'die' ? Math.max(0, 1 - k) : 1);
       }
@@ -271,16 +306,58 @@
   const flash = (color, dur) => { view.flash = { color: color || '#fff', t0: now(), dur: dur || 450 }; };
 
   /* ───────── HUD ───────── */
+  /* 屬性增加時先在地圖上跳「+N」（鑰匙是鑰匙圖），再飛進上面的資訊列，飛到了數字才加上去（Ken 指定）。
+     飛行途中那一份記在 hudHold，資訊列顯示「實際值－還在飛的」 */
+  const HUD_KEYS = ['hp', 'atk', 'def', 'gold', 'ky', 'kb', 'kr'];
+  const HUD_EL = { hp: '#hHp', atk: '#hAtk', def: '#hDef', gold: '#hGold', ky: '#hKy', kb: '#hKb', kr: '#hKr' };
+  const hudHold = { hp: 0, atk: 0, def: 0, gold: 0, ky: 0, kb: 0, kr: 0 };
+  const statOf = k => (k.length === 2 && k[0] === 'k' ? st.keys[k[1]] : st[k]);
+  const hudVal = k => statOf(k) - hudHold[k];
+  const snapStats = () => Object.fromEntries(HUD_KEYS.map(k => [k, statOf(k)]));
+  function flyGain(key, n, x, y, delay) {
+    if (!(n > 0)) return;
+    hudHold[key] += n;
+    const r = canvas.getBoundingClientRect(), s = r.width / canvas.width;
+    const sx = r.left + (x * TILE + TILE / 2) * s, sy = r.top + (y * TILE + TILE / 2) * s;
+    const el = document.createElement('div');
+    el.style.cssText = 'position:fixed;left:0;top:0;z-index:50;pointer-events:none;white-space:nowrap;font:bold ' +
+      Math.round((key === 'gold' ? 22 : 17) * s) + 'px ui-monospace,Menlo,Consolas,monospace;text-shadow:0 0 3px #000,0 0 3px #000,0 0 2px #000;opacity:0';
+    if (key[0] === 'k' && key.length === 2) {
+      const sp = spriteFor(KEY_OF[key[1]]), w = Math.round(TILE * s * 0.8);
+      el.innerHTML = `<img src="${icon(sp[0], sp[1])}" style="width:${w}px;height:${w}px;image-rendering:pixelated;display:block">`;
+    } else {
+      el.textContent = { hp: '+' + n, atk: MT.t('atk') + '+' + n, def: MT.t('def') + '+' + n, gold: '+' + n + 'G' }[key];
+      el.style.color = { hp: '#8cff8c', atk: '#ff8a80', def: '#8ac8ff', gold: '#ffe066' }[key];
+    }
+    document.body.appendChild(el);
+    setTimeout(() => {
+      const target = $(HUD_EL[key]), tr = target.getBoundingClientRect();
+      const tx = tr.left + tr.width / 2, ty = tr.top + tr.height / 2;
+      const at = (px, py, sc) => `translate(${px}px,${py}px) translate(-50%,-50%) scale(${sc})`;
+      // 先在原地彈出來停一下，再加速飛進資訊列、邊飛邊縮小
+      const a = el.animate([
+        { transform: at(sx, sy, 0.5), opacity: 0 },
+        { transform: at(sx, sy - 16 * s, 1.25), opacity: 1, offset: 0.14 },
+        { transform: at(sx, sy - 20 * s, 1), opacity: 1, offset: 0.42, easing: 'cubic-bezier(.55,0,.85,.4)' },
+        { transform: at(tx, ty, 0.55), opacity: 0.9 },
+      ], { duration: 950, fill: 'forwards' });
+      a.onfinish = () => {
+        el.remove();
+        hudHold[key] -= n;
+        if (st) target.textContent = hudVal(key);
+        target.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.45)', filter: 'brightness(1.8)' }, { transform: 'scale(1)' }], { duration: 320 });
+      };
+    }, delay || 0);
+  }
+  // 比對事件前後的數值，增加的部分從地圖上 (x, y) 一項一項飛過去
+  function flyGains(before, x, y) {
+    let i = 0;
+    for (const k of HUD_KEYS) { const d = statOf(k) - before[k]; if (d > 0) flyGain(k, d, x, y, i++ * 140); }
+  }
   function renderHud() {
     if (!st) return;
     $('#hFloor').textContent = MT.t('floorN', { n: st.floor });
-    $('#hHp').textContent = st.hp;
-    $('#hAtk').textContent = st.atk;
-    $('#hDef').textContent = st.def;
-    $('#hGold').textContent = st.gold;
-    $('#hKy').textContent = st.keys.y;
-    $('#hKb').textContent = st.keys.b;
-    $('#hKr').textContent = st.keys.r;
+    for (const k of HUD_KEYS) $(HUD_EL[k]).textContent = hudVal(k);
     const inst = [];
     if (st.items.drum) inst.push(img('drum', null, 'inst'));
     if (st.items.harp) inst.push(img('harp', null, 'inst'));
@@ -436,7 +513,7 @@
             busy--; // 交給結局畫面
             startEnding();
             return;
-          default: MT.applyCmd(st, c);
+          default: { const before = snapStats(); MT.applyCmd(st, c); flyGains(before, st.x, st.y); }
         }
       }
     } finally { scripting--; if (busy > 0 && mode === 'game') busy--; }
@@ -450,6 +527,7 @@
   async function stepOnce(dir) {
     if (busy || !st || mode !== 'game') return false;
     const fx = st.x, fy = st.y;
+    const before = snapStats();
     const ev = MT.step(st, dir);
     switch (ev.type) {
       case 'bump': sfx('bump'); return false;
@@ -463,10 +541,10 @@
         const g2 = ev.got;
         if (it.kind === 'key') { sfx('key'); toast(MT.t('got_key_' + it.key)); }
         else if (it.equip) { sfx('item'); toast(MT.t('got_equip', { name: MT.itemName(ev.item), stat: MT.t(it.kind), n: g2.value })); sparkle(ev.x, ev.y, 20); }
-        else if (it.kind === 'hp') { sfx('potion'); floatText(ev.x, ev.y, '+' + g2.value, '#8cff8c'); }
-        else if (it.kind === 'atk') { sfx('gem'); floatText(ev.x, ev.y, MT.t('atk') + '+' + g2.value, '#ff8a80'); }
-        else if (it.kind === 'def') { sfx('gem'); floatText(ev.x, ev.y, MT.t('def') + '+' + g2.value, '#8ac8ff'); }
-        // 藥水、小劍、小盾也跟鑰匙一樣跳提示（Ken 指定），頭上的飄字照留
+        else if (it.kind === 'hp') sfx('potion');
+        else if (it.kind === 'atk' || it.kind === 'def') sfx('gem');
+        flyGains(before, ev.x, ev.y);   // +N（鑰匙是鑰匙圖）從撿到的地方飛進資訊列
+        // 藥水、小劍、小盾也跟鑰匙一樣跳提示（Ken 指定）
         if (['hp', 'atk', 'def'].includes(it.kind) && !it.equip) toast(MT.t('got_' + it.kind, { name: MT.t('name_' + ev.item), n: g2.value }));
         else if (it.kind === 'page') { toast(MT.t('got_page')); }
         else if (it.kind === 'note') { sfx('fanfare'); toast(MT.t('got_note')); sparkle(ev.x, ev.y, 30); }
@@ -515,23 +593,32 @@
     const c = ev.calc, m = c.m;
     const boss = (m.sp || []).includes('boss');
     const [dx, dy] = DIR_V[dir];
-    view.dying = { code: ev.tile, x: ev.x, y: ev.y, t0: now(), dur: 1e9, phase: 'fight', flash: 0, hpMax: m.hp, hp: m.hp };
+    view.dying = { code: ev.tile, x: ev.x, y: ev.y, t0: now(), dur: 1e9, phase: 'fight', flash: 0, hpMax: m.hp, hp: m.hp, face: [-dx, -dy] };
+    const center = (x, y) => [x * TILE + TILE / 2, y * TILE + TILE / 2];
+    const fxAt = (kind, [x, y], flip, life) => view.fx.push({ kind, x, y, flip, t0: now(), life });
     /* 每一回合照實演：勇者先打（怪物剩多少血就扣多少），怪物還活著就回擊（先攻＝開打前先打一次、連擊＝一次打兩下）。
        照正常速度演會超過上限（一般 4 回合、Boss 8 回合的長度）時，才把每一下的間隔等比例縮短，整場塞進上限 */
     const sp = m.sp || [];
     const strikes = sp.includes('double') ? 2 : 1;
     const monActs = c.monHit > 0 ? c.turns - 1 + (sp.includes('first') ? 1 : 0) : 0;
-    const heroGap0 = boss ? 170 : 95, monGap0 = heroGap0 * 0.7;
+    const heroGap0 = boss ? 200 : 130, monGap0 = heroGap0 * 0.85;   // 雙方一來一往要看得出來，比以前慢一點（原本 95／170、怪物 0.7 倍）
     const cap = (boss ? 8 : 4) * (heroGap0 + monGap0);
     const full = c.turns * heroGap0 + monActs * monGap0;
     const k = full > cap ? cap / full : 1;
     const heroGap = Math.max(28, heroGap0 * k), monGap = Math.max(20, monGap0 * k);
     let lastSfx = 0;
     const sfxT = n => { const t = now(); if (k === 1 || t - lastSfx >= 70) { sfx(n); lastSfx = t; } };   // 加速時音效不要疊成一團
-    let shown = st.hp + c.damage, monHp = m.hp;
+    let shown = st.hp + c.damage, monHp = m.hp, heroHits = 0;
     const monAct = async () => {
       for (let s = 0; s < strikes; s++) {
         sfxT('hurt'); view.hurt = now() + 120;
+        // 怪物撲向勇者、勇者被打得往後退，身上留三道爪痕
+        view.dying.lunge = { t0: now(), dur: Math.max(90, Math.min(160, monGap / strikes + 40)) };
+        view.knock = { dx: -dx, dy: -dy, t0: now() };
+        fxAt('claw', center(st.x, st.y), s % 2, 260);
+        // 每被打一下，勇者頭上也跳紅色扣血數字（Ken 指定，增加戰鬥張力）
+        heroHits++;
+        floatText(st.x + (heroHits % 2 ? 0.14 : -0.14), st.y > 0 ? st.y - 0.3 : st.y + 0.25, '-' + c.monHit, '#ff6a6a', 14);
         shown = Math.max(st.hp, shown - c.monHit);
         $('#hHp').textContent = shown;
         await sleep(monGap / strikes);
@@ -542,7 +629,8 @@
       const hit = Math.min(monHp, c.heroHit);
       monHp -= hit;
       view.dying.hp = monHp;
-      view.lunge = { dx, dy, t0: now() };
+      view.lunge = { dx, dy, t0: now(), dur: Math.min(140, heroGap) };   // 衝回來了怪物才出手，兩邊不疊在一起
+      fxAt('slash', center(ev.x, ev.y), i % 2, 220);
       sfxT('hit');
       view.dying.flash = now() + 120;
       floatText(ev.x + (i % 2 ? 0.14 : -0.14), ev.y > 0 ? ev.y - 0.45 : ev.y + 0.25, '-' + hit, '#ffffff', 14);   // 從血條上面跳（最上面一列改從血條下面）
@@ -551,14 +639,14 @@
       if (monHp > 0 && c.monHit > 0) await monAct();
     }
     // 結算
-    $('#hHp').textContent = st.hp;
+    $('#hHp').textContent = hudVal('hp');
     if (c.damage > 0) floatText(st.x, st.y, '-' + c.damage, '#ff6a6a', 18);
     sfx('kill');
     toast(MT.t(ev.gold ? 'killed' : 'killed0', { name: MT.monName(ev.tile), g: ev.gold }));   // 打倒怪物也跳提示（Ken 指定）；接著開鐵門的話會被「鐵門打開了」蓋過
     view.dying = { code: ev.tile, x: ev.x, y: ev.y, t0: now(), dur: boss ? 900 : 300, phase: 'die', done: true, hpMax: m.hp, hp: 0, shown: view.dying.shown };
     sparkle(ev.x, ev.y, boss ? 60 : 14, boss ? null : ['#ffffff', '#ffe066', '#c8c8d8', '#ffffff']);
     if (boss) { shake(600, 12); flash('#ffffff', 700); sfx('boom'); }
-    if (ev.gold) setTimeout(() => floatText(ev.x, ev.y, '+' + ev.gold + ' G', '#ffe066', 14), 180);
+    if (ev.gold) flyGain('gold', ev.gold, ev.x, ev.y, 180);   // 放大、G 緊貼數字，飛進資訊列才加上去（Ken 指定）
     renderHud();
     await sleep(boss ? 800 : 160);
     busy--;
@@ -975,7 +1063,8 @@
       openModal(MT.t('frog'), `<div class="shopTop">${img('frog', null, 'big')}<p>${esc(MT.t('frogText'))}</p></div><div class="opts">${opts}</div>
         <p class="muted small">${esc(MT.t('gold'))}：${st.gold}</p><button class="btn" data-x>${esc(MT.t('leave'))}</button>`, body => {
         body.querySelectorAll('[data-k]').forEach(b => b.addEventListener('click', () => {
-          if (MT.buy(st, 'keys', b.dataset.k)) { sfx('buy'); renderHud(); closeModal(); openShop('keys'); autosave(); } else { sfx('error'); toast(MT.t('noGold')); }
+          const before = snapStats();
+          if (MT.buy(st, 'keys', b.dataset.k)) { sfx('buy'); flyGains(before, st.x, st.y); renderHud(); closeModal(); openShop('keys'); autosave(); } else { sfx('error'); toast(MT.t('noGold')); }
         }));
         body.querySelector('[data-x]').addEventListener('click', closeModal);
       });
@@ -987,7 +1076,8 @@
     openModal(MT.t(id), `<div class="shopTop">${img('altar', MT.NPCS[id === 'shop1' ? 'Sh' : 'S2'].pal, 'big')}<p>${esc(MT.t('shopText', { price }))}</p></div>
       <div class="opts">${opts}</div><p class="muted small">${esc(MT.t('gold'))}：${st.gold}</p><button class="btn" data-x>${esc(MT.t('leave'))}</button>`, body => {
       body.querySelectorAll('[data-k]').forEach(b => b.addEventListener('click', () => {
-        if (MT.buy(st, id, b.dataset.k)) { sfx('buy'); notes(st.x, st.y, 4); renderHud(); closeModal(); openShop(id); autosave(); } else { sfx('error'); toast(MT.t('noGold')); }
+        const before = snapStats();
+        if (MT.buy(st, id, b.dataset.k)) { sfx('buy'); notes(st.x, st.y, 4); flyGains(before, st.x, st.y); renderHud(); closeModal(); openShop(id); autosave(); } else { sfx('error'); toast(MT.t('noGold')); }
       }));
       body.querySelector('[data-x]').addEventListener('click', closeModal);
     });
@@ -1169,12 +1259,18 @@
     }
     cg.globalAlpha = 1;
   }
-  function drawTower(t, x, w, color) {
+  // lit：亮幾扇窗（由下往上），不給就全亮
+  function drawTower(t, x, w, color, lit) {
     cg.fillStyle = color;
     cg.fillRect(x - w / 2, 90, w, SIZE - 130);
     cg.beginPath(); cg.moveTo(x - w / 2 - 14, 100); cg.lineTo(x, 30); cg.lineTo(x + w / 2 + 14, 100); cg.fill();
     cg.fillStyle = '#c07cf5';
-    for (let i = 0; i < 6; i++) cg.fillRect(x - 6, 130 + i * 55, 12, 18);
+    for (let i = 0; i < 6; i++) if (lit === undefined || 5 - i < lit) cg.fillRect(x - 6, 130 + i * 55, 12, 18);
+  }
+  // 兩個 #rrggbb 顏色之間取 k（0～1）
+  function mixColor(a, b, k) {
+    const pa = [1, 3, 5].map(i => parseInt(a.substr(i, 2), 16)), pb = [1, 3, 5].map(i => parseInt(b.substr(i, 2), 16));
+    return 'rgb(' + pa.map((v, i) => Math.round(v + (pb[i] - v) * k)).join(',') + ')';
   }
 
   // 夜裡的打鐵鋪：星空、左邊的鐵砧和還沒熄的爐火
@@ -1503,13 +1599,63 @@
       }
       cg.globalAlpha = 1;
     },
-    tower: t => { drawSky(t, '#3a4060', '#c89a7a'); drawTower(t, SIZE / 2, 120, '#0e0b16'); drawTown(t); },
+    // 一夜過去：天空從深夜慢慢亮成清晨，高塔一路震動著從鎮中央的地底長出來，長好了窗戶才一格格亮起
+    tower: t => {
+      const st = t - cineT0;
+      const sky = Math.min(1, st / 4200);
+      drawSky(t, mixColor('#05040c', '#3a4060', sky), mixColor('#170c24', '#c89a7a', sky));
+      cg.globalAlpha = 1 - sky; drawStars(t); cg.globalAlpha = 1;
+      const g = Math.min(1, Math.max(0, (st - 600) / 3200)), e = 1 - Math.pow(1 - g, 3);
+      const growing = g > 0 && g < 1;
+      if (growing) cg.translate((Math.random() - 0.5) * 4, (Math.random() - 0.5) * 3);
+      cg.save();
+      cg.beginPath(); cg.rect(0, 0, SIZE, SIZE - 40); cg.clip();             // 地面以下的部分還埋在土裡
+      cg.translate(0, (1 - e) * (SIZE - 20));
+      drawTower(t, SIZE / 2, 120, '#0e0b16', g < 1 ? 0 : Math.floor((st - 3800) / 160));
+      cg.restore();
+      // 塔往上頂的時候，地面噴出的塵土
+      if (growing) for (let i = 0; i < 14; i++) {
+        const p = ((st / 700 + i / 14) % 1), side = i % 2 ? 1 : -1;
+        cg.globalAlpha = (1 - p) * 0.5 * (1 - g); cg.fillStyle = '#4a3e4e';
+        cg.beginPath(); cg.arc(SIZE / 2 + side * (50 + p * 90 + (i * 11) % 30), SIZE - 50 - p * 60, 8 + p * 14, 0, Math.PI * 2); cg.fill();
+      }
+      cg.globalAlpha = 1;
+      drawTown(t);
+    },
     meet: t => {
       drawSky(t, '#3a4060', '#c89a7a'); drawTower(t, SIZE / 2 + 120, 80, '#0e0b16');
       cg.fillStyle = '#4a3a3a'; cg.fillRect(0, SIZE - 90, SIZE, 90);
-      bigSprite(cinePose || 'heroSideShock', null, 90, SIZE - 90 - 128, 8);   // 腳踩在地面上緣
-      bigSprite('fairy', null, 300, SIZE - 300 + Math.sin(t / 250) * 12, 7);
-      for (let i = 0; i < 6; i++) { cg.fillStyle = '#fff6b0'; cg.fillRect(360 + Math.cos(t / 300 + i) * 60, SIZE - 240 + Math.sin(t / 200 + i * 2) * 50, 4, 4); }
+      // 多蕾出場：先是一點光，四周的光點往它聚過去、越來越亮，然後「啵」地彈出來（約 1.3 秒）
+      const st = t - cineT0;
+      const fx = 300, fy = SIZE - 300 + Math.sin(t / 250) * 12, fc = [fx + 56, fy + 56];
+      const shown = st >= 1300;
+      bigSprite(cinePose || (shown ? 'heroSideShock' : 'heroSideSulk'), null, 90, SIZE - 90 - 128, 8);   // 腳踩在地面上緣；多蕾冒出來那一刻才傻眼
+      if (st < 1000) {
+        const k = st / 1000;
+        const glow = cg.createRadialGradient(fc[0], fc[1], 0, fc[0], fc[1], 10 + k * 50);
+        glow.addColorStop(0, `rgba(255,246,176,${0.4 + 0.6 * k})`); glow.addColorStop(1, 'rgba(255,224,102,0)');
+        cg.fillStyle = glow; cg.beginPath(); cg.arc(fc[0], fc[1], 10 + k * 50, 0, Math.PI * 2); cg.fill();
+        for (let i = 0; i < 12; i++) {
+          const a = i / 12 * Math.PI * 2 + k * 2, r = (1 - k) * 140 + 6;
+          cg.globalAlpha = Math.min(1, k * 3); cg.fillStyle = i % 2 ? '#fff6b0' : '#aef4ff';
+          cg.fillRect(fc[0] + Math.cos(a) * r - 3, fc[1] + Math.sin(a) * r - 3, 6, 6);
+        }
+        cg.globalAlpha = 1;
+      } else {
+        const p = Math.min(1, (st - 1000) / 300);
+        const sc = p < 1 ? 0.3 + 0.85 * p : 1 + Math.max(0, 0.15 - (st - 1300) / 1000);   // 彈出來時稍微放大再縮回
+        const img = MT.sprite('fairy', null, 7);
+        cg.globalAlpha = p;
+        cg.drawImage(img, fc[0] - 56 * sc, fc[1] - 56 * sc, 112 * sc, 112 * sc);
+        cg.globalAlpha = 1;
+        if (st < 1700) {                                                       // 彈出瞬間的白光圈
+          const q = (st - 1000) / 700;
+          cg.globalAlpha = 1 - q; cg.strokeStyle = '#fff6b0'; cg.lineWidth = 6 * (1 - q) + 1;
+          cg.beginPath(); cg.arc(fc[0], fc[1], 30 + q * 120, 0, Math.PI * 2); cg.stroke();
+          cg.globalAlpha = 1;
+        }
+        for (let i = 0; i < 6; i++) { cg.fillStyle = '#fff6b0'; cg.fillRect(360 + Math.cos(t / 300 + i) * 60, SIZE - 240 + Math.sin(t / 200 + i * 2) * 50, 4, 4); }
+      }
     },
     // 一般結局：聲音回來了，全鎮的人跟阿爾特、國王一起在廣場上唱
     festival: t => {
@@ -1615,8 +1761,8 @@
     { scene: 'forgeKing', text: 'pro_4', speaker: 'bard', delay: 1600 },
     { scene: 'forgeRage', text: 'pro_4b', speaker: 'tink', music: 'none', sfx: 'boom' },
     { scene: 'maestro', text: 'pro_5', sfx: 'harp' },
-    { scene: 'tower', text: 'pro_6' },
-    { scene: 'meet', text: 'pro_7', speaker: 'doremi' },
+    { scene: 'tower', text: 'pro_6', delay: 2400 },
+    { scene: 'meet', text: 'pro_7', speaker: 'doremi', delay: 1500 },
     { text: 'pro_8', speaker: 'tink' },
     { text: 'pro_9', speaker: 'doremi' },
     { text: 'pro_10', speaker: 'tink', pose: 'heroSideGuilty' },
