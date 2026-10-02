@@ -64,19 +64,20 @@
   };
 
   /* ───────── 地圖繪製 ───────── */
-  function dmgColor(c) {
-    if (c.damage == null || c.damage >= st.hp) return '#ff4a4a';
+  // hp、ctx 不給就是目前這局、地圖畫布（教學的示意圖會帶自己的）
+  function dmgColor(c, hp = st.hp) {
+    if (c.damage == null || c.damage >= hp) return '#ff4a4a';
     if (c.damage === 0) return '#8cff8c';
-    if (c.damage < st.hp / 4) return '#ffffff';
-    if (c.damage < st.hp / 2) return '#ffe066';
+    if (c.damage < hp / 4) return '#ffffff';
+    if (c.damage < hp / 2) return '#ffe066';
     return '#ffa040';
   }
-  function label(text, x, y, color, size) {
-    g.font = `bold ${size || 13}px ui-monospace, Menlo, Consolas, monospace`;
-    g.textAlign = 'center'; g.textBaseline = 'alphabetic';
-    g.lineWidth = 3; g.strokeStyle = 'rgba(0,0,0,0.9)';
-    g.strokeText(text, x, y);
-    g.fillStyle = color; g.fillText(text, x, y);
+  function label(text, x, y, color, size, ctx = g) {
+    ctx.font = `bold ${size || 13}px ui-monospace, Menlo, Consolas, monospace`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+    ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.9)';
+    ctx.strokeText(text, x, y);
+    ctx.fillStyle = color; ctx.fillText(text, x, y);
   }
   const fmt = n => (n >= 100000 ? Math.round(n / 1000) + 'k' : String(n));
 
@@ -889,15 +890,15 @@
   // 光標顏色（r,g,b）：平常白色，走去開打時帶一點淡紅
   const CURSOR_RGB = { walk: '255,255,255', door: '255,255,255', fight: '255,176,176' };
   // 終點光標：圓角方框＋淡淡的內光，約 1.6 秒一次緩慢明暗呼吸（同一般 RPG 的目的地游標）
-  function cursor(x, y, rgb, t) {
+  function cursor(x, y, rgb, t, ctx = g) {
     const a = 0.3 + 0.55 * (0.5 + 0.5 * Math.sin(t * Math.PI * 2 / 1600));
     const pad = 3, s = TILE - pad * 2, ox = x * TILE + pad, oy = y * TILE + pad;
-    g.save();
-    g.beginPath(); g.roundRect ? g.roundRect(ox, oy, s, s, 7) : g.rect(ox, oy, s, s);
-    g.fillStyle = `rgba(${rgb},${a * 0.16})`; g.fill();
-    g.shadowColor = `rgba(${rgb},${a * 0.8})`; g.shadowBlur = 8;
-    g.lineWidth = 2.5; g.strokeStyle = `rgba(${rgb},${a})`; g.stroke();
-    g.restore();
+    ctx.save();
+    ctx.beginPath(); ctx.roundRect ? ctx.roundRect(ox, oy, s, s, 7) : ctx.rect(ox, oy, s, s);
+    ctx.fillStyle = `rgba(${rgb},${a * 0.16})`; ctx.fill();
+    ctx.shadowColor = `rgba(${rgb},${a * 0.8})`; ctx.shadowBlur = 8;
+    ctx.lineWidth = 2.5; ctx.strokeStyle = `rgba(${rgb},${a})`; ctx.stroke();
+    ctx.restore();
   }
   // 路線：從勇者連到終點的一條淡白細線（畫在地板上、道具和怪物底下），停在終點格的邊上不壓到光標
   function drawRoute() {
@@ -1073,7 +1074,11 @@
     MT.Audio.init();
     if (e.target.tagName === 'INPUT') return;
     if (e.key === 'Enter' || e.key === ' ') { if (advanceDialog()) { e.preventDefault(); return; } if (mode === 'cine') { e.preventDefault(); cineNext(); return; } }
-    if (!$('#modal').hidden) { if (e.key === 'Escape') closeModal(); return; }
+    if (!$('#modal').hidden) {
+      if (e.key === 'Escape') closeModal();
+      else if (tutGo && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) { e.preventDefault(); tutGo(e.key === 'ArrowLeft' ? -1 : 1); }   // 教學翻頁
+      return;
+    }
     if (dialogResolve) { if (KEYMAP[e.key]) e.preventDefault(); return; }
     if (mode !== 'game') return;
     const d = KEYMAP[e.key];
@@ -1255,11 +1260,13 @@
     if (!st || mode !== 'game' || busy) return;
     openModal(MT.t('btnMenu'), `<div class="menu">
       <button class="btn" data-a="saves">${esc(MT.t('saveTitle'))}</button>
+      <button class="btn" data-a="tutorial">${esc(MT.t('tutorial'))}</button>
       <button class="btn" data-a="settings">${esc(MT.t('settings'))}</button>
       <button class="btn" data-a="title">${esc(MT.t('backTitle'))}</button></div>`, body => {
       body.querySelectorAll('[data-a]').forEach(b => b.addEventListener('click', () => {
         const a = b.dataset.a; closeModal();
         if (a === 'saves') openSaves();
+        else if (a === 'tutorial') openTutorial();
         else if (a === 'settings') openSettings();
         else if (a === 'title') { autosave(); showTitle(); }
       }));
@@ -1287,6 +1294,111 @@
       body.querySelector('#vSfx').addEventListener('input', e => { settings.sfx = Number(e.target.value); MT.Audio.setVolume('sfx', settings.sfx); MT.LS.set('settings', settings); });
       body.querySelector('#vSfx').addEventListener('change', () => sfx('gem'));
     });
+  }
+
+  /* ───────── 教學（選單裡的「教學」，Ken 指定）─────────
+     一頁一張示意圖＋說明。示意圖用地圖同一套地板、牆、像素圖、路線、終點框畫在小畫布上，
+     怪物腳下的數字照 MT.calc 實算（假設一個剛開局的勇者 TUT_ST），規則或數值改了圖和例子會跟著對 */
+  const TUT_ST = { hp: 200, atk: 10, def: 10, skill: null };
+  /* rows：每列一串空白分隔的格子代碼（同 data.js 的地圖：.. 地板、## 牆、Cw 裂牆、@@ 勇者，其他照 spriteFor）
+     opt：zone 區域、dir 勇者面向、route 路線格子（第一格是勇者）、goal 終點框、cross 紅 ✕、dmg 怪物腳下標損失、
+          labels [[x, y, 文字, 顏色]] 格子下緣的字 */
+  function tutScene(rows, opt = {}) {
+    const cells = rows.map(r => r.trim().split(/\s+/));
+    const h = cells.length, w = cells[0].length;
+    const c = document.createElement('canvas');
+    c.width = w * TILE; c.height = h * TILE;
+    const tg = c.getContext('2d');
+    tg.imageSmoothingEnabled = false;
+    const mid = v => v * TILE + TILE / 2;
+    cells.forEach((row, y) => row.forEach((code, x) => {
+      const kind = code === '##' ? 'wall' : code === 'Cw' ? 'cracked' : 'floor';
+      tg.drawImage(MT.terrain(kind, opt.zone || 1, TILE, (x * 7 + y * 13) % 10), x * TILE, y * TILE);
+    }));
+    if (opt.route) {   // 同 drawRoute：淡白粗線，停在終點格的邊上
+      const pts = opt.route.map(([x, y]) => [mid(x), mid(y)]);
+      const [ex, ey] = pts[pts.length - 1], [px, py] = pts[pts.length - 2];
+      const d = Math.hypot(ex - px, ey - py) || 1, cut = Math.min(d, TILE * 0.42);
+      pts[pts.length - 1] = [ex - (ex - px) / d * cut, ey - (ey - py) / d * cut];
+      tg.save(); tg.lineCap = 'round'; tg.lineJoin = 'round'; tg.lineWidth = 5; tg.strokeStyle = 'rgba(255,255,255,0.3)';
+      tg.beginPath(); pts.forEach(([x, y], i) => (i ? tg.lineTo(x, y) : tg.moveTo(x, y))); tg.stroke(); tg.restore();
+    }
+    cells.forEach((row, y) => row.forEach((code, x) => {
+      const sp = code === '@@' ? [MT.heroSprite(opt.dir || 'down', '', 0, '', '')] : spriteFor(code);
+      if (!sp) return;
+      tg.drawImage(MT.sprite(sp[0], sp[1], SC), x * TILE, y * TILE);
+      if (opt.dmg && MT.MONSTERS[code]) {
+        const k = MT.calc(TUT_ST, code);
+        label(k.damage == null ? '???' : fmt(k.damage), mid(x), (y + 1) * TILE - 1, dmgColor(k, TUT_ST.hp), 15, tg);
+      }
+    }));
+    for (const [x, y, text, color] of opt.labels || []) label(text, mid(x), (y + 1) * TILE - 1, color, 15, tg);
+    if (opt.goal) cursor(opt.goal[0], opt.goal[1], CURSOR_RGB.walk, 400, tg);
+    if (opt.cross) {   // 同點到走不到的地方閃的紅 ✕
+      const [cx, cy] = [mid(opt.cross[0]), mid(opt.cross[1])], r = 13;
+      tg.save(); tg.lineCap = 'round';
+      for (const [lw, col] of [[9, 'rgba(0,0,0,0.6)'], [5, '#ff4a4a']]) {
+        tg.lineWidth = lw; tg.strokeStyle = col; tg.beginPath();
+        tg.moveTo(cx - r, cy - r); tg.lineTo(cx + r, cy + r); tg.moveTo(cx + r, cy - r); tg.lineTo(cx - r, cy + r); tg.stroke();
+      }
+      tg.restore();
+    }
+    return `<img class="px tutPic" src="${c.toDataURL()}" alt="">`;
+  }
+  // 圖示＋說明一列（怪物特技、小技巧那兩頁）
+  const tutRow = (pic, head, text) => `<div class="tutRow">${pic}<div><b>${esc(head)}</b>${head && text ? '<br>' : ''}<span class="small">${esc(text)}</span></div></div>`;
+  const ZV = k => MT.ZONE_VALUES[MT.ITEMS[k].zone][0];
+  // 每頁：pic 標題下的示意圖、after 說明文字後面的補充（例子、一列一列的圖示說明）；文字是 i18n 的 tut_<頁>t（標題）、tut_<頁>
+  const TUT_PAGES = [
+    { pic: () => tutScene(['## ## UU ## ##', '## .. .. .. ##', '## .. .. .. ##', '## N8 @@ .. ##'], { dir: 'up', route: [[2, 3], [2, 2], [2, 1], [2, 0]], goal: [2, 0] }) },
+    { pic: () => tutScene(['.. .. ## .. .. Yk', '.. .. ## .. ## ..', '@@ .. .. .. ## ..'],
+      { dir: 'side', route: [[0, 2], [1, 2], [2, 2], [3, 2], [3, 1], [3, 0], [4, 0], [5, 0]], goal: [5, 0], cross: [4, 2] }) },
+    { pic: () => tutScene(['@@ gs rs bt sk ab'], { dir: 'side', dmg: true }),
+      after: () => {
+        const k = MT.calc(TUT_ST, 'gs'), m = MT.MONSTERS.gs;
+        const ex = MT.t('tut_3x', { hp: TUT_ST.hp, atk: TUT_ST.atk, def: TUT_ST.def, name: MT.monName('gs'), mhp: m.hp, matk: m.atk, mdef: m.def,
+          hit: k.heroHit, turns: k.turns, acts: k.monActs, mhit: k.monHit, dmg: k.damage });
+        return `<p class="tutText tutEx">${esc(ex)}</p>` + tutRow(img('book', null, 'big'), MT.itemName('book'), MT.t('tut_3b'));
+      } },
+    { pic: () => tutScene(['Yk Bk Rk ## Gt ##', 'Yd Bd Rd .. sk ..']) },
+    { pic: () => tutScene(['at df hp HP s1 a1'], { labels: [[0, 0, '+' + ZV('at'), '#ffae6a'], [1, 0, '+' + ZV('df'), '#7ac8ff'], [2, 0, '+' + ZV('hp'), '#ff7a7a'],
+      [3, 0, '+' + ZV('HP'), '#ff7a7a'], [4, 0, '+' + MT.ITEMS.s1.value, '#ffae6a'], [5, 0, '+' + MT.ITEMS.a1.value, '#7ac8ff']] }) },
+    { after: () => [['Sh', 'tut_altar', 'a'], ['Mk', 'frog', 'b'], ['L1', 'level_L1', 'c']]
+      .map(([code, head, k]) => tutRow(img(...spriteFor(code), 'big'), MT.t(head), MT.t('tut_6' + k))).join('') },
+    { after: () => [['bb', 'first'], ['dw', 'double'], ['mg', 'magic'], ['mi', 'pierce'], ['vb', 'drain'], ['pg', 'pincer'], ['K1', 'boss']].map(([code, s]) => {
+      const m = MT.MONSTERS[code];
+      const tag = MT.t('sp_' + s, { p: Math.round((m.drain || 0) * 100) }).replace(/\s*[（(].*$/, '');   // 括號裡的說明下面另外寫
+      return tutRow(img(m.sprite, m.pal, 'big'), tag, MT.t('tut_sp_' + s));
+    }).join('') },
+    { after: () => [['lens', 'look'], ['book', 'book'], ['feather', 'fly'], ['chisel', 'chisel'], ['porter', 'npc'], ['harp', 'skill'], ['page', 'save'], ['goldnote', 'rate']]
+      .map(([sp, k]) => tutRow(img(sp, null, 'big'), '', MT.t('tut_t_' + k))).join('') },
+  ];
+  let tutGo = null;   // 教學開著時的翻頁（鍵盤左右鍵用）
+  function openTutorial() {
+    if (!st || mode !== 'game' || busy) return;
+    let page = 0;
+    const n = TUT_PAGES.length;
+    openModal(MT.t('tutorial'), '', body => {
+      const show = () => {
+        const i = page + 1;
+        $('#mTitle').textContent = `${MT.t('tutorial')}　${i}／${n}`;
+        const dots = TUT_PAGES.map((_, j) => `<button class="tutDot ${j === page ? 'on' : ''}" data-p="${j}" aria-label="${j + 1}"></button>`).join('');
+        const P = TUT_PAGES[page];
+        body.innerHTML = `<h3 class="tutH">${esc(MT.t('tut_' + i + 't'))}</h3>${P.pic ? `<div class="tutPicBox">${P.pic()}</div>` : ''}`
+          + `<p class="tutText">${esc(MT.t('tut_' + i, { at: MT.t('name_at'), df: MT.t('name_df'), hp: MT.t('name_hp'), HP: MT.t('name_HP') }))}</p>${P.after ? P.after() : ''}`
+          + `<div class="tutNav"><button class="btn" data-d="-1" ${page ? '' : 'disabled'}>${esc(MT.t('tut_prev'))}</button><span class="tutDots">${dots}</span>`
+          + `<button class="btn primary" data-d="1">${esc(MT.t(page === n - 1 ? 'tut_done' : 'tut_next'))}</button></div>`;
+        body.querySelectorAll('[data-d]').forEach(b => b.addEventListener('click', () => tutGo(Number(b.dataset.d))));
+        body.querySelectorAll('[data-p]').forEach(b => b.addEventListener('click', () => { page = Number(b.dataset.p); sfx('select'); show(); }));
+        body.parentElement.scrollTop = 0;
+      };
+      tutGo = d => {
+        if (page + d >= n) { closeModal(); return; }
+        if (page + d < 0) return;
+        page += d; sfx('select'); show();
+      };
+      show();
+    }, () => { tutGo = null; });
   }
 
   /* ───────── 雲端同步 ───────── */

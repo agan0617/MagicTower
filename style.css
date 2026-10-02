@@ -215,6 +215,23 @@ input[type=text], input[type=password] { width: 100%; padding: 10px 12px; border
 .btn.opt img { width: 28px; height: 28px; }
 .menu { display: flex; flex-direction: column; gap: 10px; }
 
+/* ── 教學：一頁一張示意圖（地圖同款圖塊）＋說明，下面翻頁 ── */
+.tutH { margin: 0 0 10px; font-size: 17px; color: #fff3c0; }
+.tutPicBox { display: flex; justify-content: center; margin-bottom: 10px; }
+.tutPic { display: block; max-width: 100%; height: auto; border-radius: 6px; box-shadow: 0 0 0 2px #2a2648, 0 6px 20px -6px #000; }
+.tutText { margin: 0 0 10px; line-height: 1.7; white-space: pre-line; }
+.tutEx { font-size: 14px; color: #d8d0f0; background: var(--panel2); border-radius: 8px; padding: 8px 10px; }
+.tutRow { display: flex; gap: 12px; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--line); }
+.tutRow:has(+ .tutNav) { border-bottom: 0; }
+.tutRow img { width: 40px; height: 40px; flex: none; background: #2a2648; border-radius: 8px; }
+.tutRow .small { color: #d8d0f0; }
+.tutNav { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 14px; }
+.tutNav .btn { padding: 9px 12px; font-size: 14px; white-space: nowrap; }
+.tutDots { display: flex; justify-content: center; min-width: 0; }
+.tutDot { width: 14px; height: 24px; padding: 0; border: 0; background: none; cursor: pointer; position: relative; flex: none; }
+.tutDot::after { content: ''; position: absolute; left: 3px; top: 8px; width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
+.tutDot.on::after { background: var(--accent); }
+
 #toast { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 70; width: max-content; max-width: calc(100% - 32px); padding: 10px 18px; border-radius: 999px; background: rgba(242, 238, 255, 0.95); color: #1b1a26; font-size: 15px; font-weight: 600; box-shadow: 0 6px 20px rgba(0,0,0,.5); text-align: center; pointer-events: none; }
 #toast.show { animation: toastIn .2s ease; }
 

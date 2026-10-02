@@ -172,6 +172,7 @@ blockquote { margin: 10px 0; padding: 6px 14px; border-left: 3px solid var(--acc
 <tr><td>查看模式</td><td class="wrap">功能鍵列第一顆「查看」：開啟時按鈕變黃、地圖框淡黃，點一下只看說明不移動；再按一次、<code>Esc</code>、返回鍵或方向鍵離開</td></tr>
 <tr><td>鍵盤</td><td class="wrap">方向鍵／WASD 走（按住每 125ms 連續走）；<code>B</code> 圖鑑、<code>F</code> 飛行、<code>Shift+S</code> 存讀、<code>Esc</code> 選單（查看模式中為離開查看）；<code>Enter</code>／空白鍵推進對話與過場</td></tr>
 <tr><td>功能鍵列</td><td class="wrap">查看／圖鑑／飛行／存讀／選單。圖鑑列出<b>本層</b>所有怪物（需先有《怪物圖鑑》）</td></tr>
+<tr><td>教學</td><td class="wrap">選單 → 教學，8 頁圖文（目標、移動、戰鬥、鑰匙與門、道具、金幣與經驗、怪物特技、小技巧），左右鍵或下方圓點翻頁。示意圖由 <code>tutScene</code> 用地圖同款圖塊即時畫出，戰鬥頁的損失數字與例子照 <code>MT.calc</code> 實算（假設生命 200／攻擊 10／防禦 10），改數值不用改圖</td></tr>
 <tr><td>Android 返回鍵</td><td class="wrap"><code>MT.onBack</code>：先關確認框 → 關視窗 → 離開查看模式 → 開選單</td></tr>
 <tr><td>夾擊格</td><td class="wrap">自動尋路會盡量繞開兩隻夾擊怪中間的格子；夾擊怪腳下有紅色虛線框</td></tr>
 <tr><td>暗牆／裂牆</td><td class="wrap">暗牆看起來就是牆，點下去會走過去（發現暗道）；裂牆要有鑿子，沒有時點下去會提示</td></tr>
@@ -469,7 +470,7 @@ S：分數 ≥ 22000 且真結局　A：≥ 17000　B：≥ 11000　其餘 C</co
 <tr><td><code>js/audio.js</code></td><td class="wrap">音樂排程（25ms 計時器預排 0.15 秒）、分層開關、合成樂器與音效</td></tr>
 <tr><td><code>js/i18n.js</code></td><td class="wrap">三語文字、語言偵測、<code>MT.t</code>／<code>MT.story</code></td></tr>
 <tr><td><code>js/sync.js</code></td><td class="wrap">localStorage 包裝、存檔清單、裝置 id、GitHub 同步（拉、推、合併、舊格式遷移）</td></tr>
-<tr><td><code>js/main.js</code></td><td class="wrap">畫面繪製、點擊／長按／鍵盤、自動尋路、戰鬥與劇本演出、選單（圖鑑、飛行、存讀、商店、設定、雲端）、序章／結局動畫、標題畫面、自動存檔時機、App 介面（<code>MT.onBack</code>、<code>appPause</code>、<code>appResume</code>）</td></tr>
+<tr><td><code>js/main.js</code></td><td class="wrap">畫面繪製、點擊／長按／鍵盤、自動尋路、戰鬥與劇本演出、選單（圖鑑、飛行、存讀、商店、設定、教學、雲端）、序章／結局動畫、標題畫面、自動存檔時機、App 介面（<code>MT.onBack</code>、<code>appPause</code>、<code>appResume</code>）</td></tr>
 <tr><td><code>style.css</code></td><td class="wrap">版面（直向／橫向以 5:4 長寬比切換）、元件樣式</td></tr>
 <tr><td><code>sw.js</code>、<code>manifest.webmanifest</code></td><td class="wrap">離線快取與 PWA 安裝資訊（standalone、任意方向）</td></tr>
 <tr><td><code>tools/</code></td><td class="wrap"><code>solve.js</code> 自動玩家（確認打得通並算評價基準）、<code>count.js</code> 每層資源統計、<code>check_reach.js</code> 連通檢查、<code>test_sync.js</code> 同步測試、<code>make_icons.py</code> 圖示</td></tr>
