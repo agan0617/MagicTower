@@ -1245,10 +1245,10 @@
       bigSprite(sing ? 'villagerSing' : 'villager', v.pal, v.x, SIZE - 38 - v.sc * 16 - v.lift - bob, v.sc, v.flip);
     }
   }
-  // 序章廣場：前排避開國王（130～210）與呱呱商人（330～410）
+  // 序章廣場：前排避開國王（130～210）與正中間領唱的阿爾特（224～304）
   const townFolk = folk(
-    [[28, 'vF'], [92, 'vC'], [196, 'vE'], [252, 'vA'], [300, 'vB'], [404, 'vD'], [468, 'vC']],
-    [[2, 'vA'], [58, 'vE'], [212, 'vD'], [266, 'vF'], [412, 'vB'], [466, 'vA']], 22);
+    [[28, 'vF'], [84, 'vC'], [200, 'vE'], [300, 'vA'], [352, 'vB'], [404, 'vD'], [468, 'vC']],
+    [[2, 'vA'], [58, 'vE'], [310, 'vD'], [362, 'vF'], [414, 'vB'], [464, 'vA']], 22);
   // 一般結局的豐收祭：後排站在阿爾特、大鼓、國王那一排的空檔，前排擠滿地面（左邊留給呱呱商人）
   const festFolk = folk(
     [[4, 'vD'], [52, 'vA'], [218, 'vC'], [470, 'vE']],
@@ -1402,11 +1402,12 @@
       }
       cg.globalAlpha = 1;
     },
-    // 傍晚的廣場：滿滿的鎮民一起唱歌，國王和呱呱商人也在人群裡
+    // 傍晚的廣場：滿滿的鎮民一起唱歌，阿爾特站在前排正中間領唱，國王在他旁邊（旁白正在講他是合唱團的領唱）
     town: t => {
       drawSky(t, '#141a3a', '#3a2a5a'); drawStars(t); drawTown(t);
       drawFolk(t, townFolk);
-      bigSprite('bard', null, 130, SIZE - 118, 5); bigSprite('frog', null, 330, SIZE - 118, 5, true);
+      bigSprite('bard', null, 130, SIZE - 118, 5);
+      bigSprite('heroSing', null, 224, SIZE - 118 - Math.abs(Math.sin(t / 420)) * 6, 5);
       floatingNotes(t, 22, SIZE / 2, SIZE - 70, 250, null, 320);
     },
     forge: t => {
