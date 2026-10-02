@@ -1471,6 +1471,7 @@
 
   /* 序章練唱廳：阿爾特在台上領唱、破音、全場哄笑。st＝場景開始後幾毫秒，laughing＝笑到什麼程度（0～1） */
   const LAUGH_TEXT = { zh: '哈哈', en: 'HA HA', ja: 'ハハ' };
+  const CLANG_TEXT = { zh: '噹！', en: 'CLANG!', ja: 'カーン！' };
   const choir = Array.from({ length: 10 }, (_, i) => ({ x: [70, 120, 170, 358, 408, 458][i % 6] + (i >= 6 ? 25 : 0), row: i >= 6 ? 1 : 0, robe: i % 2 }));
   const audience = Array.from({ length: 11 }, (_, i) => ({ x: 20 + i * 49 + (i % 2) * 8, h: 30 + (i * 7) % 12 }));
   function drawRehearsal(t, st, laughing, sprite) {
@@ -1702,6 +1703,117 @@
       bigSprite('bard', null, 130, SIZE - 118, 5);
       bigSprite('heroSing', null, 224, SIZE - 118, 5);
       floatingNotes(t, 22, SIZE / 2, SIZE - 70, 250, null, 320);
+    },
+    // 逃出練唱廳：夜裡的街道往後退，阿爾特邊哭邊跑，「哈哈」一路追在後面；
+    // 越跑越慢，王宮後面打鐵鋪的爐光從右邊滑進來，老鐵匠站在門口
+    flee: t => {
+      const st = t - cineT0;
+      const k = Math.min(1, st / 3600), cam = 520 * (1 - Math.pow(1 - k, 2));   // 鏡頭跟著他往右，最後停下
+      const running = k < 0.97;
+      drawSky(t, '#0c0e24', '#2a1a3a'); drawStars(t);
+      cg.fillStyle = '#e8e0c8'; cg.beginPath(); cg.arc(420 - cam * 0.05, 80, 26, 0, Math.PI * 2); cg.fill();   // 月亮幾乎不動
+      // 遠景房子（慢）與近景房子（快），窗戶都黑了大半
+      for (const [par, col, base, step, hh] of [[0.4, '#16122a', SIZE - 70, 70, 120], [1, '#0d0a18', SIZE - 40, 96, 90]]) {
+        cg.fillStyle = col;
+        const off = (cam * par) % step;
+        for (let i = -1; i < SIZE / step + 2; i++) {
+          const n = i + Math.floor(cam * par / step), x = i * step - off, h = hh + (n * 37 % 50);
+          if (par === 1 && x + cam > 760) continue;                           // 打鐵鋪那一段不蓋房子
+          cg.fillRect(x, base - h, step - 14, h);
+          cg.beginPath(); cg.moveTo(x - 6, base - h); cg.lineTo(x + (step - 14) / 2, base - h - 26); cg.lineTo(x + step - 8, base - h); cg.fill();
+          if (n % 3 === 0) { cg.fillStyle = '#6a5a3a'; cg.fillRect(x + 16, base - h + 20, 9, 11); cg.fillStyle = col; }
+        }
+      }
+      cg.fillStyle = '#1a1424'; cg.fillRect(0, SIZE - 40, SIZE, 40);
+      // 打鐵鋪：一間小木屋，門裡透出橘紅的爐光
+      const fx = 860 - cam;
+      if (fx < SIZE + 40) {
+        const glow = cg.createRadialGradient(fx + 85, SIZE - 100, 10, fx + 85, SIZE - 100, 260);
+        glow.addColorStop(0, `rgba(255,140,50,${0.45 + 0.05 * Math.sin(t / 180)})`); glow.addColorStop(1, 'rgba(255,140,50,0)');
+        cg.fillStyle = glow; cg.fillRect(0, 0, SIZE, SIZE);
+        cg.fillStyle = '#2a1a14'; cg.fillRect(fx, SIZE - 210, 170, 170);
+        cg.beginPath(); cg.moveTo(fx - 16, SIZE - 210); cg.lineTo(fx + 85, SIZE - 262); cg.lineTo(fx + 186, SIZE - 210); cg.fill();
+        cg.fillStyle = '#ff9a3a'; cg.fillRect(fx + 37, SIZE - 172, 96, 132);
+        cg.fillStyle = '#ffd27a'; cg.fillRect(fx + 45, SIZE - 164, 80, 124);
+        bigSprite('smith', null, fx + 29, SIZE - 40 - 112, 7);
+      }
+      // 阿爾特：跑步兩格輪流、身體一顛一顛；停下來之後喘氣、肩膀起伏
+      const ax = 150 + (running ? 0 : Math.min(60, (st - 3500) / 12)) , frame = Math.floor(t / 130) % 2;
+      const bob = running ? (frame ? -6 : 0) : Math.round(Math.sin(t / 260) * 2);
+      bigSprite(running ? (frame ? 'heroRunA' : 'heroRunB') : 'heroRunB', null, Math.min(ax, 210), SIZE - 40 - 128 + bob, 8);
+      // 被風吹到後面的眼淚
+      if (running) for (let i = 0; i < 3; i++) {
+        const p = ((t / 500 + i / 3) % 1);
+        cg.globalAlpha = 1 - p; cg.fillStyle = '#aef4ff';
+        cg.fillRect(150 + 70 - p * 70, SIZE - 168 + 50 + p * 20 - Math.sin(p * Math.PI) * 10, 5, 4);
+      }
+      cg.globalAlpha = 1;
+      // 追在背後的笑聲：越來越淡、越來越小
+      const word = LAUGH_TEXT[MT.getLang()] || LAUGH_TEXT.en;
+      const fade = Math.max(0, 1 - st / 4200);
+      cg.textAlign = 'center';
+      for (let i = 0; i < 6; i++) {
+        const p = ((t / 1300 + i / 6) % 1);
+        cg.globalAlpha = Math.sin(p * Math.PI) * fade * 0.8; cg.fillStyle = '#fff3c0';
+        cg.font = `bold ${Math.round((16 + (i % 3) * 5) * (0.6 + 0.4 * fade))}px sans-serif`;
+        cg.fillText(word, 30 + (i * 23) % 110 - p * 40, SIZE - 210 - (i * 31) % 120 - p * 30);
+      }
+      cg.globalAlpha = 1;
+    },
+    // 第一下：老鐵匠什麼也沒問，把鎚子塞進他手裡。他一鎚敲下去——「噹！」一陣白光，耳邊轉著的笑聲全被震碎
+    firstStrike: t => {
+      const st = t - cineT0, HIT = 1500;
+      drawSky(t, '#2a1810', '#5a2a18');
+      cg.fillStyle = '#3a2418'; cg.fillRect(0, SIZE - 120, SIZE, 120);
+      cg.fillStyle = '#555a68'; cg.fillRect(270, SIZE - 170, 120, 30); cg.fillRect(300, SIZE - 140, 60, 50);
+      cg.fillStyle = 'rgba(255,140,40,0.15)'; cg.beginPath(); cg.arc(330, SIZE - 160, 140 + Math.sin(t / 200) * 10, 0, Math.PI * 2); cg.fill();
+      const after = st - HIT;
+      if (after > 0 && after < 260) cg.translate((Math.random() - 0.5) * 14 * (1 - after / 260), (Math.random() - 0.5) * 14 * (1 - after / 260));
+      bigSprite('smith', null, -4, SIZE - 122 - 144, 9);
+      // 鎚子從老鐵匠手上遞過去
+      const give = Math.min(1, Math.max(0, (st - 200) / 700));
+      if (give < 1) {
+        const x = 120 + give * 130, y = SIZE - 200 - Math.sin(give * Math.PI) * 30;
+        cg.fillStyle = '#1b1a26'; cg.fillRect(x - 6, y - 7, 12, 50); cg.fillRect(x - 19, y - 21, 38, 22);
+        cg.fillStyle = '#9a6634'; cg.fillRect(x - 3, y - 4, 6, 44);
+        cg.fillStyle = '#8a8f9e'; cg.fillRect(x - 16, y - 18, 32, 16);
+        bigSprite('heroRunB', null, 150, SIZE - 250, 8);
+      } else {
+        const down = after > -120 && after < 160 ? 6 : 0;                     // 舉起、敲下
+        bigSprite('heroSideSulk', null, 150, SIZE - 250 + down, 8);
+      }
+      // 敲下去之前，笑聲還在他頭邊打轉
+      const word = LAUGH_TEXT[MT.getLang()] || LAUGH_TEXT.en;
+      cg.textAlign = 'center';
+      for (let i = 0; i < 7; i++) {
+        const a = i / 7 * Math.PI * 2 + t / 900, r = 80 + (i % 3) * 14;
+        let x = 214 + Math.cos(a) * r, y = SIZE - 230 + Math.sin(a) * r * 0.45, al = 0.7;
+        if (after > 0) { const q = Math.min(1, after / 500); x += Math.cos(a) * q * 160; y += Math.sin(a) * q * 90 - q * 20; al *= 1 - q; }   // 被震飛
+        if (al <= 0) continue;
+        cg.globalAlpha = al; cg.fillStyle = '#fff3c0'; cg.font = 'bold 18px sans-serif';
+        cg.fillText(word, x, y);
+      }
+      cg.globalAlpha = 1;
+      if (after > 0) {
+        // 火星四濺
+        for (let i = 0; i < 18; i++) {
+          const q = Math.min(1, after / 900), a = -Math.PI * (0.1 + 0.8 * ((i * 0.37) % 1)), v = 120 + (i * 53) % 140;
+          cg.globalAlpha = 1 - q; cg.fillStyle = ['#ffd84a', '#ff9a2e', '#fff6d0'][i % 3];
+          cg.fillRect(318 + Math.cos(a) * v * q, SIZE - 175 + Math.sin(a) * v * q + q * q * 120, 5, 5);
+        }
+        cg.globalAlpha = 1;
+        // 「噹！」
+        if (after < 1400) {
+          const s = 1 + 0.5 * Math.max(0, 1 - after / 160);
+          cg.globalAlpha = Math.min(1, (1400 - after) / 400);
+          cg.font = `900 ${Math.round(64 * s)}px sans-serif`; cg.lineWidth = 6; cg.lineJoin = 'round';
+          cg.strokeStyle = '#1b1a26'; cg.fillStyle = '#ffe066';
+          cg.strokeText(CLANG_TEXT[MT.getLang()] || CLANG_TEXT.en, 360, SIZE - 230); cg.fillText(CLANG_TEXT[MT.getLang()] || CLANG_TEXT.en, 360, SIZE - 230);
+          cg.globalAlpha = 1;
+        }
+        // 白光一閃
+        if (after < 300) { cg.fillStyle = `rgba(255,248,220,${0.75 * (1 - after / 300)})`; cg.fillRect(-20, -20, SIZE + 40, SIZE + 40); }
+      }
     },
     // 打鐵鋪：阿爾特臭著臉敲鐵，老鐵匠在他身後看著
     forge: t => {
@@ -2004,7 +2116,10 @@
     if (s.scene) { cineScene = s.scene; cineT0 = now(); cinePose = null; }
     if (s.pose) cinePose = s.pose;
     if (s.music) MT.Audio.play(s.music, ['base', 'drums', 'strings', 'lead']);
-    if (s.sfx) sfx(s.sfx);
+    if (s.sfx) {
+      if (s.sfxAt) { const sc = cineScene; setTimeout(() => { if (mode === 'cine' && cineScene === sc) sfx(s.sfx); }, s.sfxAt); }   // 等畫面演到那一下才響
+      else sfx(s.sfx);
+    }
     const text = s.text ? MT.story(s.text) : '';
     cineFull = text;
     const tb = $('#cineText');
@@ -2042,6 +2157,8 @@
     { text: 'pro_2' },
     { scene: 'rehearsal', text: 'pro_3', music: 'none', sfx: 'crackLaugh' },
     { scene: 'rehearsalSpot', text: 'pro_3s' },
+    { scene: 'flee', text: 'pro_3r', delay: 500 },
+    { scene: 'firstStrike', text: 'pro_3t', sfx: 'clang', sfxAt: 1500, delay: 2300 },
     { scene: 'forge', text: 'pro_3a', music: 'title' },
     { text: 'pro_3b', speaker: 'smith' },
     { scene: 'forgeKing', text: 'pro_4', speaker: 'bard', delay: 1600 },

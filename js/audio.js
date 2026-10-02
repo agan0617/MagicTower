@@ -263,6 +263,14 @@
     item: t => arp('square', ['g5', 'c6', 'e6', 'g6'], t, 0.06, 0.14, 0.12),
     gem: t => arp('sine', ['c6', 'g6', 'c7', 'e7'], t, 0.045, 0.2, 0.3),
     potion: t => { tone('sine', 300, t, 0.12, 0.35, sfxBus, 700); tone('sine', 500, t + 0.12, 0.12, 0.3, sfxBus, 900); },
+    // 序章第一鎚：鐵砧上「噹——」一聲，高頻金屬泛音拖長尾音
+    clang: t => {
+      kick(t, sfxBus, 0.9);
+      noise(t, 0.12, 'bandpass', 3800, 0.6, sfxBus, 2);
+      tone('square', 1320, t, 0.9, 0.08, sfxBus, 1250);
+      tone('triangle', 2093, t, 1.4, 0.16, sfxBus, 2050);
+      tone('sine', 3136, t, 1.1, 0.08, sfxBus);
+    },
     hit: t => { noise(t, 0.08, 'bandpass', 1400, 0.5, sfxBus, 1); tone('square', 240, t, 0.08, 0.1, sfxBus, 110); },
     hurt: t => { tone('sawtooth', 160, t, 0.12, 0.15, sfxBus, 80); },
     kill: t => arp('square', ['e5', 'c5', 'g4', 'c4'], t, 0.04, 0.08, 0.1),
