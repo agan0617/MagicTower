@@ -80,6 +80,10 @@
     keys: { y: 10, b: 50, r: 100 },
   };
 
+  /* 通關評價（MT.rating）：base＝自動玩家通關的分數（剩餘生命＋資源折算），改關卡或數值後跑 tools/solve.js 看要不要跟著調。
+     S／A／B＝base 的幾倍以上，S 另外要真結局 */
+  MT.RATING = { base: 8520, S: 1.4, A: 1, B: 0.5 };
+
   MT.START = { floor: 1, x: 5, y: 14, hp: 1000, atk: 10, def: 10, gold: 0, keys: { y: 1, b: 0, r: 0 } };
   MT.TOP = 15;
 

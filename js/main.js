@@ -1857,6 +1857,9 @@
     $('#tNew').textContent = MT.t('newGame');
     $('#tLoad').textContent = MT.t('load');
     $('#tSettings').textContent = MT.t('settings');
+    const best = MT.Sync.best();
+    $('#tBest').hidden = !best;
+    if (best) { $('#tBest').textContent = MT.t('rateBest', { g: best.data.grade, score: best.data.score }); $('#tBest').dataset.g = best.data.grade; }
     renderCloudChip();
   }
   function showTitle() {
@@ -1904,6 +1907,9 @@
     const secs = Math.round(st.playMs / 1000);
     const tstr = `${Math.floor(secs / 3600)}:${String(Math.floor(secs / 60) % 60).padStart(2, '0')}:${String(secs % 60).padStart(2, '0')}`;
     const trueEnd = MT.isTrueEnding(st);
+    // 評價在演出前算好、記進最佳紀錄，演出中途關掉也不會漏記
+    const r = MT.rating(st);
+    const newBest = MT.Sync.saveBest(Object.assign({}, r, { playMs: st.playMs, steps: st.steps, kills: st.kills }));
     await playCine(trueEnd ? [
       { scene: 'festivalTrue', text: 'et_1', music: 'ending' },
       { text: 'et_2', keep: true },
@@ -1920,7 +1926,11 @@
     mode = 'cine';
     $('#cine').hidden = false; $('#stage').classList.add('under');
     $('#cineName').hidden = true;
-    $('#cineBody').innerHTML = `<b>${esc(MT.story('ed_thanks'))}</b><br><span class="small">${esc(MT.t(trueEnd ? 'endTrue' : 'endNormal'))}　${esc(MT.t('endStats', { t: tstr, s: st.steps, k: st.kills }))}</span><br>${trueEnd ? '' : `<span class="small">${esc(MT.story('ed_hint'))}</span><br>`}<button class="btn primary" id="endBack">${esc(MT.t('backTitle'))}</button>`;
+    const rank = `<div class="rank" data-g="${r.grade}"><span class="rankLab">${esc(MT.t('rateTitle'))}</span><span class="rankG">${r.grade}</span>${newBest ? `<span class="rankNew">${esc(MT.t('rateNew'))}</span>` : ''}</div>`
+      + `<span class="small">${esc(MT.t('rateCalc', { hp: r.hp, bonus: r.bonus, score: r.score }))}</span><br>`
+      + (r.bonus ? `<span class="small">${esc(MT.t('rateBonusHint'))}</span><br>` : '')
+      + (r.needTrue ? `<span class="small rankWarn">${esc(MT.t('rateNeedTrue'))}</span><br>` : '');
+    $('#cineBody').innerHTML = `<b>${esc(MT.story('ed_thanks'))}</b><br>${rank}<span class="small">${esc(MT.t(trueEnd ? 'endTrue' : 'endNormal'))}　${esc(MT.t('endStats', { t: tstr, s: st.steps, k: st.kills }))}</span><br>${trueEnd ? '' : `<span class="small">${esc(MT.story('ed_hint'))}</span><br>`}<button class="btn primary" id="endBack">${esc(MT.t('backTitle'))}</button>`;
     cineQueue = []; endScreen = true;
     $('#cineSkip').hidden = true;
     $('#endBack').addEventListener('click', e => { e.stopPropagation(); endScreen = false; $('#cineSkip').hidden = false; $('#cine').hidden = true; showTitle(); });

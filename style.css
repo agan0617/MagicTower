@@ -123,6 +123,7 @@ button { font: inherit; color: inherit; }
 #tTitle { margin: 0; font-family: "Noto Serif TC", "Songti TC", "Yu Mincho", serif; font-size: clamp(56px, 16vmin, 96px); letter-spacing: 8px; color: #fff3c0;
   text-shadow: 0 0 18px #c07cf5, 0 0 40px #6a34a8, 0 4px 0 #3a1a5a; }
 html[lang=en] #tTitle { font-size: clamp(40px, 12vmin, 76px); letter-spacing: 2px; line-height: 1.05; }
+#tBest { margin: -24px 0 12px; font-size: 14px; color: var(--g, #c8c0d8); letter-spacing: 1px; text-shadow: 0 2px 6px #000; }
 #tSub { margin: -6px 0 22px; font-size: clamp(16px, 4.6vmin, 24px); color: #d8c8ff; letter-spacing: 4px; text-shadow: 0 2px 8px #000; }
 .btn { border: 1px solid var(--line); background: var(--panel2); color: var(--ink); border-radius: 10px; padding: 10px 16px; font-size: 15px; cursor: pointer; }
 .btn:hover:not(:disabled) { border-color: #6a60a0; }
@@ -142,6 +143,15 @@ html[lang=en] #tTitle { font-size: clamp(40px, 12vmin, 76px); letter-spacing: 2p
 #cineText.speech #cineBody { color: #fff; }
 #cineBody .small { font-size: 14px; color: var(--muted); }
 #cineBody .btn { margin-top: 14px; }
+/* 通關評價：大字等級，顏色依等級 */
+.rank { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 8px 0 4px; --g: #c8c0d8; }
+.rank[data-g=S], #tBest[data-g=S] { --g: #ffd84a; }
+.rank[data-g=A], #tBest[data-g=A] { --g: #aef4ff; }
+.rank[data-g=B], #tBest[data-g=B] { --g: #b8e6a0; }
+.rankLab { font-size: 15px; color: var(--muted); letter-spacing: 2px; }
+.rankG { font-family: "Noto Serif TC", "Songti TC", "Yu Mincho", serif; font-size: clamp(52px, 15vmin, 84px); font-weight: 900; line-height: 1; color: var(--g); text-shadow: 0 0 18px var(--g), 0 3px 0 #000; }
+.rankNew { font-size: 14px; font-weight: 700; color: #ffd84a; }
+#cineBody .rankWarn { color: #ffb38a; }
 #cineSkip { position: absolute; top: calc(var(--safe-t) + 10px); right: 12px; background: rgba(0,0,0,.4); border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; color: var(--muted); cursor: pointer; }
 
 /* ── 選單 ── */

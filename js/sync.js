@@ -22,6 +22,7 @@
   const OLD_FILES = ['saves/magictower.json', 'saves.json'];
   const MANUAL_MAX = 99;
   const AUTO_MAX = 20;   // 自動存檔一台裝置一格；換瀏覽器、清資料都會變成新裝置，留最新的 20 台
+  // 通關最佳紀錄（2.0.25 起）也是一台裝置一格，kind 'best'，data 只有評價、不是存檔，所以讀檔清單不會列出來
 
   const b64enc = s => { const u = new TextEncoder().encode(s); let bin = ''; for (let i = 0; i < u.length; i += 0x8000) bin += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(bin); };
   const b64dec = s => new TextDecoder().decode(Uint8Array.from(atob(String(s).replace(/\s/g, '')), c => c.charCodeAt(0)));
@@ -63,8 +64,11 @@
       if (!y || x.at > y.at) m.set(x.id, x);
     }
     const all = [...m.values()].sort((x, y) => y.at - x.at);
-    return { v: 2, list: all.filter(x => x.kind === 'auto').slice(0, AUTO_MAX).concat(all.filter(x => x.kind !== 'auto').slice(0, MANUAL_MAX)) };
+    return { v: 2, list: all.filter(x => x.kind === 'auto').slice(0, AUTO_MAX)
+      .concat(all.filter(x => x.kind === 'manual').slice(0, MANUAL_MAX), all.filter(x => x.kind === 'best').slice(0, AUTO_MAX)) };
   }
+  // 最佳紀錄先比等級再比分數：一般結局分數再高也只有 A，不能蓋掉真結局的 S
+  const better = (a, b) => !b || 'CBAS'.indexOf(a.grade) - 'CBAS'.indexOf(b.grade) > 0 || (a.grade === b.grade && a.score > b.score);
   const sig = o => norm(o).list.map(x => x.id + '@' + x.at).sort().join('|');
 
   const Sync = {
@@ -115,11 +119,22 @@
     isMine(r) { return !!r && r.dev === this.devId; },
     byId(id) { return this.local().list.find(x => x.id === id) || null; },
     autos() { return this.local().list.filter(x => x.kind === 'auto'); },
-    manuals() { return this.local().list.filter(x => x.kind !== 'auto'); },
+    manuals() { return this.local().list.filter(x => x.kind === 'manual'); },
     myAuto() { return this.byId('a:' + this.devId); },
     // 「繼續遊戲」用：所有裝置裡最新的自動存檔
     latestAuto() { return this.autos()[0] || null; },
     manualFull() { return this.manuals().length >= MANUAL_MAX; },
+
+    /* 通關最佳紀錄：所有裝置裡最好的那筆（data＝MT.rating 的結果加上時間、步數） */
+    best() {
+      return this.local().list.filter(x => x.kind === 'best' && x.data).reduce((a, x) => (better(x.data, a && a.data) ? x : a), null);
+    },
+    /* 這次通關比這台裝置的紀錄好才寫。回傳 true＝打破所有裝置的最佳紀錄 */
+    saveBest(data) {
+      const prev = this.best(), mine = this.byId('b:' + this.devId);
+      if (better(data, mine && mine.data)) this.put({ id: 'b:' + this.devId, kind: 'best', dev: this.devId, device: this.device, at: Date.now(), data });
+      return better(data, prev && prev.data);
+    },
 
     setStatus(st, err) {
       this.status = st; this.error = err || '';

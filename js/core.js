@@ -222,6 +222,20 @@
   // 真結局：三頁日記全撿齊，並帶著失落的音符打倒指揮家
   MT.isTrueEnding = st => st.pages.length >= 3 && !!st.items.note;
 
+  /* 通關評價：剩餘生命＋剩下的金幣與鑰匙折算成生命。
+     金幣照 11F 祭壇當下的價格換生命，鑰匙先照呱呱商人的價格換金幣，等於幫玩家把錢花完，不用最後跑回去買血。
+     門檻是自動玩家（tools/solve.js）通關分數的倍數；S 還要真結局，否則跳過支線反而剩比較多血 */
+  MT.rating = function (st) {
+    const K = MT.SHOPS.keys, S2 = MT.SHOPS.shop2, R = MT.RATING;
+    const gold = st.gold + st.keys.y * K.y + st.keys.b * K.b + st.keys.r * K.r;
+    const bonus = Math.floor(gold * S2.hp / MT.shopPrice(st, 'shop2'));
+    const score = st.hp + bonus;
+    const trueEnd = MT.isTrueEnding(st);
+    const sOk = score >= R.base * R.S;
+    const grade = sOk && trueEnd ? 'S' : score >= R.base * R.A ? 'A' : score >= R.base * R.B ? 'B' : 'C';
+    return { hp: st.hp, bonus, score, grade, trueEnd, needTrue: sOk && !trueEnd };
+  };
+
   /* 存檔補上新版加的欄位（2.0.0 起只讀得了 v2 存檔，1.x 的地圖修補都用不到了） */
   MT.migrate = function (st) {
     if (st.items.note == null) st.items.note = 0;
