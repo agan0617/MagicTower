@@ -75,8 +75,8 @@ blockquote { margin: 10px 0; padding: 6px 14px; border-left: 3px solid var(--acc
 <main>
 <header class="top">
   <h1>魔塔：失落的旋律　遊戲設計文件</h1>
-  <div class="meta">依 3.0.5 撰寫　·　2026-10-02</div>
-  <div class="note">3.0.0 是關卡全面改版：20 層＋隱藏層 B1、經驗值與等級、三選一技能、大型 Boss、路上 NPC、暗牆與裂牆。3.0.2～3.0.5：序章加兩幕過場、加生命的道具改成愛心、標題畫面與選單加圖文教學。關卡設計規則與平衡流程另見 repo 根目錄的 <code>DESIGN.md</code>。</div>
+  <div class="meta">依 3.0.7 撰寫　·　2026-10-02</div>
+  <div class="note">3.0.0 是關卡全面改版：20 層＋隱藏層 B1、經驗值與等級、三選一技能、大型 Boss、路上 NPC、暗牆與裂牆。3.0.2～3.0.5：序章加兩幕過場、加生命的道具改成愛心、標題畫面與選單加圖文教學。3.0.6 音效優化，3.0.7 最終 Boss 加強。關卡設計規則與平衡流程另見 repo 根目錄的 <code>DESIGN.md</code>。</div>
 </header>
 
 <!-- ───────────── 1 ───────────── -->
@@ -90,7 +90,7 @@ blockquote { margin: 10px 0; padding: 6px 14px; border-left: 3px solid var(--acc
 <tr><td>語言</td><td class="wrap">繁體中文／English／日本語（介面與全部劇情）</td></tr>
 <tr><td>設計目標</td><td class="wrap">「會玩和不會玩要有明顯差距」：每一扇門、每一個房間都是取捨，怪物依打法分類（高攻、高防、高血、魔法、吸血、連擊、夾擊、破甲），技能三選一讓同一張地圖有不同的最佳路線。用自動玩家驗證：新手卡在 3F、一般卡在 5F、高手通關約 19500～22600 分</td></tr>
 <tr><td>目標體驗</td><td class="wrap">「手機上單手點一點就能玩的經典魔塔」＋「一個青春期王子跟自己和解的短篇故事」。音樂隨劇情一層層回來（低音→鼓→和聲→笛→主旋律）；沿路的 NPC 與多蕾帶來幽默橋段；所有音樂、美術由程式產生，無任何外部素材</td></tr>
-<tr><td>版本</td><td class="wrap">網頁版 3.0.5（<code>index.html</code> 的 <code>MT.VERSION</code>、<code>sw.js</code> 的 <code>mt-3.0.5</code>）；存檔格式 v3（<code>MT.SAVE_V = 3</code>，2.x 存檔讀不了）</td></tr>
+<tr><td>版本</td><td class="wrap">網頁版 3.0.7（<code>index.html</code> 的 <code>MT.VERSION</code>、<code>sw.js</code> 的 <code>mt-3.0.7</code>）；存檔格式 v3（<code>MT.SAVE_V = 3</code>，2.x 存檔讀不了）</td></tr>
 </table></div>
 
 <!-- ───────────── 2 ───────────── -->
@@ -242,8 +242,8 @@ damage  = drain + 怪物出手 × (連擊 ? 2 : 1) × monHit</code></pre>
 <pre><code>金幣 += 銅鑰×10 + 銀鑰×50 + 金鑰×100        // 鑰匙照呱呱商人價格換回金幣
 折算 = 在 16F 水晶祭壇一次一次買生命（每次漲價）＋ 經驗值一級一級升（只算 L2 的生命）
 分數 = 剩餘生命 + 折算
-S：分數 ≥ 22000 且真結局　A：≥ 17000　B：≥ 11000　其餘 C</code></pre>
-<p>門檻照自動高手玩家的分數區間（約 19500～22600）定。照「實際去買」模擬，避免「囤著不花、照起始價換算反而最多」的漏洞。最佳紀錄先比等級再比分數。</p>
+S：分數 ≥ 20000 且真結局　A：≥ 15500　B：≥ 9500　其餘 C</code></pre>
+<p>門檻照自動玩家的分數定（3.0.7：高手寬度 4 三種技能約 19100～20700、寬度 12 約 21800～25900，熟手寬度 2 約 18700）。照「實際去買」模擬，避免「囤著不花、照起始價換算反而最多」的漏洞。最佳紀錄先比等級再比分數。</p>
 
 <h3>3.9 經驗值與等級（<code>MT.LEVEL</code>）</h3>
 <p>打怪拿經驗值（全塔約 4721）。節拍之神換等級：價格 = 10 + 6 ×（目前等級 − 1），3F 的 L1 與 13F 的 L2 共用等級。L1 每級 +120 生命 +2 攻 +2 防；L2 每級 +300 生命 +4 攻 +4 防。等級也是技能升級的門票。</p>
@@ -291,7 +291,7 @@ S：分數 ≥ 22000 且真結局　A：≥ 17000　B：≥ 11000　其餘 C</co
 </ul>
 
 <!-- ───────────── 4 ───────────── -->
-<h2 id="s4">4. 數值表（3.0.5）</h2>
+<h2 id="s4">4. 數值表（3.0.7）</h2>
 <h3>4.1 怪物</h3>
 <div class="tw"><table>
 <tr><th>代號</th><th>名稱</th><th>生命</th><th>攻擊</th><th>防禦</th><th>金幣</th><th>經驗</th><th>出現樓層（數量）</th><th>特殊能力</th></tr>
@@ -334,7 +334,7 @@ S：分數 ≥ 22000 且真結局　A：≥ 17000　B：≥ 11000　其餘 C</co
 <tr><td>rg</td><td>休止符衛士</td><td class="n">900</td><td class="n">330</td><td class="n">190</td><td class="n">70</td><td class="n">50</td><td>20F×2</td><td>—</td></tr>
 <tr><td>K4</td><td>回音指揮</td><td class="n">6000</td><td class="n">340</td><td class="n">185</td><td class="n">200</td><td class="n">150</td><td>18F×1</td><td><span class="tag boss">Boss</span> <span class="tag">魔法</span> 2×2</td></tr>
 <tr><td>M1</td><td>靜默指揮家</td><td class="n">9999</td><td class="n">350</td><td class="n">200</td><td class="n">0</td><td class="n">0</td><td>20F×1</td><td class="wrap"><span class="tag boss">Boss</span> <span class="tag">無敵</span> 3×3 碰到→<code>maestroDrum</code></td></tr>
-<tr><td>M2</td><td>靜默指揮家</td><td class="n">9000</td><td class="n">380</td><td class="n">200</td><td class="n">0</td><td class="n">0</td><td>20F（劇情放置）</td><td class="wrap"><span class="tag boss">Boss</span> 3×3 死亡→<code>ending</code></td></tr>
+<tr><td>M2</td><td>靜默指揮家</td><td class="n">9000</td><td class="n">450</td><td class="n">200</td><td class="n">0</td><td class="n">0</td><td>20F（劇情放置）</td><td class="wrap"><span class="tag boss">Boss</span> 3×3 死亡→<code>ending</code></td></tr>
 </table></div>
 <p class="muted">全塔怪物金幣合計約 6436、經驗值約 4721（不含劇情、祭壇、交易）。數量由 <code>MT.FLOORS</code> 統計；大型怪物一塊算一隻。</p>
 
@@ -439,7 +439,7 @@ S：分數 ≥ 22000 且真結局　A：≥ 17000　B：≥ 11000　其餘 C</co
 
 <h3>6.5 離線快取（<code>sw.js</code>）</h3>
 <ul>
-<li>僅在 https 下註冊 service worker；快取名 <code>mt-3.0.5</code>，安裝時以 <code>cache: 'reload'</code> 預先快取全部檔案（繞過 GitHub Pages 的 10 分鐘 HTTP 快取，避免新頁配舊 js）</li>
+<li>僅在 https 下註冊 service worker；快取名 <code>mt-3.0.7</code>，安裝時以 <code>cache: 'reload'</code> 預先快取全部檔案（繞過 GitHub Pages 的 10 分鐘 HTTP 快取，避免新頁配舊 js）</li>
 <li>讀取策略：先回快取秒開、背景抓新版更新快取，下次開啟生效；非同源（GitHub API）不快取；啟用時刪掉舊版快取</li>
 <li>Android App 外殼也是開線上網址，一樣靠這個離線</li>
 </ul>
@@ -520,8 +520,10 @@ S：分數 ≥ 22000 且真結局　A：≥ 17000　B：≥ 11000　其餘 C</co
 <tr><td>2.0.27～2.0.28</td><td>2026-10-02</td><td class="wrap">勇者外形隨強度四階變化、手持實際武器；序章加「閉嘴」到黑衣人出現之間的過場（心跳、回音、影子站起）</td></tr>
 <tr><td>3.0.0～3.0.1</td><td>2026-10-02</td><td class="wrap">關卡全面改版：20 層＋隱藏層 B1、四區四隻 3×3 Boss（新 15F 回音之鏡＋笛聲部）、2×2 中 Boss、經驗值與等級、三選一技能、路上 NPC（提示／贈送／交易）、暗牆與裂牆、破甲／吸血／夾擊、圖鑑改成撿的、風之羽延到 9F、Boss 層禁飛；新的平衡與稽核工具（三種自動玩家、tools/audit.js）；存檔格式 v3。3.0.1：回音的反彈比例調成 35／60／85%（三種技能分數拉近），新增通關攻略產生器 tools/guide.js</td></tr>
 <tr><td>3.0.2～3.0.5</td><td>2026-10-02</td><td class="wrap">3.0.2：序章在被嘲笑與開始打鐵之間加兩幕過場（逃出練唱廳、第一鎚，新音效 clang）。3.0.3：加生命的道具改成小愛心／金邊大愛心，飛進資訊列的 +數字改用資訊列同一組顏色。3.0.4～3.0.5：選單與標題畫面加 8 頁圖文教學（示意圖用遊戲圖塊即時畫、戰鬥例子照 MT.calc 實算）；攻略產生器改讀遊戲的道具名</td></tr>
+<tr><td>3.0.6</td><td>2026-10-02</td><td class="wrap">整體音效優化：對話每個角色一種聲音（audio.js VOICES）、序章各幕補音效、撿取與數字落進資訊列的音效、Boss／反彈／吸血的打擊聲</td></tr>
+<tr><td>3.0.7</td><td>2026-10-02</td><td class="wrap">靜默指揮家（M2）攻擊 380 → 450：原本把資源換完再打只扣約 600 血、結局沒有壓力，加強後約 2800。評價門檻跟著下修為 S 20000／A 15500／B 9500（高手寬度 4 回音 22578 → 20734，仍是 S＋真結局）</td></tr>
 </table></div>
-<p class="muted">2026-09-30 首版至 2026-10-02 的 3.0.5。</p>
+<p class="muted">2026-09-30 首版至 2026-10-02 的 3.0.7。</p>
 
 </main>
 </body>

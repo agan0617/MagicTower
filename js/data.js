@@ -58,7 +58,7 @@
     rg: { hp: 900, atk: 330, def: 190, gold: 70, exp: 50, sprite: 'rest' },
     K4: { hp: 6000, atk: 340, def: 185, gold: 200, exp: 150, size: 2, sprite: 'conductor', sp: ['boss', 'magic'] },     // 18F 回音指揮
     M1: { hp: 9999, atk: 350, def: 200, gold: 0, exp: 0, size: 3, sprite: 'maestroBig', sp: ['boss', 'invincible'], onBump: 'maestroDrum' },
-    M2: { hp: 9000, atk: 380, def: 200, gold: 0, exp: 0, size: 3, sprite: 'maestroBig', sp: ['boss'], onDeath: 'ending' },
+    M2: { hp: 9000, atk: 450, def: 200, gold: 0, exp: 0, size: 3, sprite: 'maestroBig', sp: ['boss'], onDeath: 'ending' },
   };
 
   // 同區域的數值：[1區, 2區, 3區, 4區]
@@ -149,7 +149,7 @@
   MT.NOFLY = { 5: 'DG', 10: 'SR', 15: 'EM', 20: 'M1' };
 
   /* 通關評價門檻（MT.rating 的分數）：用 tools/solve.js 三種自動玩家的成績定，S 另外要真結局 */
-  MT.RATING = { S: 22000, A: 17000, B: 11000 };
+  MT.RATING = { S: 20000, A: 15500, B: 9500 };
 
   MT.START = { floor: 1, x: 5, y: 14, hp: 1000, atk: 10, def: 10, gold: 0, keys: { y: 1, b: 0, r: 0 } };
 
