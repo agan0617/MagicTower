@@ -263,7 +263,7 @@
     page: t => noise(t, 0.3, 'bandpass', 3000, 0.25, sfxBus, 0.5),
     nohit: t => { tone('sine', 110, t, 0.2, 0.4, sfxBus, 60); noise(t, 0.1, 'lowpass', 400, 0.3, sfxBus); },
     drumroll: t => { for (let i = 0; i < 18; i++) noise(t + i * 0.05, 0.08, 'bandpass', 1600, 0.25 + i * 0.03, sfxBus, 0.8); kick(t + 0.95, sfxBus, 1.5); },
-    // 小鎚走音的歌聲：鋸齒波亂滑音＋誇張顫音
+    // 阿爾特變聲期破音的歌聲：鋸齒波亂滑音＋誇張顫音
     badsing: t => {
       const o = ctx.createOscillator(), g = ctx.createGain(), lfo = ctx.createOscillator(), lg = ctx.createGain();
       o.type = 'sawtooth'; lfo.frequency.value = 7; lg.gain.value = 25;

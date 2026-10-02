@@ -222,7 +222,7 @@
   /* 舊存檔補上新版加的東西：14F 還沒去過就把失落的音符放回去 */
   MT.migrate = function (st) {
     if (st.items.note == null) st.items.note = 0;
-    // 1.3.1 前跟巴納比談過的存檔：他還擋在 2F 通道上，讓他退進凹處
+    // 1.3.1 前跟國王（原巴納比）談過的存檔：他還擋在 2F 通道上，讓他退進凹處
     const m2 = st.maps[2];
     if (m2 && st.flags.bardTalked && m2[5][3] === 'Om') { m2[5][3] = '..'; m2[4][3] = 'Om'; }
     const m = st.maps[14];

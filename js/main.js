@@ -56,7 +56,7 @@
   }
   const PORTRAIT = {
     tink: ['heroDown'], doremi: ['fairy'], bard: ['bard'], golem: ['drumgolem'], siren: ['siren'],
-    maestro: ['maestro'], harpghost: ['harp'], frog: ['frog'],
+    maestro: ['maestro'], harpghost: ['harp'], frog: ['frog'], shadow: ['maestroBare'],
   };
 
   /* ───────── 地圖繪製 ───────── */
@@ -942,6 +942,15 @@
       if (hit) for (let i = 0; i < 8; i++) { cg.fillStyle = ['#ffd84a', '#ff9a2e'][i % 2]; cg.fillRect(300 + Math.cos(i + t / 100) * 40, SIZE - 190 - Math.abs(Math.sin(i * 3 + t / 90)) * 50, 5, 5); }
       cg.fillStyle = 'rgba(255,140,40,0.15)'; cg.beginPath(); cg.arc(330, SIZE - 160, 140 + Math.sin(t / 200) * 10, 0, Math.PI * 2); cg.fill();
     },
+    // 前一晚：國王站在打鐵鋪門口唸王子
+    forgeKing: t => {
+      drawSky(t, '#120c1c', '#3a1a14'); drawStars(t);
+      cg.fillStyle = '#2a1a14'; cg.fillRect(0, SIZE - 120, SIZE, 120);
+      cg.fillStyle = '#454a58'; cg.fillRect(40, SIZE - 170, 120, 30); cg.fillRect(70, SIZE - 140, 60, 50);
+      cg.fillStyle = 'rgba(255,120,40,0.10)'; cg.beginPath(); cg.arc(100, SIZE - 160, 110 + Math.sin(t / 300) * 6, 0, Math.PI * 2); cg.fill();
+      bigSprite('heroSide', null, 170, SIZE - 250, 8);
+      bigSprite('bard', null, 330, SIZE - 250, 8);
+    },
     maestro: t => {
       drawSky(t, '#05040c', '#1a0f2a'); drawTown(t);
       // 被吸走的音符
@@ -970,12 +979,12 @@
       drawTown(t, true);
       floatingNotes(t, 16, SIZE / 2, SIZE - 60, 250, null, 360);
       bigSprite('drum', null, 290, SIZE - 180, 6);
-      bigSprite('maestro', null, 330, SIZE - 190 + (Math.floor(t / 300) % 2) * 4, 5, true);
+      bigSprite('bard', null, 392, SIZE - 190 + (Math.floor(t / 300) % 2) * 4, 5);
       bigSprite('heroDown', null, 120, SIZE - 200 + (Math.floor(t / 250) % 2) * -6, 6);
       bigSprite('fairy', null, 200, SIZE - 290 + Math.sin(t / 250) * 10, 4);
-      bigSprite('bard', null, 30, SIZE - 150, 4); bigSprite('frog', null, 440, SIZE - 120, 4, true);
+      bigSprite('frog', null, 20, SIZE - 90, 3);
     },
-    // 真結局：指揮家站上舞台中央指揮，音符一圈圈流向他
+    // 真結局：阿爾特站上舞台中央領唱，音符一圈圈流向他；國王在台下跟著唱（多蕾已經融進他的聲音，不出現）
     festivalTrue: t => {
       drawSky(t, '#ff9a6a', '#ffe0b0');
       cg.fillStyle = '#fff6d0'; cg.beginPath(); cg.arc(SIZE / 2, 120, 60 + Math.sin(t / 400) * 4, 0, Math.PI * 2); cg.fill();
@@ -989,11 +998,10 @@
       }
       cg.globalAlpha = 1;
       const wave = Math.floor(t / 350) % 2;
-      bigSprite('maestro', null, SIZE / 2 - 48, SIZE - 210 - wave * 6, 6);
+      bigSprite('heroDown', null, SIZE / 2 - 48, SIZE - 210 - wave * 6, 6);
       bigSprite('drum', null, 40, SIZE - 150, 5);
-      bigSprite('heroDown', null, 420, SIZE - 190 + (Math.floor(t / 250) % 2) * -6, 5);
-      bigSprite('fairy', null, SIZE / 2 + 50, SIZE - 290 + Math.sin(t / 250) * 10, 4);
-      bigSprite('bard', null, 130, SIZE - 140, 4); bigSprite('frog', null, 330, SIZE - 120, 4, true);
+      bigSprite('bard', null, 400, SIZE - 160 + (Math.floor(t / 300) % 2) * -4, 5);
+      bigSprite('frog', null, SIZE - 60, SIZE - 90, 3, true);
     },
   };
   function cineRender() {
@@ -1053,14 +1061,17 @@
     { scene: 'town', text: 'pro_1', music: 'title' },
     { text: 'pro_2' },
     { scene: 'forge', text: 'pro_3' },
-    { scene: 'maestro', text: 'pro_4', speaker: 'maestro', music: 'none', sfx: 'boom' },
-    { text: 'pro_5', sfx: 'harp' },
+    { text: 'pro_3b', speaker: 'smith' },
+    { scene: 'forgeKing', text: 'pro_4', speaker: 'bard' },
+    { text: 'pro_4b', speaker: 'tink', music: 'none', sfx: 'boom' },
+    { scene: 'maestro', text: 'pro_5', sfx: 'harp' },
     { scene: 'tower', text: 'pro_6' },
     { scene: 'meet', text: 'pro_7', speaker: 'doremi' },
     { text: 'pro_8', speaker: 'tink' },
     { text: 'pro_9', speaker: 'doremi' },
     { text: 'pro_10', speaker: 'tink' },
     { text: 'pro_11', speaker: 'doremi' },
+    { text: 'pro_12', speaker: 'tink' },
   ];
 
   /* ───────── 標題畫面 ───────── */

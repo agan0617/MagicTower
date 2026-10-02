@@ -1,6 +1,6 @@
-/* 地圖連通檢查：假設門都打得開、怪都打得贏、鐵門會開，只有牆和 NPC（商店、巴納比）擋路，
+/* 地圖連通檢查：假設門都打得開、怪都打得贏、鐵門會開，只有牆和 NPC（商店、國王）擋路，
    列出每層「永遠走不到」的格子。改地圖後跑 node tools/check_reach.js，應該要全部 OK。
-   加 --after-talk：套用跟 NPC 對話後的地圖變化（例如巴納比讓路）再檢查一次 */
+   加 --after-talk：套用跟 NPC 對話後的地圖變化（例如國王讓路）再檢查一次 */
 'use strict';
 const path = require('path');
 require(path.join(__dirname, '../js/data.js'));

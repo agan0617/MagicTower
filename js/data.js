@@ -66,7 +66,8 @@
 
   /* NPC：碰到就對話；shop／merchant 會開選單 */
   MT.NPCS = {
-    Om: { sprite: 'bard', talk: 'bard' },
+    Om: { sprite: 'bard', talk: 'bard' },   // 國王巴索（代碼沿用原版的吟遊詩人 bard）
+    Mz: { sprite: 'maestroBare' },          // 結局：面具裂開後的指揮家（＝阿爾特自己），只在結局劇本裡出現
     Sh: { sprite: 'altar', pal: 'stone', shop: 'shop1' },
     S2: { sprite: 'altar', pal: 'crystal', shop: 'shop2' },
     Mk: { sprite: 'frog', shop: 'keys' },
@@ -343,13 +344,14 @@
       ['fairy', true],
       ['say', 'doremi', 'bard_2'],
       ['say', 'tink', 'bard_3'],
+      ['say', 'doremi', 'bard_3b'],
       ['say', 'doremi', 'bard_4'],
       ['sfx', 'item'],
       ['give', 'fly', 1],
       ['say', 'doremi', 'bard_5'],
       ['fairy', false],
       ['flag', 'bardTalked'],
-      // 巴納比退進上方牆邊的凹處，讓出往左下區的路（他原本站的 (3,5) 是唯一通道）
+      // 國王退進上方牆邊的凹處，讓出往左下區的路（他原本站的 (3,5) 是唯一通道）
       ['sfx', 'step'], ['set', 3, 5, '..'], ['set', 3, 4, 'Om'],
       ['narr', 'bard_move'],
     ],
@@ -374,6 +376,7 @@
       ['fairy', true],
       ['say', 'doremi', 'drum_1'],
       ['say', 'tink', 'drum_2'],
+      ['say', 'tink', 'drum_2b'],
       ['say', 'doremi', 'drum_3'],
       ['fairy', false],
     ],
@@ -385,6 +388,7 @@
       ['say', 'doremi', 'siren_2'],
       ['say', 'tink', 'siren_3'],
       ['say', 'siren', 'siren_4'],
+      ['say', 'tink', 'siren_5'],
       ['fairy', false],
     ],
     harpGet: [
@@ -400,16 +404,17 @@
       ['say', 'tink', 'harp_3'],
       ['fairy', false],
     ],
-    page1: [['sfx', 'page'], ['narr', 'page1_title'], ['narr', 'page1']],
-    page2: [['sfx', 'page'], ['narr', 'page2_title'], ['narr', 'page2'], ['fairy', true], ['say', 'doremi', 'page2_r'], ['fairy', false]],
+    page1: [['sfx', 'page'], ['narr', 'page1_title'], ['narr', 'page1'], ['say', 'tink', 'page1_r']],
+    page2: [['sfx', 'page'], ['narr', 'page2_title'], ['narr', 'page2'], ['fairy', true], ['say', 'doremi', 'page2_r'], ['say', 'tink', 'page2_t'], ['fairy', false]],
     page3: [['sfx', 'page'], ['narr', 'page3_title'], ['narr', 'page3'], ['fairy', true], ['say', 'doremi', 'page3_r'], ['say', 'tink', 'page3_t'], ['say', 'doremi', 'page3_hint'], ['fairy', false]],
-    noteGet: [['sfx', 'harp'], ['sparkle', 5, 1], ['narr', 'note_got'], ['fairy', true], ['say', 'doremi', 'note_1'], ['say', 'tink', 'note_2'], ['fairy', false]],
+    noteGet: [['sfx', 'harp'], ['sparkle', 5, 1], ['narr', 'note_got'], ['fairy', true], ['say', 'doremi', 'note_1'], ['say', 'tink', 'note_2'], ['say', 'doremi', 'note_3'], ['fairy', false]],
     f13Voice: [
       ['fade', 'out'],
       ['say', 'maestro', 'f13_1'],
       ['say', 'maestro', 'f13_2'],
       ['fade', 'in'],
       ['say', 'tink', 'f13_3'],
+      ['say', 'tink', 'f13_3b'],
       ['fairy', true],
       ['say', 'doremi', 'f13_4'],
       ['fairy', false],
@@ -444,6 +449,7 @@
       ['fairy', true],
       ['say', 'doremi', 'md_2'],
       ['say', 'tink', 'md_3'],
+      ['say', 'doremi', 'md_3b'],
       ['fairy', false],
       ['music', 'none'],
       ['sfx', 'drumroll'], ['shake', 700], ['wait', 900],
@@ -460,9 +466,12 @@
       ['music', 'none'],
       ['wait', 500],
       ['say', 'maestro', 'end_1'],
+      ['say', 'tink', 'end_2'],
+      // 面具裂開：舞台中央換成沒戴面具的指揮家（＝阿爾特自己的臉）
+      ['sfx', 'boom'], ['flash', '#fff'], ['set', 5, 1, 'Mz'],
+      ['narr', 'end_2b'],
       ['fairy', true],
-      ['say', 'doremi', 'end_2'],
-      ['say', 'maestro', 'end_3'],
+      ['say', 'shadow', 'end_3'],
       ['say', 'tink', 'end_4'],
       ['branch', 'trueEnd', 'trueEndTalk'],  // 三頁日記＋失落的音符都到手 → 真結局的對話
       ['flash', '#fff'],
@@ -474,9 +483,12 @@
       ['sfx', 'harp'], ['sparkle', 5, 1],
       ['narr', 'te_2'],
       ['emote', [5, 1], '♪'],
-      ['say', 'maestro', 'te_3'],
+      ['say', 'shadow', 'te_3'],
       ['say', 'doremi', 'te_4'],
-      ['say', 'maestro', 'te_5'],
+      // 多蕾＝阿爾特小時候的歌聲：融進他的聲音裡
+      ['fairy', false],
+      ['narr', 'te_4b'],
+      ['say', 'shadow', 'te_5'],
     ],
   };
 

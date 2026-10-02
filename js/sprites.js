@@ -37,10 +37,10 @@
   PALS.gemBlue = { 1: '#4aa0ff', 2: '#1f4fa8', 3: '#d8f0ff' };
 
   const S = {
-    // ── 勇者小鎚 ──
+    // ── 王子阿爾特（綽號小鐵）：頭上小王冠，手上拿鐵鎚 ──
     heroDown: { rows: [
-      '................',
-      '.....kkkkkk.....',
+      '.....y.yy.y.....',
+      '....kyyyyyyk....',
       '....knnnnnnk....',
       '...knnNnnNnnk...',
       '...knssssssnk...',
@@ -57,8 +57,8 @@
       '....kkkk.kkkk...',
     ] },
     heroUp: { rows: [
-      '................',
-      '.....kkkkkk.....',
+      '.....y.yy.y.....',
+      '....kyyyyyyk....',
       '....knnnnnnk....',
       '...knnnnnnnnk...',
       '...knnnnnnnnk...',
@@ -75,8 +75,8 @@
       '....kkkk.kkkk...',
     ] },
     heroSide: { rows: [
-      '................',
-      '.....kkkkkk.....',
+      '.....y.yy.y.....',
+      '....kyyyyyyk....',
       '....knnnnnnk....',
       '...knnnnnNnnk...',
       '...knnnnsssk....',
@@ -171,17 +171,25 @@
       '.kbbkssm', 'kbbbbkss', 'kbbkcccc', 'kbkccccc', 'kbkcckcc', '.kkcccck',
       '..kccccc', '..kcccck', '..kckckc', '...k.k.k',
     ] },
+    // 靜默指揮家：白色面具，棕色頭髮跟阿爾特同色系（伏筆）
     maestro: { sym: true, rows: [
-      '....kkkk', '...kwwww', '..kwwwww', '..kwssss', '..kwsksk', '...kssss',
+      '....kkkk', '...kNNNN', '..kNNNNN', '..kNwwww', '..kNwkkw', '...kwwww',
       '....kskk', '..kkkwwk', '.kddkwwr', 'kdddkwwk', 'kddddkkd', 'kdkddddd',
+      'kdkdddkd', 'kk.kdddk', '...kddk.', '...kkkk.',
+    ] },
+    // 面具裂開後：底下是阿爾特自己的臉
+    maestroBare: { sym: true, rows: [
+      '....kkkk', '...knnnn', '..knnnnn', '..knssss', '..knskss', '...kssss',
+      '....kssm', '..kkkwwk', '.kddkwwr', 'kdddkwwk', 'kddddkkd', 'kdkddddd',
       'kdkdddkd', 'kk.kdddk', '...kddk.', '...kkkk.',
     ] },
 
     // ── NPC ──
+    // 國王巴索：王冠、白鬍子、紅袍（代碼沿用原版的吟遊詩人 bard）
     bard: { sym: true, rows: [
-      '.....kkk', '....kLLL', '...kLLLL', '..kkkkkk', '...kssss', '...kskss',
-      '...kssss', '...kwwww', '..kwwwww', '..knwwww', '.knnkwww', '.knnnkww',
-      '.knnnnkk', '..knnnnn', '..kNNkNN', '..kkkkkk',
+      '........', '....y.yy', '...kyyyy', '...kssss', '...kskss', '...kssss',
+      '...kwwww', '..kkkwww', '.krrrrww', 'krrrrrrw', 'krRrrrrw', 'krRrrrrw',
+      'krRrrrrw', '.krrrrrw', '.krrrrrw', '.kkkkkkk',
     ] },
     frog: { sym: true, rows: [
       '........', '....kkkk', '...koooo', '..kkkkkk', '..kllkkl', '.klkwkll',
