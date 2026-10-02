@@ -45,9 +45,9 @@
 
   /* 道具：kind 決定撿起來的效果 */
   MT.ITEMS = {
-    Yk: { kind: 'key', key: 'y', sprite: 'key', pal: 'yellow' },
-    Bk: { kind: 'key', key: 'b', sprite: 'key', pal: 'blue' },
-    Rk: { kind: 'key', key: 'r', sprite: 'key', pal: 'red' },
+    Yk: { kind: 'key', key: 'y', sprite: 'key1', pal: 'keyCu' },
+    Bk: { kind: 'key', key: 'b', sprite: 'key2', pal: 'keyAg' },
+    Rk: { kind: 'key', key: 'r', sprite: 'key3', pal: 'keyAu' },
     hp: { kind: 'hp', zone: 'hp', sprite: 'potion', pal: 'red' },
     HP: { kind: 'hp', zone: 'HP', sprite: 'potion', pal: 'blue' },
     at: { kind: 'atk', zone: 'at', sprite: 'gemSword', pal: 'gemRed' },

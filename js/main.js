@@ -295,7 +295,7 @@
     $('#bBook span').textContent = MT.t('btnBook'); $('#bFly span').textContent = MT.t('btnFly');
     $('#bSave span').textContent = MT.t('btnSave'); $('#bMenu span').textContent = MT.t('btnMenu');
     $('#cineSkip').textContent = MT.t('skip');
-    $('#lookText').textContent = MT.t('lookBar'); $('#lookEnd').textContent = MT.t('lookEnd');
+    $('#bLook span').textContent = MT.t('btnLook');
     renderCloudChip();
     if (mode === 'title') renderTitle();
     renderHud();
@@ -303,8 +303,8 @@
   function setupIcons() {
     $('#iHp').src = icon('heart'); $('#iGold').src = icon('coin');
     $('#iAtk').src = icon('gemSword', 'gemRed'); $('#iDef').src = icon('gemShield', 'gemBlue');
-    $('#iKy').src = icon('key', 'yellow'); $('#iKb').src = icon('key', 'blue'); $('#iKr').src = icon('key', 'red');
-    $('#bBook img').src = icon('book'); $('#bFly img').src = icon('feather');
+    [['#iKy', 'Yk'], ['#iKb', 'Bk'], ['#iKr', 'Rk']].forEach(([id, c]) => { $(id).src = icon(MT.ITEMS[c].sprite, MT.ITEMS[c].pal); });
+    $('#bLook img').src = icon('lens'); $('#bBook img').src = icon('book'); $('#bFly img').src = icon('feather');
     $('#bSave img').src = icon('page'); $('#bMenu img').src = icon('altar', 'stone');
   }
 
@@ -570,7 +570,7 @@
   /* ───────── 點地圖移動 ─────────
      手機上沒有方向鍵，一律點地圖：點一下就畫出路線（虛線＋終點框），勇者沿著走過去，走過的那段跟著消失。
      終點是怪物或門也是點一下就出發（打不贏、打不動、沒鑰匙的會直接擋下來，不會白白損失）。
-     長按怪物顯示牠的能力（同圖鑑那一列）；選單的「查看模式」裡點任何東西都會顯示說明。 */
+     長按怪物、道具、門…顯示說明（怪物是圖鑑那一列）；選單的「查看模式」裡點一下就顯示同一張說明。 */
   let route = null;     // { cells:[[x,y]…], kind } 畫在地圖上的路線；kind：walk／fight／door
   let inspect = null;   // 正在看說明的格子 { x, y }
   let looking = false;  // 查看模式：點地圖只看說明、不移動
@@ -667,7 +667,7 @@
     g.stroke();
     g.restore();
   }
-  // 終點光標、長按中的怪物光標（畫在怪物上面）
+  // 終點光標、正在看說明的那格的光標（畫在怪物、道具上面）
   function drawMarks(t) {
     if (route) {
       const [tx, ty] = route.cells[route.cells.length - 1];
@@ -678,7 +678,7 @@
   // 點到走不到的地方：那格閃一下紅色 ✕
   const cross = (x, y) => view.fx.push({ kind: 'cross', x: x * TILE + TILE / 2, y: y * TILE + TILE / 2, t0: now(), life: 550 });
 
-  /* 說明卡：長按怪物、或查看模式裡點東西時，在地圖上方或下方（避開那格）浮出來，再點一下任何地方收起來 */
+  /* 說明卡：長按地圖上的東西、或查看模式裡點東西時，在地圖上方或下方（避開那格）浮出來，再點一下任何地方收起來 */
   const monCard = $('#monCard');
   const KEY_OF = { y: 'Yk', b: 'Bk', r: 'Rk' }, DOOR_OF = { y: 'Yd', b: 'Bd', r: 'Rd' };
   // 一格東西的說明：怪物用圖鑑那一列，其他是圖＋名稱＋一行說明；空地、牆回傳空字串
@@ -705,6 +705,8 @@
     else return '';
     return `<div class="mon">${img(sp[0], sp[1], 'big')}<div class="mi"><div class="mn">${esc(name)}</div><div class="md">${esc(desc)}</div></div></div>`;
   }
+  // 地圖上一格的說明（勇者自己那格不算）；長按和查看模式共用
+  const infoAt = (x, y) => x === st.x && y === st.y ? '' : infoRow(st.maps[st.floor][y][x]);
   function showInfo(html, x, y) {
     inspect = { x, y };
     monCard.innerHTML = html;
@@ -716,19 +718,19 @@
   function hideMonCard() { if (monCard.hidden) return false; monCard.hidden = true; inspect = null; return true; }
   monCard.addEventListener('pointerdown', e => { e.preventDefault(); hideMonCard(); });
 
-  /* 查看模式（選單裡開）：點地圖只看說明、不會走過去；地圖上方一條提示，點「結束」或 Esc／返回鍵／方向鍵離開 */
+  /* 查看模式（功能鍵列的「查看」，按一下開、再按一下關）：點地圖只看說明、不會走過去。
+     開著時按鈕亮黃色、地圖框變淡黃色（不在地圖上蓋提示條）；Esc／返回鍵／方向鍵也會關掉 */
   function setLook(on) {
     looking = on;
-    $('#lookBar').hidden = !on;
+    $('#bLook').classList.toggle('on', on); $('#bLook').setAttribute('aria-pressed', on);
     $('#mapWrap').classList.toggle('looking', on);
     if (on) { autoPath = null; clearRoute(); }
     hideMonCard();
   }
-  $('#lookEnd').addEventListener('click', () => { setLook(false); sfx('select'); });
   function lookAt(x, y) {
     if (x < 0 || y < 0 || x >= W || y >= H) return;
     const same = inspect && inspect.x === x && inspect.y === y;
-    const html = x === st.x && y === st.y ? '' : infoRow(st.maps[st.floor][y][x]);
+    const html = infoAt(x, y);
     if (same || !html) { hideMonCard(); return; }
     showInfo(html, x, y);
   }
@@ -737,7 +739,7 @@
     const r = canvas.getBoundingClientRect();
     return [Math.floor((e.clientX - r.left) / r.width * W), Math.floor((e.clientY - r.top) / r.height * H)];
   };
-  let press = null;   // 按下中的手指：放開時才算「點」，在怪物上按住超過 LONG_MS 就是「長按」
+  let press = null;   // 按下中的手指：放開時才算「點」，在有說明的格子上按住超過 LONG_MS 就是「長按」
   const LONG_MS = 420;
   canvas.addEventListener('pointerdown', e => {
     if (mode !== 'game') return;
@@ -748,8 +750,8 @@
     if (looking) { lookAt(x, y); return; }
     if (hideMonCard()) return;
     press = { id: e.pointerId, cx: e.clientX, cy: e.clientY, long: false, timer: 0 };
-    const code = MT.tile(st, st.floor, x, y);
-    if (MT.isMonster(code)) press.timer = setTimeout(() => { if (press) { press.long = true; showInfo(monRow(code), x, y); } }, LONG_MS);
+    const html = x >= 0 && y >= 0 && x < W && y < H ? infoAt(x, y) : '';
+    if (html) press.timer = setTimeout(() => { if (press) { press.long = true; showInfo(html, x, y); } }, LONG_MS);
   });
   canvas.addEventListener('pointermove', e => {
     // 手指滑開就不算長按（放開時仍照放開的位置算一次點擊）
@@ -800,6 +802,7 @@
   document.addEventListener('keyup', e => { const d = KEYMAP[e.key]; if (d) stopHold(d); });
   window.addEventListener('blur', () => stopHold());
 
+  $('#bLook').addEventListener('click', () => { if (mode === 'game' && !busy) { setLook(!looking); sfx('select'); } });
   $('#bBook').addEventListener('click', () => openBook());
   $('#bFly').addEventListener('click', () => openFly());
   $('#bSave').addEventListener('click', () => openSaves());
@@ -841,7 +844,7 @@
     });
   }
 
-  // 一隻怪物的能力與這場的代價（圖鑑和長按卡片共用）
+  // 一隻怪物的能力與這場的代價（圖鑑和說明卡共用）
   function monRow(code) {
     const m = MT.MONSTERS[code], c = MT.calc(st, code);
     const sp = (m.sp || []).map(s => `<span class="tag">${esc(MT.t('sp_' + s))}</span>`).join('');
@@ -936,7 +939,7 @@
     if (id === 'keys') {
       const K = MT.SHOPS.keys;
       const opts = [['y', 'buyY'], ['b', 'buyB'], ['r', 'buyR']].map(([k, lab]) =>
-        `<button class="btn opt" data-k="${k}" ${st.gold < K[k] ? 'disabled' : ''}>${img('key', { y: 'yellow', b: 'blue', r: 'red' }[k])} ${esc(MT.t(lab, { p: K[k] }))}</button>`).join('');
+        `<button class="btn opt" data-k="${k}" ${st.gold < K[k] ? 'disabled' : ''}>${img(...spriteFor(KEY_OF[k]))} ${esc(MT.t(lab, { p: K[k] }))}</button>`).join('');
       openModal(MT.t('frog'), `<div class="shopTop">${img('frog', null, 'big')}<p>${esc(MT.t('frogText'))}</p></div><div class="opts">${opts}</div>
         <p class="muted small">${esc(MT.t('gold'))}：${st.gold}</p><button class="btn" data-x>${esc(MT.t('leave'))}</button>`, body => {
         body.querySelectorAll('[data-k]').forEach(b => b.addEventListener('click', () => {
@@ -961,15 +964,13 @@
   function openMenu() {
     if (!st || mode !== 'game' || busy) return;
     openModal(MT.t('btnMenu'), `<div class="menu">
-      <button class="btn" data-a="look">${esc(MT.t(looking ? 'lookOff' : 'lookOn'))}</button>
       <button class="btn" data-a="saves">${esc(MT.t('saveTitle'))}</button>
       <button class="btn" data-a="settings">${esc(MT.t('settings'))}</button>
       <button class="btn" data-a="cloud">${esc(MT.t('cloud'))}</button>
       <button class="btn" data-a="title">${esc(MT.t('backTitle'))}</button></div>`, body => {
       body.querySelectorAll('[data-a]').forEach(b => b.addEventListener('click', () => {
         const a = b.dataset.a; closeModal();
-        if (a === 'look') setLook(!looking);
-        else if (a === 'saves') openSaves();
+        if (a === 'saves') openSaves();
         else if (a === 'settings') openSettings();
         else if (a === 'cloud') openCloud();
         else if (a === 'title') { autosave(); showTitle(); }
