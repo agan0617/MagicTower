@@ -132,6 +132,8 @@
     setLayers(layers) { wantLayers = layers.slice(); applyLayers(); },
 
     sfx(name) { if (ctx) try { SFX[name] && SFX[name](ctx.currentTime); } catch (e) { /* 音效失敗不影響遊戲 */ } },
+    // 對話打字的「嘟嘟」聲：每個角色一種聲音（見 VOICES），沒列到的用預設
+    voice(speaker) { if (ctx) try { voiceBlip(VOICES[speaker] || VOICES.default, ctx.currentTime); } catch (e) { /* 同上 */ } },
   };
   let pending = null;
 
@@ -255,6 +257,46 @@
   }
   const arp = (type, notes, t, gap, dur, peak) => notes.forEach((n, i) => tone(type, freq(n), t + i * gap, dur, peak));
 
+  /* 對話的角色聲音：f 音高範圍（每一聲隨機挑）、bend 尾音滑到幾倍、lp 低通（悶一點）、detune 疊一個走音的聲部、
+     echo 後面跟兩聲回音、crack 偶爾破音往上跳（阿爾特變聲期）。阿爾特＝中音三角波，跟其他人一聽就分得開 */
+  const VOICES = {
+    tink: { type: 'triangle', f: [300, 380], dur: 0.05, peak: 0.13, bend: 0.85, crack: 0.07 },
+    shadow: { type: 'sawtooth', f: [150, 185], dur: 0.07, peak: 0.07, bend: 0.8, lp: 900, detune: 9 },
+    doremi: { type: 'sine', f: [1250, 1550], dur: 0.045, peak: 0.1, bend: 1.15 },
+    bard: { type: 'square', f: [185, 235], dur: 0.06, peak: 0.05, bend: 0.9 },
+    smith: { type: 'sawtooth', f: [120, 150], dur: 0.07, peak: 0.08, lp: 700 },
+    porter: { type: 'triangle', f: [235, 285], dur: 0.06, peak: 0.12, bend: 0.92 },
+    granny: { type: 'triangle', f: [520, 620], dur: 0.06, peak: 0.11, bend: 0.88 },
+    frog: { type: 'square', f: [380, 480], dur: 0.06, peak: 0.05, bend: 0.55 },
+    pigeon: { type: 'sine', f: [360, 420], dur: 0.07, peak: 0.13, bend: 0.75 },
+    golem: { type: 'square', f: [70, 90], dur: 0.09, peak: 0.08, lp: 450 },
+    siren: { type: 'sine', f: [700, 900], dur: 0.07, peak: 0.08, bend: 1.25, detune: 12 },
+    maestro: { type: 'sawtooth', f: [90, 105], dur: 0.09, peak: 0.08, lp: 650, detune: 7 },
+    harpghost: { type: 'sine', f: [600, 780], dur: 0.08, peak: 0.08, detune: 100 },
+    soldier: { type: 'square', f: [260, 320], dur: 0.05, peak: 0.045, bend: 0.9 },
+    guard: { type: 'square', f: [200, 250], dur: 0.05, peak: 0.05 },
+    mirrorgirl: { type: 'sine', f: [900, 1100], dur: 0.05, peak: 0.09, bend: 1.05 },
+    echo: { type: 'sine', f: [500, 600], dur: 0.06, peak: 0.09, echo: true },
+    astrologer: { type: 'triangle', f: [450, 550], dur: 0.06, peak: 0.11, bend: 1.1 },
+    lost: { type: 'square', f: [1000, 1200], dur: 0.025, peak: 0.035 },
+    thief: { type: 'square', f: [600, 800], dur: 0.035, peak: 0.04, bend: 1.1 },
+    harpist: { type: 'triangle', f: [330, 400], dur: 0.06, peak: 0.12, bend: 0.95 },
+    apprentice: { type: 'triangle', f: [600, 720], dur: 0.045, peak: 0.11 },
+    default: { type: 'square', f: [700, 950], dur: 0.03, peak: 0.04 },
+  };
+  function voiceBlip(v, t) {
+    let f = v.f[0] + Math.random() * (v.f[1] - v.f[0]);
+    if (v.crack && Math.random() < v.crack) f *= 1.7;
+    let out = sfxBus;
+    if (v.lp) { const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = v.lp; lp.connect(sfxBus); out = lp; }
+    const one = (at, peak) => {
+      tone(v.type, f, at, v.dur, peak, out, v.bend ? f * v.bend : undefined);
+      if (v.detune) tone(v.type, f * (1 + v.detune / 1000), at, v.dur, peak * 0.7, out, v.bend ? f * v.bend : undefined);
+    };
+    one(t, v.peak);
+    if (v.echo) { one(t + 0.09, v.peak * 0.45); one(t + 0.18, v.peak * 0.2); }
+  }
+
   const SFX = {
     step: t => noise(t, 0.03, 'lowpass', 900, 0.08, sfxBus),
     bump: t => tone('square', 90, t, 0.1, 0.15, sfxBus, 70),
@@ -263,6 +305,116 @@
     item: t => arp('square', ['g5', 'c6', 'e6', 'g6'], t, 0.06, 0.14, 0.12),
     gem: t => arp('sine', ['c6', 'g6', 'c7', 'e7'], t, 0.045, 0.2, 0.3),
     potion: t => { tone('sine', 300, t, 0.12, 0.35, sfxBus, 700); tone('sine', 500, t + 0.12, 0.12, 0.3, sfxBus, 900); },
+    // ── 序章的過場音效 ──
+    // 被笑之後的黑暗裡：耳朵裡的笑聲一聲聲回響、越來越稀越小
+    laughEcho: t => {
+      for (let i = 0; i < 9; i++) {
+        const at = t + 0.2 + i * 0.36 + Math.random() * 0.08, f = 300 + Math.random() * 300, k = 1 - i / 10;
+        tone('square', f, at, 0.07, 0.035 * k, sfxBus, f * 0.75);
+        tone('square', f, at + 0.13, 0.07, 0.015 * k, sfxBus, f * 0.75);   // 回音
+      }
+    },
+    // 逃出練唱廳：一路跑的腳步（跟畫面上兩格輪流同拍），停下來之後喘三口氣
+    runSteps: t => {
+      for (let i = 0; i < 26; i++) {
+        const at = t + i * 0.13;
+        noise(at, 0.05, 'lowpass', 700, i % 2 ? 0.22 : 0.3, sfxBus);
+        kick(at, sfxBus, 0.18);
+      }
+      for (let i = 0; i < 3; i++) {
+        const at = t + 3.7 + i * 0.55, src = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+        src.buffer = noiseBuf; f.type = 'bandpass'; f.frequency.value = 1300; f.Q.value = 0.8;
+        g.gain.setValueAtTime(0.0001, at); g.gain.linearRampToValueAtTime(0.18, at + 0.12); g.gain.exponentialRampToValueAtTime(0.001, at + 0.42);
+        src.connect(f); f.connect(g); g.connect(sfxBus); src.start(at, Math.random() * 0.5); src.stop(at + 0.45);
+      }
+    },
+    // 國王走進打鐵鋪的沉重腳步
+    footstep: t => { kick(t, sfxBus, 0.55); noise(t, 0.09, 'lowpass', 420, 0.35, sfxBus); },
+    // 打鐵鋪裡平常敲鐵的聲音（比第一鎚輕）
+    anvil: t => {
+      noise(t, 0.06, 'bandpass', 3500, 0.3, sfxBus, 2);
+      tone('triangle', 1760, t, 0.45, 0.07, sfxBus, 1720);
+      tone('square', 1318, t, 0.12, 0.03, sfxBus);
+    },
+    // 腦海裡的聲音：一陣耳語般的氣音湧上來又退下去
+    whisper: t => {
+      const src = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+      src.buffer = noiseBuf; src.loop = true; f.type = 'bandpass'; f.Q.value = 3;
+      f.frequency.setValueAtTime(1800 + Math.random() * 1400, t); f.frequency.linearRampToValueAtTime(1200, t + 1.1);
+      g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.14, t + 0.35); g.gain.exponentialRampToValueAtTime(0.001, t + 1.2);
+      src.connect(f); f.connect(g); g.connect(sfxBus); src.start(t, Math.random() * 0.5); src.stop(t + 1.25);
+    },
+    // 影子睜開紅眼：一記低沉走音的重音，上面一聲刺耳的高音
+    eyesOpen: t => {
+      for (const d of [0, 8]) {
+        const o = ctx.createOscillator(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+        o.type = 'sawtooth'; o.frequency.value = 73.4 * (1 + d / 1000);
+        f.type = 'lowpass'; f.frequency.setValueAtTime(1600, t); f.frequency.exponentialRampToValueAtTime(120, t + 1.4);
+        g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.22, t + 0.02); g.gain.exponentialRampToValueAtTime(0.001, t + 1.6);
+        o.connect(f); f.connect(g); g.connect(sfxBus); o.start(t); o.stop(t + 1.65);
+      }
+      tone('sine', 2960, t + 0.05, 0.9, 0.04, sfxBus, 2790);
+    },
+    // 黑衣人從影子裡長出來：越來越近的低鳴
+    shadowRise: t => {
+      const src = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+      src.buffer = noiseBuf; src.loop = true; f.type = 'lowpass';
+      f.frequency.setValueAtTime(90, t); f.frequency.exponentialRampToValueAtTime(900, t + 2.1);
+      g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.5, t + 2.0); g.gain.exponentialRampToValueAtTime(0.001, t + 2.6);
+      src.connect(f); f.connect(g); g.connect(sfxBus); src.start(t); src.stop(t + 2.7);
+      const o = ctx.createOscillator(), og = ctx.createGain();
+      o.type = 'sine'; o.frequency.setValueAtTime(41, t); o.frequency.linearRampToValueAtTime(55, t + 2.1);
+      og.gain.setValueAtTime(0.0001, t); og.gain.linearRampToValueAtTime(0.4, t + 2.0); og.gain.exponentialRampToValueAtTime(0.001, t + 2.5);
+      o.connect(og); og.connect(sfxBus); o.start(t); o.stop(t + 2.6);
+    },
+    // 指揮棒一舉：一段旋律剛起頭就被拉走——音一個個往下滑、越來越悶，最後被一陣風聲吸成一片寂靜
+    silence: t => {
+      const notes = ['c5', 'e5', 'g5', 'c6', 'e6', 'g6', 'c7'];
+      notes.forEach((n, i) => {
+        const at = t + i * 0.09, f0 = freq(n), o = ctx.createOscillator(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+        o.type = 'triangle'; o.frequency.setValueAtTime(f0, at); o.frequency.exponentialRampToValueAtTime(f0 * 0.5, at + 0.9);
+        f.type = 'lowpass'; f.frequency.setValueAtTime(5000, at); f.frequency.exponentialRampToValueAtTime(300, at + 0.9);
+        g.gain.setValueAtTime(0.0001, at); g.gain.linearRampToValueAtTime(0.12, at + 0.01); g.gain.exponentialRampToValueAtTime(0.001, at + 0.95);
+        o.connect(f); f.connect(g); g.connect(sfxBus); o.start(at); o.stop(at + 1);
+      });
+      const src = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+      src.buffer = noiseBuf; src.loop = true; f.type = 'bandpass'; f.Q.value = 2;
+      f.frequency.setValueAtTime(6000, t + 0.2); f.frequency.exponentialRampToValueAtTime(200, t + 1.6);
+      g.gain.setValueAtTime(0.0001, t + 0.2); g.gain.linearRampToValueAtTime(0.35, t + 0.9); g.gain.exponentialRampToValueAtTime(0.001, t + 1.7);
+      src.connect(f); f.connect(g); g.connect(sfxBus); src.start(t + 0.2); src.stop(t + 1.75);
+    },
+    // 多蕾出場：光點聚過去的一陣往上爬的閃爍，然後「啵」地彈出來
+    fairyPop: t => {
+      for (let i = 0; i < 8; i++) tone('sine', 1200 + i * 180 + Math.random() * 60, t + i * 0.11, 0.12, 0.04 + i * 0.006, sfxBus);
+      tone('sine', 380, t + 1.0, 0.12, 0.25, sfxBus, 1100);
+      arp('sine', ['c7', 'e7', 'g7', 'c8'], t + 1.05, 0.04, 0.35, 0.12);
+    },
+    // 序章靜默之塔從地底升起（約 3.2 秒，跟畫面一樣先快後慢）：低頻的轟隆聲＋往下沉的低音，
+    // 石頭摩擦的悶響越來越稀，最後「轟」一聲定住，再拖一記兩個音互相打架的低沉鐘響
+    towerRise: t => {
+      const D = 3.2;
+      const src = ctx.createBufferSource(); src.buffer = noiseBuf; src.loop = true;
+      const f = ctx.createBiquadFilter(); f.type = 'lowpass';
+      f.frequency.setValueAtTime(160, t); f.frequency.linearRampToValueAtTime(80, t + D);
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(1.1, t + 0.3);
+      g.gain.setValueAtTime(1.1, t + 1.0); g.gain.exponentialRampToValueAtTime(0.001, t + D + 0.4);
+      src.connect(f); f.connect(g); g.connect(sfxBus); src.start(t); src.stop(t + D + 0.5);
+      const o = ctx.createOscillator(), of = ctx.createBiquadFilter(), og = ctx.createGain();
+      o.type = 'sawtooth'; o.frequency.setValueAtTime(44, t); o.frequency.linearRampToValueAtTime(30, t + D);
+      of.type = 'lowpass'; of.frequency.value = 180;
+      og.gain.setValueAtTime(0.0001, t); og.gain.linearRampToValueAtTime(0.35, t + 0.4); og.gain.exponentialRampToValueAtTime(0.001, t + D + 0.3);
+      o.connect(of); of.connect(og); og.connect(sfxBus); o.start(t); o.stop(t + D + 0.4);
+      for (let i = 0, at = t + 0.08; i < 9; i++) { kick(at, sfxBus, 1.0 * (1 - i / 11)); at += 0.22 + i * 0.05; }   // 越往後越慢
+      kick(t + D, sfxBus, 1.8); noise(t + D, 1.0, 'lowpass', 240, 1.0, sfxBus);
+      for (const fq of [98, 103.8]) tone('sine', fq, t + D + 0.05, 3, 0.22, sfxBus);
+    },
+    // 序章阿爾特第一次看到塔：頭上冒「！」那一下，短促往上滑的兩聲
+    startle: t => {
+      tone('square', 520, t, 0.07, 0.11, sfxBus, 1100);
+      tone('square', 1480, t + 0.075, 0.22, 0.09, sfxBus, 1400);
+      tone('triangle', 740, t + 0.075, 0.22, 0.12, sfxBus);
+    },
     // 序章第一鎚：鐵砧上「噹——」一聲，高頻金屬泛音拖長尾音
     clang: t => {
       kick(t, sfxBus, 0.9);
@@ -271,12 +423,43 @@
       tone('triangle', 2093, t, 1.4, 0.16, sfxBus, 2050);
       tone('sine', 3136, t, 1.1, 0.08, sfxBus);
     },
+    // ── 撿道具：愛心、小劍、小盾各有自己的聲音 ──
+    heart: t => {
+      arp('sine', ['c5', 'g5', 'c6'], t, 0.07, 0.4, 0.22);
+      tone('triangle', freq('e4'), t, 0.5, 0.12, sfxBus);
+      tone('sine', freq('e6'), t + 0.21, 0.6, 0.08, sfxBus);
+    },
+    swordGet: t => {   // 拔劍出鞘的「鏘」
+      noise(t, 0.22, 'highpass', 5000, 0.25, sfxBus);
+      tone('triangle', 1568, t + 0.02, 0.4, 0.14, sfxBus, 2093);
+      tone('sine', 3136, t + 0.08, 0.35, 0.05, sfxBus);
+    },
+    shieldGet: t => {  // 盾牌一頓「咚——」帶一點金屬餘音
+      kick(t, sfxBus, 0.5);
+      tone('square', 392, t, 0.1, 0.06, sfxBus);
+      tone('triangle', 784, t + 0.03, 0.5, 0.12, sfxBus, 770);
+      tone('sine', 1175, t + 0.03, 0.45, 0.05, sfxBus);
+    },
+    // 數字飛進資訊列落地的那一下（音高照數值分）；金幣是兩聲叮
+    tallyHp: t => tone('sine', freq('a5'), t, 0.14, 0.12, sfxBus),
+    tallyAtk: t => tone('sine', freq('d6'), t, 0.14, 0.12, sfxBus),
+    tallyDef: t => tone('sine', freq('b5'), t, 0.14, 0.12, sfxBus),
+    tallyGold: t => { tone('square', freq('b6'), t, 0.07, 0.05, sfxBus); tone('square', freq('e7'), t + 0.07, 0.2, 0.05, sfxBus); },
+    // ── 戰鬥 ──
+    hitBig: t => { noise(t, 0.12, 'bandpass', 1000, 0.6, sfxBus, 1); tone('square', 180, t, 0.12, 0.12, sfxBus, 70); kick(t, sfxBus, 0.9); },
+    reflect: t => { tone('sine', 2637, t, 0.18, 0.1, sfxBus, 3136); noise(t, 0.05, 'bandpass', 4500, 0.2, sfxBus, 3); },
+    drain: t => {
+      const o = ctx.createOscillator(), g = ctx.createGain(), lfo = ctx.createOscillator(), lg = ctx.createGain();
+      o.type = 'sawtooth'; o.frequency.setValueAtTime(620, t); o.frequency.exponentialRampToValueAtTime(140, t + 0.45);
+      lfo.frequency.value = 18; lg.gain.value = 30; lfo.connect(lg); lg.connect(o.frequency);
+      g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.1, t + 0.02); g.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+      o.connect(g); g.connect(sfxBus); o.start(t); lfo.start(t); o.stop(t + 0.52); lfo.stop(t + 0.52);
+    },
     hit: t => { noise(t, 0.08, 'bandpass', 1400, 0.5, sfxBus, 1); tone('square', 240, t, 0.08, 0.1, sfxBus, 110); },
     hurt: t => { tone('sawtooth', 160, t, 0.12, 0.15, sfxBus, 80); },
     kill: t => arp('square', ['e5', 'c5', 'g4', 'c4'], t, 0.04, 0.08, 0.1),
     stairs: t => arp('triangle', ['c5', 'e5', 'g5', 'c6', 'e6'], t, 0.04, 0.1, 0.25),
     stairsDown: t => arp('triangle', ['e6', 'c6', 'g5', 'e5', 'c5'], t, 0.04, 0.1, 0.25),
-    blip: t => tone('square', 700 + Math.random() * 250, t, 0.03, 0.04),
     select: t => tone('square', 880, t, 0.05, 0.08),
     fanfare: t => {
       arp('square', ['c5', 'e5', 'g5'], t, 0.1, 0.12, 0.12);

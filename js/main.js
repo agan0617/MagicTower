@@ -375,6 +375,8 @@
         if (gen !== hudGen) return;
         hudHold[key] -= n;
         if (st) target.textContent = hudVal(key);
+        const tally = { hp: 'tallyHp', atk: 'tallyAtk', def: 'tallyDef', gold: 'tallyGold' }[key];
+        if (tally) sfx(tally);   // 數字落進資訊列的那一下
         target.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.45)', filter: 'brightness(1.8)' }, { transform: 'scale(1)' }], { duration: 320 });
       };
     }, delay || 0);
@@ -464,7 +466,7 @@
       typing = setInterval(() => {
         i += 1;
         el.textContent = chars.slice(0, i).join('');
-        if (i % 3 === 1 && speaker) sfx('blip');
+        if (i % 3 === 1 && speaker) MT.Audio.voice(speaker);   // 每個角色自己的聲音（阿爾特跟對方分得開）
         if (i >= chars.length) finishTyping();
       }, 28);
       function finishTyping() { clearInterval(typing); typing = null; el.textContent = text; $('#dMore').hidden = false; }
@@ -599,8 +601,9 @@
         const g2 = ev.got;
         if (it.kind === 'key') { sfx('key'); toast(MT.t('got_key_' + it.key)); }
         else if (it.equip) { sfx('item'); toast(MT.t('got_equip', { name: MT.itemName(ev.item), stat: MT.t(it.kind), n: g2.value })); sparkle(ev.x, ev.y, 20); }
-        else if (it.kind === 'hp') sfx('potion');
-        else if (it.kind === 'atk' || it.kind === 'def') sfx('gem');
+        else if (it.kind === 'hp') sfx('heart');
+        else if (it.kind === 'atk') sfx('swordGet');
+        else if (it.kind === 'def') sfx('shieldGet');
         flyGains(before, ev.x, ev.y);   // +N（鑰匙是鑰匙圖）從撿到的地方飛進資訊列
         // 藥水、小劍、小盾也跟鑰匙一樣跳提示（Ken 指定）
         if (['hp', 'atk', 'def'].includes(it.kind) && !it.equip) toast(MT.t('got_' + it.kind, { name: MT.t('name_' + ev.item), n: g2.value }));
@@ -760,7 +763,7 @@
     let shown = st.hp + c.damage, monHp = m.hp, heroHits = 0, i = 0;
     const setHp = v => { shown = Math.max(st.hp, v); $('#hHp').textContent = shown; };
     if (c.drain) {   // 吸血：開打前先吸走一截
-      sfx('hurt'); flash('#b0103a', 300);
+      sfx('drain'); flash('#b0103a', 300);
       floatText(st.x, st.y > 0 ? st.y - 0.3 : st.y + 0.25, MT.t('drainText', { n: c.drain }), '#ff4a8a', 15);
       setHp(shown - c.drain);
       await sleep(420);
@@ -770,7 +773,7 @@
         monHp -= e.hit; view.dying.hp = monHp;
         view.lunge = { dx, dy, t0: now(), dur: Math.min(140, heroGap) };
         fxAt('slash', center(cx, cy), i++ % 2, 220);
-        sfxT('hit');
+        sfxT(boss ? 'hitBig' : 'hit');   // 打 Boss 的每一下比較沉
         view.dying.flash = now() + 120;
         floatText(cx + (i % 2 ? 0.14 : -0.14), by > 0 ? by - 0.45 : by + 0.25, '-' + e.hit, '#ffffff', 14);
         if (boss) shake(120, 5);
@@ -787,6 +790,7 @@
         }
         if (e.refl) {   // 反彈：同一下彈回去，紫色數字
           monHp -= e.refl; view.dying.hp = Math.max(0, monHp); view.dying.flash = now() + 120;
+          sfxT('reflect');
           floatText(cx, by > 0 ? by - 0.2 : by + 0.4, '↺' + e.refl, '#d9b8ff', 13);
         }
         await sleep(monGap);
@@ -1584,6 +1588,7 @@
   /* 序章練唱廳：阿爾特在台上領唱、破音、全場哄笑。st＝場景開始後幾毫秒，laughing＝笑到什麼程度（0～1） */
   const LAUGH_TEXT = { zh: '哈哈', en: 'HA HA', ja: 'ハハ' };
   const CLANG_TEXT = { zh: '噹！', en: 'CLANG!', ja: 'カーン！' };
+  let forgeBeat = -1;   // 打鐵鋪那幕上一次響鐵砧聲的拍子
   const choir = Array.from({ length: 10 }, (_, i) => ({ x: [70, 120, 170, 358, 408, 458][i % 6] + (i >= 6 ? 25 : 0), row: i >= 6 ? 1 : 0, robe: i % 2 }));
   const audience = Array.from({ length: 11 }, (_, i) => ({ x: 20 + i * 49 + (i % 2) * 8, h: 30 + (i * 7) % 12 }));
   function drawRehearsal(t, st, laughing, sprite) {
@@ -1933,7 +1938,8 @@
       cg.fillStyle = '#3a2418'; cg.fillRect(0, SIZE - 120, SIZE, 120);
       cg.fillStyle = '#555a68'; cg.fillRect(270, SIZE - 170, 120, 30); cg.fillRect(300, SIZE - 140, 60, 50);
       bigSprite('smith', null, -4, SIZE - 122 - 144, 9);
-      const hit = Math.floor(t / 400) % 2;
+      const beat = Math.floor(t / 400), hit = beat % 2;
+      if (hit && beat !== forgeBeat) { forgeBeat = beat; sfx('anvil'); }   // 鎚子落下那一格才響，跟畫面同拍
       bigSprite('heroSideSulk', null, 150, SIZE - 250 + (hit ? 6 : 0), 8);
       if (hit) for (let i = 0; i < 8; i++) { cg.fillStyle = ['#ffd84a', '#ff9a2e'][i % 2]; cg.fillRect(300 + Math.cos(i + t / 100) * 40, SIZE - 190 - Math.abs(Math.sin(i * 3 + t / 90)) * 50, 5, 5); }
       cg.fillStyle = 'rgba(255,140,40,0.15)'; cg.beginPath(); cg.arc(330, SIZE - 160, 140 + Math.sin(t / 200) * 10, 0, Math.PI * 2); cg.fill();
@@ -2228,9 +2234,12 @@
     if (s.scene) { cineScene = s.scene; cineT0 = now(); cinePose = null; }
     if (s.pose) cinePose = s.pose;
     if (s.music) MT.Audio.play(s.music, ['base', 'drums', 'strings', 'lead']);
+    // sfx：一個音效名（sfxAt＝幾毫秒後才響），或 [[名稱, 毫秒], …] 一串對準畫面時間軸的音效；換場景就不再響
     if (s.sfx) {
-      if (s.sfxAt) { const sc = cineScene; setTimeout(() => { if (mode === 'cine' && cineScene === sc) sfx(s.sfx); }, s.sfxAt); }   // 等畫面演到那一下才響
-      else sfx(s.sfx);
+      const sc = cineScene;
+      for (const [n, at] of Array.isArray(s.sfx) ? s.sfx : [[s.sfx, s.sfxAt || 0]]) {
+        if (!at) sfx(n); else setTimeout(() => { if (mode === 'cine' && cineScene === sc) sfx(n); }, at);
+      }
     }
     const text = s.text ? MT.story(s.text) : '';
     cineFull = text;
@@ -2246,7 +2255,7 @@
     const type = () => {
       typing = setInterval(() => {
         i++; el.textContent = chars.slice(0, i).join('');
-        if (s.speaker && i % 3 === 1) sfx('blip');
+        if (s.speaker && i % 3 === 1) MT.Audio.voice(s.speaker);   // 每個角色自己的聲音
         if (i >= chars.length) { clearInterval(typing); typing = null; }
       }, 32);
     };
@@ -2268,17 +2277,19 @@
     { scene: 'town', text: 'pro_1', music: 'title' },
     { text: 'pro_2' },
     { scene: 'rehearsal', text: 'pro_3', music: 'none', sfx: 'crackLaugh' },
-    { scene: 'rehearsalSpot', text: 'pro_3s' },
-    { scene: 'flee', text: 'pro_3r', delay: 500 },
+    { scene: 'rehearsalSpot', text: 'pro_3s', sfx: 'laughEcho' },
+    { scene: 'flee', text: 'pro_3r', delay: 500, sfx: 'runSteps' },
     { scene: 'firstStrike', text: 'pro_3t', sfx: 'clang', sfxAt: 1500, delay: 2300 },
     { scene: 'forge', text: 'pro_3a', music: 'title' },
     { text: 'pro_3b', speaker: 'smith' },
-    { scene: 'forgeKing', text: 'pro_4', speaker: 'bard', delay: 1600 },
+    { scene: 'forgeKing', text: 'pro_4', speaker: 'bard', delay: 1600, sfx: [['footstep', 754], ['footstep', 1131], ['footstep', 1508]] },   // 對準國王一步一步落地
     { scene: 'forgeRage', text: 'pro_4b', speaker: 'tink', music: 'none', sfx: 'boom' },
-    { scene: 'forgeShadow', text: 'pro_4c', sfx: 'heartbeat', delay: 900 },
-    { scene: 'maestro', text: 'pro_5', sfx: 'harp' },
-    { scene: 'tower', text: 'pro_6', delay: 2400 },
-    { scene: 'meet', text: 'pro_7', speaker: 'doremi', delay: 2700 },
+    // 心跳＋腦海裡的聲音一陣陣耳語（對準那些話出現），影子睜眼那一刻一記低音
+    { scene: 'forgeShadow', text: 'pro_4c', delay: 900,
+      sfx: [['heartbeat', 0], ...[300, 960, 1620, 2280, 2940, 3600].map(ms => ['whisper', ms]), ['eyesOpen', 4000]] },
+    { scene: 'maestro', text: 'pro_5', sfx: [['shadowRise', 0], ['silence', 1600]] },   // 從影子裡長出來；1.6 秒舉起指揮棒，聲音全被吸走
+    { scene: 'tower', text: 'pro_6', delay: 2400, sfx: 'towerRise', sfxAt: 600 },     // 塔 0.6 秒開始往上長
+    { scene: 'meet', text: 'pro_7', speaker: 'doremi', delay: 2700, sfx: [['startle', 120], ['fairyPop', 1200]] },   // 頭上冒「！」；1.2 秒起光點聚過去、2.2 秒多蕾彈出來
     { text: 'pro_8', speaker: 'tink' },
     { text: 'pro_9', speaker: 'doremi' },
     { text: 'pro_10', speaker: 'tink', pose: 'heroSideGuilty' },
