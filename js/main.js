@@ -27,7 +27,7 @@
   g.imageSmoothingEnabled = false;
 
   /* ───────── 設定 ───────── */
-  const settings = Object.assign({ music: 0.2, sfx: 0.2 }, MT.LS.get('settings', {}));
+  const settings = Object.assign({ music: 0.6, sfx: 0.6 }, MT.LS.get('settings', {}));
   MT.setLang(MT.LS.get('lang', MT.detectLang()));
   MT.Audio.setVolume('music', settings.music);
   MT.Audio.setVolume('sfx', settings.sfx);
@@ -84,6 +84,19 @@
   // 一張圖畫成 n×n 格大（大型怪物：16×16 的圖畫成 2×2、24×24 的畫成 3×3）
   const spriteAt = (name, pal, n, flip) => { const d = MT.SPRITES[name]; return MT.sprite(name, pal, TILE * n / ((d && d.size) || 16), flip); };
   const BOSS_GLOW = { DG: '#ffd84a', SR: '#5ab0ff', EM: '#7affff' };
+  // 能交易的 NPC 頭上的圖示：呱呱商人、表哥、小偷賣鑰匙；鐵匠、學徒收金幣換能力
+  function tradeIcon(code) {
+    const n = MT.NPCS[code];
+    if (!n) return null;
+    if (n.shop === 'keys' || n.shop === 'keys2' || (n.deal && MT.DEALS[n.deal].gain.keys)) return ['key1', 'keyCu'];
+    if (n.deal) return ['coin'];
+    return null;
+  }
+  // 第一次因為沒鑰匙過不去：多蕾提醒有人賣鑰匙（只講一次）
+  function keyHint() {
+    if (st.flags.hintKeyShop || scripting) return;
+    runScript('keyHint').then(autosave);
+  }
   function drawTile(code, x, y, t) {
     const sp = spriteFor(code);
     if (!sp) return;
@@ -104,7 +117,17 @@
       g.fillStyle = BOSS_GLOW[code] || '#c07cf5';
       g.beginPath(); g.ellipse(px + w / 2, py + w - 6, w * 0.42, 6 * n, 0, 0, Math.PI * 2); g.fill(); g.restore();
     }
+    const trade = tradeIcon(code);
+    if (trade) {   // 能交易的 NPC：腳下一圈金光，不講就看不出誰賣鑰匙（Ken 指定）
+      g.save(); g.globalAlpha = 0.3 + 0.15 * Math.sin(t / 260);
+      g.fillStyle = '#ffd84a';
+      g.beginPath(); g.ellipse(px + TILE / 2, py + TILE - 6, TILE * 0.42, 6, 0, 0, Math.PI * 2); g.fill(); g.restore();
+    }
     g.drawImage(n > 1 ? spriteAt(sp[0], sp[1], n) : MT.sprite(sp[0], sp[1], SC), px, py + oy);
+    if (trade) {   // 頭上一個小圖示：賣鑰匙的是鑰匙，其他交易是金幣
+      const bob = Math.round(Math.sin(t / 300 + x) * 2);
+      g.drawImage(MT.sprite(trade[0], trade[1], 1), px + TILE - 18, py + 1 + bob);
+    }
     if (isMon && st.items.book) {
       const c = MT.calc(st, code);
       const txt = c.damage == null ? '???' : fmt(c.damage);
@@ -646,7 +669,7 @@
         renderHud(); busy++; await sleep(200); busy--;
         return false;
       }
-      case 'noKey': sfx('error'); toast(MT.t('needKey_' + ev.key)); return false;
+      case 'noKey': sfx('error'); toast(MT.t('needKey_' + ev.key)); keyHint(); return false;
       case 'tooHurt': sfx('error'); toast(MT.t('tooHurt', { n: ev.loss })); return false;
       case 'cantFight': {
         sfx('error');
@@ -973,7 +996,7 @@
       if (c.damage + toll >= st.hp) { refuse(MT.t('cantWin', { name: MT.monName(code), d: c.damage + toll })); return; }
       kind = 'fight';
     } else if (MT.DOORS[code]) {
-      if (st.keys[MT.DOORS[code]] <= 0) { refuse(MT.t('needKey_' + MT.DOORS[code])); return; }
+      if (st.keys[MT.DOORS[code]] <= 0) { refuse(MT.t('needKey_' + MT.DOORS[code])); keyHint(); return; }
       kind = 'door';
     }
     route = { cells, kind };

@@ -29,7 +29,7 @@
       shops: { shop1: 0, shop2: 0, shop3: 0 },
       secrets: 0,            // 找到的暗牆數
       echo: {},              // 每層「上一場戰鬥」損失的生命（回音地板照這個扣）：樓層 → 數字
-      mapV: 31,              // 地圖版本：舊存檔讀進來時，還沒去過的樓層換成這版的地圖（MT.migrate）
+      mapV: 32,            // 地圖版本：舊存檔讀進來時，還沒去過的樓層換成這版的地圖（MT.migrate）
       steps: 0, kills: 0, playMs: 0,
       done: false,
     };
@@ -427,6 +427,13 @@
     if ((st.mapV || 0) < 31) {
       MT.FLOORS.forEach((f, i) => { if (f && !st.visited.includes(i)) st.maps[i] = parseFloor(f); });
       st.mapV = 31;
+    }
+    // 3.1.1 樓梯不再擋路：去過的樓層也補上（只動牆和樓梯，打過的格子不受影響）
+    if (st.mapV < 32) {
+      const open = { 7: [[9, 1]], 8: [[1, 1], [9, 1]] };
+      for (const f in open) for (const [x, y] of open[f]) if (st.maps[f] && st.maps[f][y][x] === '##') st.maps[f][y][x] = '..';
+      for (const f of [10, 15]) { const m = st.maps[f]; if (m && m[10][5] === 'DD' && m[7][4] === '##') { m[10][5] = '..'; m[7][4] = 'DD'; } }
+      st.mapV = 32;
     }
     if (st.items.chisel == null) st.items.chisel = 0;
     if (st.exp == null) { st.exp = 0; st.lv = 1; }

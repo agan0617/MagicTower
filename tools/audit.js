@@ -19,6 +19,7 @@ const auraCell = (f, x, y) => MT.auraAt(st, f, x, y) > 0;
 const leaves = t => { const n = MT.NPCS[t]; return !!n && (!!n.deal || (n.talk && (MT.SCRIPTS[n.talk] || []).some(c => c[0] === 'leave'))); };
 const blocks = t => t === '##' || t === 'Gt' || (MT.isNpc(t) && !leaves(t) && t !== 'Om');
 const inb = (x, y) => x >= 0 && y >= 0 && x < W && y < H;
+const STAIR_DETOUR = 4;   // 樓梯兩側不經樓梯互通的最多步數（檢查 4）
 let problems = 0;
 const report = (title, rows) => { if (!rows.length) { console.log(`✔ ${title}`); return; } problems += rows.length; console.log(`✘ ${title}（${rows.length}）`); rows.forEach(r => console.log('    ' + r)); };
 
@@ -107,8 +108,21 @@ const roots = f => {
       // 裂牆、暗牆後面直接接樓梯是刻意的（敲開就是樓梯），不算岔路
       const nb = D.map(([dx, dy]) => [x + dx, y + dy]).filter(([a, b]) => inb(a, b) && !blocks(m[b][a]) && m[b][a] !== 'Cw' && m[b][a] !== 'Hw');
       if (nb.length < 2) continue;
-      const r = flood(m, [nb[0]], (c, a, b) => !(a === x && b === y) && (!blocks(c) || c === 'Gt'));
-      if (nb.slice(1).some(p => !r.has(p.join()))) rows.push(`${MT.floorName(f)} ${m[y][x]}@${x},${y}`);
+      // 光是「繞得到」不夠：3.1.0 的 7F／8F／10F／15F 都要繞 18～22 步、穿好幾扇門卻照樣通過（Ken 抓到）。
+      // 兩側要在 STAIR_DETOUR 步內不經樓梯互通（繞過角落是 2 步、繞過 Boss 方塊或一格牆是 4 步）
+      const dist = { [nb[0].join()]: 0 }, q = [nb[0]];
+      while (q.length) {
+        const [a, b] = q.shift();
+        for (const [dx, dy] of D) {
+          const na = a + dx, nb2 = b + dy, k = na + ',' + nb2;
+          if (!inb(na, nb2) || (na === x && nb2 === y) || dist[k] != null) continue;
+          const c = m[nb2][na];
+          if (blocks(c) && c !== 'Gt') continue;
+          dist[k] = dist[a + ',' + b] + 1; q.push([na, nb2]);
+        }
+      }
+      const far = nb.slice(1).map(p => dist[p.join()]).filter(d => d == null || d > STAIR_DETOUR);
+      if (far.length) rows.push(`${MT.floorName(f)} ${m[y][x]}@${x},${y}（不經樓梯要繞 ${far.map(d => d == null ? '∞' : d).join('／')} 步）`);
     }
   }
   report('樓梯當岔路（樓梯兩側要直接互通）', rows);

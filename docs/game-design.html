@@ -75,7 +75,7 @@ blockquote { margin: 10px 0; padding: 6px 14px; border-left: 3px solid var(--acc
 <main>
 <header class="top">
   <h1>魔塔：失落的旋律　遊戲設計文件</h1>
-  <div class="meta">依 3.1.0 撰寫　·　2026-10-02</div>
+  <div class="meta">依 3.1.1 撰寫　·　2026-10-02</div>
   <div class="note">3.0.0 是關卡全面改版：20 層＋隱藏層 B1、經驗值與等級、三選一技能、大型 Boss、路上 NPC、暗牆與裂牆。3.0.2～3.0.5：序章加兩幕過場、加生命的道具改成愛心、標題畫面與選單加圖文教學。3.0.6 音效優化，3.0.7 最終 Boss 加強。<b>3.1.0：第 3 區加回音地板、第 4 區加共鳴水晶（跟位置有關的機制），新增真人型自動玩家並照它重定評價門檻。</b>關卡設計規則與平衡流程另見 repo 根目錄的 <code>DESIGN.md</code>。</div>
 </header>
 
@@ -90,7 +90,7 @@ blockquote { margin: 10px 0; padding: 6px 14px; border-left: 3px solid var(--acc
 <tr><td>語言</td><td class="wrap">繁體中文／English／日本語（介面與全部劇情）</td></tr>
 <tr><td>設計目標</td><td class="wrap">「會玩和不會玩要有明顯差距」：每一扇門、每一個房間都是取捨，怪物依打法分類（高攻、高防、高血、魔法、吸血、連擊、夾擊、破甲、共鳴），技能三選一讓同一張地圖有不同的最佳路線；後兩區各加一種走位機制（回音地板、共鳴），地圖不只是開門順序題。用自動玩家驗證：新手卡在 3F、一般卡在 5F、真人型八成通關（沒過的全卡在 4F，通關分數中位數約 14100）、高手通關約 17500～21800 分</td></tr>
 <tr><td>目標體驗</td><td class="wrap">「手機上單手點一點就能玩的經典魔塔」＋「一個青春期王子跟自己和解的短篇故事」。音樂隨劇情一層層回來（低音→鼓→和聲→笛→主旋律）；沿路的 NPC 與多蕾帶來幽默橋段；所有音樂、美術由程式產生，無任何外部素材</td></tr>
-<tr><td>版本</td><td class="wrap">網頁版 3.1.0（<code>index.html</code> 的 <code>MT.VERSION</code>、<code>sw.js</code> 的 <code>mt-3.1.0</code>）；存檔格式 v3（<code>MT.SAVE_V = 3</code>，2.x 存檔讀不了）</td></tr>
+<tr><td>版本</td><td class="wrap">網頁版 3.1.1（<code>index.html</code> 的 <code>MT.VERSION</code>、<code>sw.js</code> 的 <code>mt-3.1.1</code>）；存檔格式 v3（<code>MT.SAVE_V = 3</code>，2.x 存檔讀不了）</td></tr>
 </table></div>
 
 <!-- ───────────── 2 ───────────── -->
@@ -450,11 +450,11 @@ S：分數 ≥ 20000 且真結局　A：≥ 16000　B：≥ 12000　其餘 C</co
 </ul>
 
 <h3>6.4 音樂音效設定</h3>
-<ul><li>設定頁有音樂、音效兩條音量滑桿（0～1，預設各 0.2），記在 <code>mt.settings</code>。切到背景時暫停 AudioContext</li></ul>
+<ul><li>設定頁有音樂、音效兩條音量滑桿（0～1，預設各 0.6；只影響還沒存過設定的玩家），記在 <code>mt.settings</code>。切到背景時暫停 AudioContext</li></ul>
 
 <h3>6.5 離線快取（<code>sw.js</code>）</h3>
 <ul>
-<li>僅在 https 下註冊 service worker；快取名 <code>mt-3.1.0</code>，安裝時以 <code>cache: 'reload'</code> 預先快取全部檔案（繞過 GitHub Pages 的 10 分鐘 HTTP 快取，避免新頁配舊 js）</li>
+<li>僅在 https 下註冊 service worker；快取名 <code>mt-3.1.1</code>，安裝時以 <code>cache: 'reload'</code> 預先快取全部檔案（繞過 GitHub Pages 的 10 分鐘 HTTP 快取，避免新頁配舊 js）</li>
 <li>讀取策略：先回快取秒開、背景抓新版更新快取，下次開啟生效；非同源（GitHub API）不快取；啟用時刪掉舊版快取</li>
 <li>Android App 外殼也是開線上網址，一樣靠這個離線</li>
 </ul>
@@ -540,8 +540,9 @@ S：分數 ≥ 20000 且真結局　A：≥ 16000　B：≥ 12000　其餘 C</co
 <tr><td>3.0.6</td><td>2026-10-02</td><td class="wrap">整體音效優化：對話每個角色一種聲音（audio.js VOICES）、序章各幕補音效、撿取與數字落進資訊列的音效、Boss／反彈／吸血的打擊聲</td></tr>
 <tr><td>3.0.7</td><td>2026-10-02</td><td class="wrap">靜默指揮家（M2）攻擊 380 → 450：原本把資源換完再打只扣約 600 血、結局沒有壓力，加強後約 2800。評價門檻跟著下修為 S 20000／A 15500／B 9500（高手寬度 4 回音 22578 → 20734，仍是 S＋真結局）</td></tr>
 <tr><td>3.1.0</td><td>2026-10-02</td><td class="wrap">跟位置有關的機制：第 3 區回音地板（踩上去，這層上一場戰鬥的損失再扣一次，9 塊）、第 4 區共鳴水晶（周圍八格每步 80，8 隻）；點地圖時算整條路要付的生命、繞不開才走最便宜的路；教學、圖鑑、說明卡、攻略產生器、三語跟著補；舊存檔沒去過的樓層換成新地圖。新增真人型自動玩家（只知道去過的樓層、上樓就定案、評分加亂數），照它的通關分數分佈把評價門檻改成 S 20000／A 16000／B 12000；稽核加「回音地板要先打過怪才到得了」</td></tr>
+<tr><td>3.1.1</td><td>2026-10-02</td><td class="wrap">能交易的 NPC（呱呱商人、表哥、小偷、鐵匠、學徒）腳下一圈金光、頭上小圖示（賣鑰匙的是鑰匙、其他是金幣）；第一次沒鑰匙開不了門時多蕾提醒有人賣鑰匙（只一次，旗標 <code>hintKeyShop</code>）。樓梯不再擋路：7F 右上、8F 左右上角旁打通一格牆，10F／15F 的下樓梯從走廊中間 (5,10) 移到走廊旁的死巷 (4,7)；<code>tools/audit.js</code> 的樓梯岔路檢查改成兩側 4 步內要互通（原本只看繞不繞得到，這 5 座要繞 18～22 步都沒抓到）。音樂、音效預設音量 0.2 → 0.6</td></tr>
 </table></div>
-<p class="muted">2026-09-30 首版至 2026-10-02 的 3.1.0。</p>
+<p class="muted">2026-09-30 首版至 2026-10-02 的 3.1.1。</p>
 
 </main>
 </body>
