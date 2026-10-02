@@ -333,7 +333,20 @@
     });
   }
   function advanceDialog() { if (dialogResolve) { dialogResolve(); return true; } return false; }
-  $('#dialog').addEventListener('pointerdown', e => { e.preventDefault(); advanceDialog(); });
+  // 對話中點畫面任何地方都算下一步（不限對話框本身）；那一下不讓底下的按鈕、地圖收到，免得順手開了選單或走一步
+  let eatClick = false;
+  document.addEventListener('pointerdown', e => {
+    eatClick = false;
+    if (!dialogResolve || !$('#modal').hidden) return;
+    e.preventDefault(); e.stopPropagation();
+    eatClick = true;
+    advanceDialog();
+  }, { capture: true });
+  document.addEventListener('click', e => {
+    if (!eatClick) return;
+    eatClick = false;
+    e.preventDefault(); e.stopPropagation();
+  }, { capture: true });
 
   /* ───────── 劇本 ───────── */
   function musicFor() {
@@ -514,7 +527,7 @@
      手機上沒有方向鍵，一律點地圖：點一下就畫出路線（虛線＋終點框），勇者沿著走過去，走過的那段跟著消失。
      終點是怪物或門（會扣血、用掉鑰匙）時，第一下只顯示路線和代價，同一格再點一次才出發，誤觸不會白白損失。
      長按怪物顯示牠的能力（同圖鑑那一列）。 */
-  let route = null;     // { cells:[[x,y]…], kind, door } 畫在地圖上的路線；kind：walk／fight／door
+  let route = null;     // { cells:[[x,y]…], kind } 畫在地圖上的路線；kind：walk／fight／door
   let pending = null;   // 等第二下確認的終點 'x,y'
   let inspect = null;   // 長按中的怪物 { x, y }
   function clearRoute() { route = null; pending = null; }
@@ -580,56 +593,52 @@
     const at = x + ',' + y;
     if (kind !== 'walk' && pending !== at) {
       autoPath = null;   // 正在走的話先停下來，等確認
-      pending = at; route = { cells, kind, door: MT.DOORS[code] };
+      pending = at; route = { cells, kind };
       sfx('select'); toast(msg);
       return;
     }
     pending = null;
-    route = { cells, kind, door: MT.DOORS[code] };
+    route = { cells, kind };
     walkRoute(cells);
   }
 
-  const ROUTE_COLOR = { walk: '#ffe066', fight: '#ff6a6a', y: '#ffd84a', b: '#6ab8ff', r: '#ff6a6a' };
-  const routeColor = r => ROUTE_COLOR[r.kind === 'door' ? r.door : r.kind];
-  // 格子四角的框線，fast＝閃快一點（等確認中）
-  function brackets(x, y, color, t, fast) {
-    const k = 1 + Math.sin(t / (fast ? 110 : 200)) * 0.05;
-    const s = TILE * k, ox = x * TILE + (TILE - s) / 2, oy = y * TILE + (TILE - s) / 2, a = s * 0.3;
-    g.save(); g.lineCap = 'round';
-    for (const [lw, col] of [[7, 'rgba(0,0,0,0.55)'], [4, color]]) {
-      g.lineWidth = lw; g.strokeStyle = col; g.beginPath();
-      g.moveTo(ox, oy + a); g.lineTo(ox, oy); g.lineTo(ox + a, oy);
-      g.moveTo(ox + s - a, oy); g.lineTo(ox + s, oy); g.lineTo(ox + s, oy + a);
-      g.moveTo(ox + s, oy + s - a); g.lineTo(ox + s, oy + s); g.lineTo(ox + s - a, oy + s);
-      g.moveTo(ox + a, oy + s); g.lineTo(ox, oy + s); g.lineTo(ox, oy + s - a);
-      g.stroke();
-    }
+  // 光標顏色（r,g,b）：平常白色，等確認開打時帶一點淡紅
+  const CURSOR_RGB = { walk: '255,255,255', door: '255,255,255', fight: '255,176,176' };
+  // 終點光標：圓角方框＋淡淡的內光，約 1.6 秒一次緩慢明暗呼吸（同一般 RPG 的目的地游標）
+  function cursor(x, y, rgb, t) {
+    const a = 0.3 + 0.55 * (0.5 + 0.5 * Math.sin(t * Math.PI * 2 / 1600));
+    const pad = 3, s = TILE - pad * 2, ox = x * TILE + pad, oy = y * TILE + pad;
+    g.save();
+    g.beginPath(); g.roundRect ? g.roundRect(ox, oy, s, s, 7) : g.rect(ox, oy, s, s);
+    g.fillStyle = `rgba(${rgb},${a * 0.16})`; g.fill();
+    g.shadowColor = `rgba(${rgb},${a * 0.8})`; g.shadowBlur = 8;
+    g.lineWidth = 2.5; g.strokeStyle = `rgba(${rgb},${a})`; g.stroke();
     g.restore();
   }
-  // 路線：從勇者連到終點的流動虛線（畫在地板上、道具和怪物底下）
-  function drawRoute(t) {
+  // 路線：從勇者連到終點的一條淡白細線（畫在地板上、道具和怪物底下），停在終點格的邊上不壓到光標
+  function drawRoute() {
     if (!route) return;
     const cells = route.cells, i = cells.findIndex(c => c[0] === st.x && c[1] === st.y);
     const rest = cells.slice(i + 1);
     if (!rest.length) return;
-    const c0 = TILE / 2;
+    const c0 = TILE / 2, pts = [[view.hx * TILE + c0, view.hy * TILE + c0]].concat(rest.map(([x, y]) => [x * TILE + c0, y * TILE + c0]));
+    const [ex, ey] = pts[pts.length - 1], [px, py] = pts[pts.length - 2];
+    const d = Math.hypot(ex - px, ey - py) || 1, cut = Math.min(d, TILE * 0.42);
+    pts[pts.length - 1] = [ex - (ex - px) / d * cut, ey - (ey - py) / d * cut];
     g.save(); g.lineCap = 'round'; g.lineJoin = 'round';
-    g.setLineDash([1, 13]); g.lineDashOffset = -t / 45;
-    for (const [lw, col] of [[10, 'rgba(0,0,0,0.5)'], [6, routeColor(route)]]) {
-      g.lineWidth = lw; g.strokeStyle = col; g.beginPath();
-      g.moveTo(view.hx * TILE + c0, view.hy * TILE + c0);
-      for (const [x, y] of rest) g.lineTo(x * TILE + c0, y * TILE + c0);
-      g.stroke();
-    }
+    g.lineWidth = 5; g.strokeStyle = 'rgba(255,255,255,0.2)';
+    g.beginPath(); g.moveTo(pts[0][0], pts[0][1]);
+    for (const [x, y] of pts.slice(1)) g.lineTo(x, y);
+    g.stroke();
     g.restore();
   }
-  // 終點框、長按中的怪物框（畫在怪物上面）
+  // 終點光標、長按中的怪物光標（畫在怪物上面）
   function drawMarks(t) {
     if (route) {
       const [tx, ty] = route.cells[route.cells.length - 1];
-      if (tx !== st.x || ty !== st.y) brackets(tx, ty, routeColor(route), t, !!pending);
+      if (tx !== st.x || ty !== st.y) cursor(tx, ty, CURSOR_RGB[route.kind], t);
     }
-    if (inspect) brackets(inspect.x, inspect.y, '#ffffff', t);
+    if (inspect) cursor(inspect.x, inspect.y, CURSOR_RGB.walk, t);
   }
   // 點到走不到的地方：那格閃一下紅色 ✕
   const cross = (x, y) => view.fx.push({ kind: 'cross', x: x * TILE + TILE / 2, y: y * TILE + TILE / 2, t0: now(), life: 550 });
