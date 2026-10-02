@@ -84,12 +84,15 @@
   // 一張圖畫成 n×n 格大（大型怪物：16×16 的圖畫成 2×2、24×24 的畫成 3×3）
   const spriteAt = (name, pal, n, flip) => { const d = MT.SPRITES[name]; return MT.sprite(name, pal, TILE * n / ((d && d.size) || 16), flip); };
   const BOSS_GLOW = { DG: '#ffd84a', SR: '#5ab0ff', EM: '#7affff' };
-  // 能交易的 NPC 頭上的圖示：呱呱商人、表哥、小偷賣鑰匙；鐵匠、學徒收金幣換能力
+  // 有功能的 NPC 頭上的圖示（腳下都會發金光）：呱呱商人、表哥、小偷賣鑰匙＝鑰匙；祭壇、鐵匠、學徒收金幣＝金幣；
+  // 節拍之神用經驗值升級＝「Lv」；老琴師（技能鑑定）、豎琴之靈（技能三選一）＝「♪」
   function tradeIcon(code) {
     const n = MT.NPCS[code];
     if (!n) return null;
     if (n.shop === 'keys' || n.shop === 'keys2' || (n.deal && MT.DEALS[n.deal].gain.keys)) return ['key1', 'keyCu'];
-    if (n.deal) return ['coin'];
+    if (n.deal || n.shop) return ['coin'];
+    if (n.level) return { text: 'Lv', color: '#c8f0a0' };
+    if (n.sage || n.choose) return { text: '♪', color: '#aef4ff' };
     return null;
   }
   /* 遇到才教（Ken 指定）：第一次碰到某個機制，多蕾講一句、問要不要看那一頁教學。每個 key 只講一次（旗標 tut:key）。
@@ -160,15 +163,33 @@
       g.beginPath(); g.ellipse(px + w / 2, py + w - 6, w * 0.42, 6 * n, 0, 0, Math.PI * 2); g.fill(); g.restore();
     }
     const trade = tradeIcon(code);
-    if (trade) {   // 能交易的 NPC：腳下一圈金光，不講就看不出誰賣鑰匙（Ken 指定）
-      g.save(); g.globalAlpha = 0.3 + 0.15 * Math.sin(t / 260);
-      g.fillStyle = '#ffd84a';
-      g.beginPath(); g.ellipse(px + TILE / 2, py + TILE - 6, TILE * 0.42, 6, 0, 0, Math.PI * 2); g.fill(); g.restore();
+    if (trade) {   // 有功能的 NPC：腳下一圈金光，不講就看不出誰能交易、升級（Ken 指定）
+      // 金光要明顯到一眼看得出來（3.2.1 的 0.3 太淡，Ken 以為節拍之神沒有）：腳下的橢圓＋往上散的光暈
+      // 節拍之神、祭壇這種圖整格寬，腳下的光會被圖蓋住：背後一圈大光暈露出圖的外緣，光圈和光點畫在圖的前面
+      const cx = px + TILE / 2, cy = py + TILE - 7, a = 0.7 + 0.25 * Math.sin(t / 260);
+      g.save();
+      const halo = g.createRadialGradient(cx, py + TILE / 2, TILE * 0.3, cx, py + TILE / 2, TILE * 0.85);
+      halo.addColorStop(0, `rgba(255,224,102,${a * 0.75})`); halo.addColorStop(1, 'rgba(255,224,102,0)');
+      g.fillStyle = halo; g.fillRect(px - 14, py - 10, TILE + 28, TILE + 18);
+      g.restore();
     }
     g.drawImage(n > 1 ? spriteAt(sp[0], sp[1], n) : MT.sprite(sp[0], sp[1], SC), px, py + oy);
-    if (trade) {   // 頭上一個小圖示：賣鑰匙的是鑰匙，其他交易是金幣
+    if (trade) {
+      const cy = py + TILE - 5, a = 0.7 + 0.25 * Math.sin(t / 260);
+      g.save();
+      g.globalAlpha = a; g.strokeStyle = '#ffe066'; g.lineWidth = 3;
+      g.beginPath(); g.ellipse(px + TILE / 2, cy, TILE * 0.46, 7, 0, 0, Math.PI * 2); g.stroke();
+      for (let i = 0; i < 3; i++) {                       // 三顆往上飄的金色光點
+        const k = (t / 1400 + i / 3 + x * 0.13) % 1;
+        g.globalAlpha = (1 - k) * 0.95; g.fillStyle = '#fff6b0';
+        g.fillRect(px + 8 + i * 14 + Math.sin(t / 300 + i) * 3, cy - k * (TILE - 6), 3, 3);
+      }
+      g.restore();
+    }
+    if (trade) {   // 頭上一個小圖示（見 tradeIcon）
       const bob = Math.round(Math.sin(t / 300 + x) * 2);
-      g.drawImage(MT.sprite(trade[0], trade[1], 1), px + TILE - 18, py + 1 + bob);
+      if (trade.text) label(trade.text, px + TILE - 10, py + 14 + bob, trade.color, 12);
+      else g.drawImage(MT.sprite(trade[0], trade[1], 1), px + TILE - 18, py + 1 + bob);
     }
     if (isMon && st.items.book) {
       const c = MT.calc(st, code);
