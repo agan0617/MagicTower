@@ -275,6 +275,17 @@
     const name = MT.heroSprite(d === 'up' ? 'up' : d === 'down' ? 'down' : 'side', foot, tier, eq.sword, eq.shield);
     const bob = view.move ? (Math.floor(t / 70) % 2 ? -SC : 0) : 0;
     const im = MT.sprite(name, null, SC, d === 'left');
+    // 王子好找（Ken 指定）：腳下常駐一圈淡藍白光圈（跟 NPC 的金光分開）；剛換樓層、或停著不動 3 秒以上，頭上再跳一個小箭頭
+    const fx0 = x * TILE + ox + TILE / 2, fy0 = y * TILE + oy + TILE - 5;
+    const pulse = 0.45 + 0.15 * Math.sin(t / 420);
+    g.save();
+    g.globalAlpha = pulse * 0.5; g.fillStyle = '#9ad8ff';
+    g.beginPath(); g.ellipse(fx0, fy0, TILE * 0.44, 7, 0, 0, Math.PI * 2); g.fill();
+    g.globalAlpha = pulse + 0.2; g.strokeStyle = '#e8f6ff'; g.lineWidth = 2;
+    g.beginPath(); g.ellipse(fx0, fy0, TILE * 0.44, 7, 0, 0, Math.PI * 2); g.stroke();
+    g.restore();
+    if (view.heroAt !== st.floor + ',' + st.x + ',' + st.y) { view.heroAt = st.floor + ',' + st.x + ',' + st.y; view.heroStill = t; }
+    const showArrow = !view.move && (t < (view.arrowUntil || 0) || t - (view.heroStill || t) > 3000);
     g.save();
     if (tier >= 3) {                          // 最後一階：腳下一圈一明一暗的金色光暈
       const cx = x * TILE + ox + TILE / 2, cy = y * TILE + oy + TILE * 0.62;
@@ -285,6 +296,15 @@
     if (view.hurt > t && Math.floor(t / 50) % 2) g.globalAlpha = 0.35;
     g.drawImage(im, x * TILE + ox, y * TILE + oy + bob);
     g.restore();
+    if (showArrow) {   // 頭上的小箭頭：白底深色描邊，上下跳；站在最上面一列時頭上沒空間，改成腳下往上指
+      const top = y < 0.5, jump = Math.round(Math.sin(t / 180) * 4);
+      const ax = fx0, ay = top ? y * TILE + oy + TILE + 6 + jump : y * TILE + oy - 6 + jump, h = top ? -10 : 10;   // h：箭頭底邊在尖端上方幾格（負的＝在下方，尖端朝上）
+      g.save();
+      g.beginPath(); g.moveTo(ax - 9, ay - h); g.lineTo(ax + 9, ay - h); g.lineTo(ax, ay); g.closePath();
+      g.lineJoin = 'round'; g.lineWidth = 4; g.strokeStyle = '#1b1a26'; g.stroke();
+      g.fillStyle = '#ffffff'; g.fill();
+      g.restore();
+    }
     // 多蕾跟在旁邊
     if (view.fairy) {
       const fx = x * TILE + 26 + Math.cos(t / 500) * 6, fy = y * TILE - 22 + Math.sin(t / 260) * 5;
@@ -878,7 +898,7 @@
     playMusic(musicFor());
     await sleep(60);
     await fade(0, 260);
-    view.banner = { text: MT.floorName(st.floor), t0: now() };
+    view.banner = { text: MT.floorName(st.floor), t0: now() }; view.arrowUntil = now() + 2800;
     busy--;
   }
 
@@ -2778,11 +2798,11 @@
       busy++;
       fade(0, 2000).then(() => {
         busy = Math.max(0, busy - 1);
-        view.banner = { text: MT.floorName(st.floor), t0: now() };
+        view.banner = { text: MT.floorName(st.floor), t0: now() }; view.arrowUntil = now() + 2800;
         if (id) setTimeout(() => runScript(id).then(autosave), 900); else autosave();
       });
     } else {
-      view.banner = { text: MT.floorName(st.floor), t0: now() };
+      view.banner = { text: MT.floorName(st.floor), t0: now() }; view.arrowUntil = now() + 2800;
       lastAutoAt = (latestAuto() || {}).at || 0;
     }
   }
