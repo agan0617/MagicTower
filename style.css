@@ -37,6 +37,9 @@ button { font: inherit; color: inherit; }
   height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 6px; padding: 4px 4px 6px;
 }
 #stage.under { visibility: hidden; }
+/* 新遊戲進塔：地圖從黑淡入（畫布上做），資訊列與下方按鈕晚一點浮出來 */
+#stage.enter #hud, #stage.enter #bar { animation: stageIn 1.4s ease 1.2s both; }
+@keyframes stageIn { from { opacity: 0; } to { opacity: 1; } }
 #stage { position: relative; }
 #hud {
   width: var(--mw); min-width: min(100%, 340px); display: grid; grid-template-columns: auto 1fr 1fr 1fr 1fr; grid-template-rows: auto auto;

@@ -2769,12 +2769,22 @@
     playClock = Date.now();
     renderHud();
     playMusic(musicFor());
-    view.banner = { text: MT.floorName(st.floor), t0: now() };
     if (fresh) {
+      // 推開塔門之後：畫面從全黑慢慢亮起來（2 秒），資訊列和下方按鈕晚一點才浮出來；亮完才出樓層字卡和開場對話（Ken 指定）
       const id = MT.stepTrigger(st);
-      if (!id) autosave();
-      if (id) setTimeout(() => runScript(id).then(autosave), 700);
-    } else lastAutoAt = (latestAuto() || {}).at || 0;
+      view.fade = view.fadeCur = view.fadeTo = 1;
+      const stage = $('#stage');
+      stage.classList.add('enter'); setTimeout(() => stage.classList.remove('enter'), 3000);
+      busy++;
+      fade(0, 2000).then(() => {
+        busy = Math.max(0, busy - 1);
+        view.banner = { text: MT.floorName(st.floor), t0: now() };
+        if (id) setTimeout(() => runScript(id).then(autosave), 900); else autosave();
+      });
+    } else {
+      view.banner = { text: MT.floorName(st.floor), t0: now() };
+      lastAutoAt = (latestAuto() || {}).at || 0;
+    }
   }
 
   async function startEnding() {

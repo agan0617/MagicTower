@@ -75,7 +75,7 @@ blockquote { margin: 10px 0; padding: 6px 14px; border-left: 3px solid var(--acc
 <main>
 <header class="top">
   <h1>魔塔：失落的旋律　遊戲設計文件</h1>
-  <div class="meta">依 3.2.4 撰寫　·　2026-10-02</div>
+  <div class="meta">依 3.2.5 撰寫　·　2026-10-02</div>
   <div class="note">3.0.0 是關卡全面改版：20 層＋隱藏層 B1、經驗值與等級、三選一技能、大型 Boss、路上 NPC、暗牆與裂牆。3.0.2～3.0.5：序章加兩幕過場、加生命的道具改成愛心、標題畫面與選單加圖文教學。3.0.6 音效優化，3.0.7 最終 Boss 加強。<b>3.1.0：第 3 區加回音地板、第 4 區加共鳴水晶（跟位置有關的機制），新增真人型自動玩家並照它重定評價門檻。</b>關卡設計規則與平衡流程另見 repo 根目錄的 <code>DESIGN.md</code>。</div>
 </header>
 
@@ -90,7 +90,7 @@ blockquote { margin: 10px 0; padding: 6px 14px; border-left: 3px solid var(--acc
 <tr><td>語言</td><td class="wrap">繁體中文／English／日本語（介面與全部劇情）</td></tr>
 <tr><td>設計目標</td><td class="wrap">「會玩和不會玩要有明顯差距」：每一扇門、每一個房間都是取捨，怪物依打法分類（高攻、高防、高血、魔法、吸血、連擊、夾擊、破甲、共鳴），技能三選一讓同一張地圖有不同的最佳路線；後兩區各加一種走位機制（回音地板、共鳴），地圖不只是開門順序題。用自動玩家驗證：新手卡在 3F、一般卡在 5F、真人型八成通關（沒過的全卡在 4F，通關分數中位數約 14100）、高手通關約 17500～21800 分</td></tr>
 <tr><td>目標體驗</td><td class="wrap">「手機上單手點一點就能玩的經典魔塔」＋「一個青春期王子跟自己和解的短篇故事」。音樂隨劇情一層層回來（低音→鼓→和聲→笛→主旋律）；沿路的 NPC 與多蕾帶來幽默橋段；所有音樂、美術由程式產生，無任何外部素材</td></tr>
-<tr><td>版本</td><td class="wrap">網頁版 3.2.4（<code>index.html</code> 的 <code>MT.VERSION</code>、<code>sw.js</code> 的 <code>mt-3.2.4</code>）；存檔格式 v3（<code>MT.SAVE_V = 3</code>，2.x 存檔讀不了）</td></tr>
+<tr><td>版本</td><td class="wrap">網頁版 3.2.5（<code>index.html</code> 的 <code>MT.VERSION</code>、<code>sw.js</code> 的 <code>mt-3.2.5</code>）；存檔格式 v3（<code>MT.SAVE_V = 3</code>，2.x 存檔讀不了）</td></tr>
 </table></div>
 
 <!-- ───────────── 2 ───────────── -->
@@ -454,7 +454,7 @@ S：分數 ≥ 20000 且真結局　A：≥ 16000　B：≥ 12000　其餘 C</co
 
 <h3>6.5 離線快取（<code>sw.js</code>）</h3>
 <ul>
-<li>僅在 https 下註冊 service worker；快取名 <code>mt-3.2.4</code>，安裝時以 <code>cache: 'reload'</code> 預先快取全部檔案（繞過 GitHub Pages 的 10 分鐘 HTTP 快取，避免新頁配舊 js）</li>
+<li>僅在 https 下註冊 service worker；快取名 <code>mt-3.2.5</code>，安裝時以 <code>cache: 'reload'</code> 預先快取全部檔案（繞過 GitHub Pages 的 10 分鐘 HTTP 快取，避免新頁配舊 js）</li>
 <li>讀取策略：先回快取秒開、背景抓新版更新快取，下次開啟生效；非同源（GitHub API）不快取；啟用時刪掉舊版快取</li>
 <li>Android App 外殼也是開線上網址，一樣靠這個離線</li>
 </ul>
@@ -548,8 +548,9 @@ S：分數 ≥ 20000 且真結局　A：≥ 16000　B：≥ 12000　其餘 C</co
 <tr><td>3.2.2</td><td>2026-10-02</td><td class="wrap">有功能的 NPC 都會發光：除了賣鑰匙與交易的，祭壇（金幣）、節拍之神（頭上「Lv」）、老琴師與豎琴之靈（頭上「♪」）也加上。金光改明顯：背後一圈大光暈，腳下金色光圈與往上飄的光點畫在圖的前面（節拍之神、祭壇的圖整格寬，原本腳下的光被圖蓋住）</td></tr>
 <tr><td>3.2.3</td><td>2026-10-03</td><td class="wrap">遇到才教改成走到附近才講：英雄周圍 2 格內有沒看過的怪物特技、回音地板、祭壇／商人／節拍之神才講，一次一個、講的時候停下腳步（原本一到樓層就連講兩個，Ken 嫌太擠）；文字的「這層有」改「前面有」。節拍之神改成金色鈴鐺精靈：掛環、圓頂鈴身上一張小臉＋腮紅、外翻金邊、底下吊著鈴舌；進階版是銀藍大鈴（舊的咖啡色節拍器像大便，重畫的節拍器也不行，Ken 從四個方向裡選了鈴鐺）</td></tr>
 <tr><td>3.2.4</td><td>2026-10-03</td><td class="wrap">通關過（有最佳紀錄 <code>MT.Sync.best()</code>，跨裝置同步）的玩家再玩一次，不再跳遇到才教與沒鑰匙的提醒；劇情對話、選單與「？」裡的教學照舊</td></tr>
+<tr><td>3.2.5</td><td>2026-10-03</td><td class="wrap">推開塔門進到 1F：地圖從全黑淡入（2 秒），資訊列與下方按鈕 1.2 秒後才浮出來（<code>#stage.enter</code>），亮完才出樓層字卡、0.9 秒後開場對話；淡入期間不能操作。讀檔不受影響</td></tr>
 </table></div>
-<p class="muted">2026-09-30 首版至 2026-10-03 的 3.2.4。</p>
+<p class="muted">2026-09-30 首版至 2026-10-03 的 3.2.5。</p>
 
 </main>
 </body>
