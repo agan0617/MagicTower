@@ -300,6 +300,7 @@
     renderHud();
   }
   function setupIcons() {
+    $('#iAtk').src = icon('gemSword', 'gemRed'); $('#iDef').src = icon('gemShield', 'gemBlue');
     $('#iKy').src = icon('key', 'yellow'); $('#iKb').src = icon('key', 'blue'); $('#iKr').src = icon('key', 'red');
     $('#bBook img').src = icon('book'); $('#bFly img').src = icon('feather');
     $('#bSave img').src = icon('page'); $('#bMenu img').src = icon('altar', 'stone');
@@ -908,7 +909,7 @@
       return;
     }
     const S = MT.SHOPS[id], price = MT.shopPrice(st, id), poor = st.gold < price;
-    const opts = [['hp', 'buyHp', S.hp, 'potion', 'red'], ['atk', 'buyAtk', S.atk, 'gem', 'gemRed'], ['def', 'buyDef', S.def, 'gem', 'gemBlue']].map(([k, lab, n, sp, pal]) =>
+    const opts = [['hp', 'buyHp', S.hp, 'potion', 'red'], ['atk', 'buyAtk', S.atk, 'gemSword', 'gemRed'], ['def', 'buyDef', S.def, 'gemShield', 'gemBlue']].map(([k, lab, n, sp, pal]) =>
       `<button class="btn opt" data-k="${k}" ${poor ? 'disabled' : ''}>${img(sp, pal)} ${esc(MT.t(lab, { n }))}</button>`).join('');
     openModal(MT.t(id), `<div class="shopTop">${img('altar', MT.NPCS[id === 'shop1' ? 'Sh' : 'S2'].pal, 'big')}<p>${esc(MT.t('shopText', { price }))}</p></div>
       <div class="opts">${opts}</div><p class="muted small">${esc(MT.t('gold'))}：${st.gold}</p><button class="btn" data-x>${esc(MT.t('leave'))}</button>`, body => {
