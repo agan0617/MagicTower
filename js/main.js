@@ -466,6 +466,8 @@
         else if (it.kind === 'hp') { sfx('potion'); floatText(ev.x, ev.y, '+' + g2.value, '#8cff8c'); }
         else if (it.kind === 'atk') { sfx('gem'); floatText(ev.x, ev.y, MT.t('atk') + '+' + g2.value, '#ff8a80'); }
         else if (it.kind === 'def') { sfx('gem'); floatText(ev.x, ev.y, MT.t('def') + '+' + g2.value, '#8ac8ff'); }
+        // 藥水、小劍、小盾也跟鑰匙一樣跳提示（Ken 指定），頭上的飄字照留
+        if (['hp', 'atk', 'def'].includes(it.kind) && !it.equip) toast(MT.t('got_' + it.kind, { name: MT.t('name_' + ev.item), n: g2.value }));
         else if (it.kind === 'page') { toast(MT.t('got_page')); }
         else if (it.kind === 'note') { sfx('fanfare'); toast(MT.t('got_note')); sparkle(ev.x, ev.y, 30); }
         renderHud();
