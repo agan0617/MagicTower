@@ -1447,7 +1447,7 @@
       drawSky(t, '#3a4060', '#c89a7a'); drawTower(t, SIZE / 2 + 120, 80, '#0e0b16');
       cg.fillStyle = '#4a3a3a'; cg.fillRect(0, SIZE - 90, SIZE, 90);
       bigSprite('heroSide', null, 90, SIZE - 250, 8);
-      bigSprite('fairy', null, 300, SIZE - 300 + Math.sin(t / 250) * 12, 7, true);
+      bigSprite('fairy', null, 300, SIZE - 300 + Math.sin(t / 250) * 12, 7);
       for (let i = 0; i < 6; i++) { cg.fillStyle = '#fff6b0'; cg.fillRect(360 + Math.cos(t / 300 + i) * 60, SIZE - 240 + Math.sin(t / 200 + i * 2) * 50, 4, 4); }
     },
     // 一般結局：聲音回來了，全鎮的人跟阿爾特、國王一起在廣場上唱
