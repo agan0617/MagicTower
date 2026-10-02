@@ -589,6 +589,7 @@
       ['fairy', true],
       ['say', 'doremi', 'f1_1'],
       ['say', 'tink', 'f1_2'],
+      ['say', 'doremi', 'f1_goal'],   // 第一次玩的人不知道目標是塔頂（Ken 指定）
       ['say', 'doremi', 'f1_3'],
       ['say', 'doremi', 'f1_5'],
       ['fairy', false],

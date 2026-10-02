@@ -27,7 +27,7 @@
   g.imageSmoothingEnabled = false;
 
   /* ───────── 設定 ───────── */
-  const settings = Object.assign({ music: 0.6, sfx: 0.6 }, MT.LS.get('settings', {}));
+  const settings = Object.assign({ music: 0.8, sfx: 0.8 }, MT.LS.get('settings', {}));
   MT.setLang(MT.LS.get('lang', MT.detectLang()));
   MT.Audio.setVolume('music', settings.music);
   MT.Audio.setVolume('sfx', settings.sfx);
@@ -2291,6 +2291,97 @@
         for (let i = 0; i < 6; i++) { cg.fillStyle = '#fff6b0'; cg.fillRect(360 + Math.cos(t / 300 + i) * 60, SIZE - 240 + Math.sin(t / 200 + i * 2) * 50, 4, 4); }
       }
     },
+    // 進塔前的第一人稱（Ken 指定）：慢慢走到大門前、心跳；兩隻手伸出來推門，先嘎一聲開一條縫、停住，
+    // 再整扇嘎吱嘎吱往裡推開、撞上牆；門後一片漆黑，最後鏡頭往黑暗裡衝進去
+    gate: t => {
+      const s = t - cineT0, ease = k => 1 - Math.pow(1 - Math.max(0, Math.min(1, k)), 3);
+      const crack = ease((s - 2000) / 450) * 0.1;                     // 2.0 秒：先開一條縫
+      const swing = ease((s - 2900) / 1300);                          // 2.9～4.2 秒：整扇推開
+      const open = crack + (1 - 0.1) * swing;
+      const dive = Math.max(0, (s - 4500) / 1000);                    // 4.5 秒起往裡衝
+      const zoom = 1 + 0.14 * ease(s / 1800) + dive * dive * 2.2;
+      const bob = s < 4300 ? Math.sin(s / 430) * 4 : 0;               // 走路／喘氣的上下晃
+      cg.fillStyle = '#000'; cg.fillRect(0, 0, SIZE, SIZE);
+      cg.save();
+      if ((s > 2000 && s < 2450) || (s > 2900 && s < 4300)) cg.translate((Math.random() - 0.5) * 3, (Math.random() - 0.5) * 2);
+      cg.translate(SIZE / 2, SIZE / 2 + 30 + bob); cg.scale(zoom, zoom); cg.translate(-SIZE / 2, -SIZE / 2 - 30);
+      // 塔的外牆：石磚
+      cg.fillStyle = '#1b1526'; cg.fillRect(-40, -40, SIZE + 80, SIZE + 80);
+      cg.fillStyle = '#130f1c';
+      for (let y = -40; y < SIZE + 40; y += 24) { cg.fillRect(-40, y, SIZE + 80, 3); for (let x = ((y / 24) % 2) * 28 - 40; x < SIZE + 40; x += 56) cg.fillRect(x, y, 3, 24); }
+      const L = 144, R = 384, T = 196, cx = (L + R) / 2, half = (R - L) / 2;
+      // 門框與拱頂
+      cg.fillStyle = '#3a3048'; cg.fillRect(L - 22, T - 8, 22, SIZE); cg.fillRect(R, T - 8, 22, SIZE);
+      cg.beginPath(); cg.arc(cx, T, half + 22, Math.PI, 0); cg.fill();
+      cg.fillStyle = '#241c30'; cg.beginPath(); cg.arc(cx, T, half, Math.PI, 0); cg.fill();
+      // 拱頂中央一顆被封住的音符，跟著心跳一明一暗
+      cg.globalAlpha = 0.55 + 0.35 * Math.sin(s / 260); cg.fillStyle = '#c07cf5';
+      cg.font = 'bold 54px serif'; cg.textAlign = 'center'; cg.fillText('♪', cx, T - 34); cg.globalAlpha = 1;
+      // 門後：漆黑，深處一點紫光，音符被吸進去
+      cg.fillStyle = '#000'; cg.fillRect(L, T, R - L, SIZE);
+      const gl = cg.createRadialGradient(cx, T + 160, 2, cx, T + 160, 120);
+      gl.addColorStop(0, `rgba(150,80,210,${0.3 * open})`); gl.addColorStop(1, 'rgba(150,80,210,0)');
+      cg.fillStyle = gl; cg.fillRect(L, T, R - L, SIZE);
+      if (open > 0.05) {
+        cg.font = 'bold 22px serif';
+        for (let i = 0; i < 10; i++) {
+          const p = (s / 1400 + i / 10) % 1, a = i * 2.1;
+          cg.globalAlpha = Math.sin(p * Math.PI) * open * 0.8; cg.fillStyle = ['#ffe066', '#aef4ff', '#ff9ccc'][i % 3];
+          cg.fillText('♪♫♬♩'[i % 4], cx + Math.cos(a) * 110 * (1 - p), T + 150 + Math.sin(a) * 70 * (1 - p));
+        }
+        cg.globalAlpha = 1;
+      }
+      // 兩扇門往裡開：門縫那一邊往後退、變窄變矮（透視）
+      const ang = open * 1.35;
+      for (const side of [-1, 1]) {
+        const hinge = side < 0 ? L : R, w = half * Math.cos(ang), edge = hinge - side * w, shrink = 1 - 0.28 * Math.sin(ang);
+        const et = T + (1 - shrink) * 120, eb = SIZE + 40 - (1 - shrink) * 140;
+        cg.fillStyle = mixColor('#4a3226', '#2a1c16', open);
+        cg.beginPath(); cg.moveTo(hinge, T - 4); cg.lineTo(edge, et); cg.lineTo(edge, eb); cg.lineTo(hinge, SIZE + 40); cg.closePath(); cg.fill();
+        cg.strokeStyle = 'rgba(0,0,0,0.45)'; cg.lineWidth = 3;      // 木板縫
+        for (let k = 1; k < 4; k++) { const x = hinge + (edge - hinge) * k / 4; cg.beginPath(); cg.moveTo(x, T - 4 + (et - T + 4) * k / 4); cg.lineTo(x, SIZE + 40 - (SIZE + 40 - eb) * k / 4); cg.stroke(); }
+        cg.fillStyle = '#1e1b1a';                                     // 兩道鐵箍
+        for (const yy of [0.22, 0.62]) {
+          const y1 = T + (SIZE - T) * yy, y2 = et + (eb - et) * yy;
+          cg.beginPath(); cg.moveTo(hinge, y1 - 9); cg.lineTo(edge, y2 - 9 * shrink); cg.lineTo(edge, y2 + 9 * shrink); cg.lineTo(hinge, y1 + 9); cg.fill();
+        }
+        if (open < 0.5) {                                             // 門環
+          cg.strokeStyle = '#8a7a5a'; cg.lineWidth = 5;
+          cg.beginPath(); cg.arc(edge + side * 22, et + (eb - et) * 0.42, 13 * shrink, 0, Math.PI * 2); cg.stroke();
+        }
+      }
+      // 開縫那一下：一條紫色的細光
+      if (open > 0 && open < 0.3) {
+        cg.globalAlpha = (0.3 - open) / 0.3 * 0.9; cg.fillStyle = '#d6a6ff';
+        cg.fillRect(cx - 2, T, 4, SIZE - T); cg.globalAlpha = 1;
+      }
+      // 灰塵從拱頂掉下來
+      if (s > 2000) for (let i = 0; i < 18; i++) {
+        const p = ((s - 2000) / 1600 + i / 18) % 1;
+        cg.globalAlpha = (1 - p) * 0.6 * (s < 4600 ? 1 : 0); cg.fillStyle = '#8a7a8a';
+        cg.fillRect(L + ((i * 37) % (R - L)), T - 20 + p * 260, 3, 3);
+      }
+      cg.globalAlpha = 1;
+      cg.restore();
+      // 兩隻手（第一人稱，不跟鏡頭縮放）：1.1 秒伸出來貼上門，門開時跟著往兩邊推，3.8 秒後放下
+      const up = ease((s - 1100) / 700) - ease((s - 3800) / 600);
+      if (up > 0) {
+        for (const side of [-1, 1]) {
+          const spread = side * (36 + open * 120), hx = SIZE / 2 + spread - 34, hy = SIZE - up * 200 + bob;
+          cg.fillStyle = '#2b3d73'; cg.fillRect(hx - 6 + side * 10, hy + 70, 80, 200);       // 袖子
+          cg.fillStyle = '#1d2a52'; cg.fillRect(hx - 6 + side * 10, hy + 70, 80, 10);
+          cg.fillStyle = '#e8b08a'; cg.fillRect(hx, hy, 68, 76);                             // 手掌
+          for (let f = 0; f < 4; f++) cg.fillRect(hx + 2 + f * 17, hy - 26 + (f === 0 || f === 3 ? 8 : 0), 14, 30);   // 手指
+          cg.fillRect(side < 0 ? hx + 62 : hx - 14, hy + 22, 20, 30);                       // 大拇指
+          cg.fillStyle = '#c48a66'; cg.fillRect(hx, hy + 60, 68, 8);
+        }
+      }
+      // 暗角：越接近開門越重；最後整個沉進黑暗
+      const vg = cg.createRadialGradient(SIZE / 2, SIZE / 2, SIZE * 0.2, SIZE / 2, SIZE / 2, SIZE * 0.75);
+      vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, `rgba(0,0,0,${0.55 + 0.3 * open})`);
+      cg.fillStyle = vg; cg.fillRect(0, 0, SIZE, SIZE);
+      if (dive > 0) { cg.globalAlpha = Math.min(1, dive * 0.9); cg.fillStyle = '#000'; cg.fillRect(0, 0, SIZE, SIZE); cg.globalAlpha = 1; }
+    },
     // 一般結局：聲音回來了，全鎮的人跟阿爾特、國王一起在廣場上唱
     festival: t => {
       drawSky(t, '#5ab0ff', '#ffe0b0');
@@ -2413,6 +2504,9 @@
     { text: 'pro_10', speaker: 'tink', pose: 'heroSideGuilty' },
     { text: 'pro_11', speaker: 'doremi' },
     { text: 'pro_12', speaker: 'tink', pose: 'heroSideSulk' },
+    // 第一人稱推開塔門：心跳一路響；2.0 秒開一條縫、2.9 秒整扇推開、4.2 秒撞上牆；演完才出字
+    { scene: 'gate', text: 'pro_13', music: 'none', delay: 4600,
+      sfx: [['heartbeat', 0], ['doorCreak', 2000], ['doorGroan', 2900], ['doorThud', 4200]] },
   ];
 
   /* ───────── 標題畫面 ───────── */
@@ -2607,5 +2701,5 @@
   MT.appPause = () => { stopHold(); if (mode === 'game') autosave(); MT.Sync.push(true); MT.Audio.suspend(); };
   MT.appResume = () => { playClock = Date.now(); MT.Audio.resume(); MT.Sync.pull().then(() => checkCloudNewer()); };
 
-  MT.debug = { get st() { return st; }, set st(v) { st = v; renderHud(); }, runScript, startEnding, startGame, renderHud };
+  MT.debug = { get st() { return st; }, set st(v) { st = v; renderHud(); }, runScript, startEnding, startGame, renderHud, playCine };
 })();

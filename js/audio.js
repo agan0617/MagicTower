@@ -245,6 +245,18 @@
     if (tok.includes('h')) noise(t, 0.04, 'highpass', 7000, 0.35, out);
   }
 
+  // 門軸的嘎吱聲：dur 秒、peak 音量；音高與音量都不規則地抖（像推一下卡一下）
+  function creak(t, dur, peak) {
+    const o = ctx.createOscillator(), bp = ctx.createBiquadFilter(), g = ctx.createGain();
+    o.type = 'sawtooth'; bp.type = 'bandpass'; bp.frequency.value = 900; bp.Q.value = 7;
+    o.frequency.setValueAtTime(70, t);
+    for (let i = 1, n = Math.round(dur * 14); i <= n; i++) o.frequency.linearRampToValueAtTime(60 + ((i * 37) % 11) * 9, t + dur * i / n);
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(peak, t + 0.05);
+    for (let i = 1, n = Math.round(dur * 8); i < n; i++) g.gain.linearRampToValueAtTime(peak * (0.45 + ((i * 53) % 7) / 12), t + dur * i / n);
+    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    o.connect(bp); bp.connect(g); g.connect(sfxBus); o.start(t); o.stop(t + dur + 0.05);
+    noise(t, dur, 'bandpass', 2200, peak * 0.25, sfxBus, 2);
+  }
   function tone(type, f, t, dur, peak, out, f2) {
     const o = ctx.createOscillator(), g = ctx.createGain();
     o.type = type; o.frequency.setValueAtTime(f, t);
@@ -391,6 +403,11 @@
     },
     // 序章靜默之塔從地底升起（約 3.2 秒，跟畫面一樣先快後慢）：低頻的轟隆聲＋往下沉的低音，
     // 石頭摩擦的悶響越來越稀，最後「轟」一聲定住，再拖一記兩個音互相打架的低沉鐘響
+    // 塔門（進塔前的第一人稱）：舊門軸的嘎——鋸齒波在窄帶通裡忽高忽低地抖，加一點木頭摩擦的沙沙聲
+    doorCreak: t => creak(t, 0.4, 0.5),
+    doorGroan: t => creak(t, 1.3, 0.75),
+    // 門板撞上裡面的牆：一記悶響，在空蕩的塔裡迴盪三次
+    doorThud: t => { for (let i = 0; i < 3; i++) { kick(t + i * 0.32, sfxBus, 1.5 * (1 - i * 0.35)); noise(t + i * 0.32, 0.4, 'lowpass', 260 - i * 50, 0.6 * (1 - i * 0.35), sfxBus); } },
     towerRise: t => {
       const D = 3.2;
       const src = ctx.createBufferSource(); src.buffer = noiseBuf; src.loop = true;
