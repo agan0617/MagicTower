@@ -103,7 +103,7 @@
     const k = await ask(MT.t('thAsk'), [{ key: 'n', label: MT.t('thLater') }, { key: 'y', label: MT.t('thOpen') }]);
     view.fairy = false; busy--;
     autosave();
-    if (k === 'y') openTutorial(false, page);
+    if (k === 'y') openTutorial(false, page, true);
   }
   // 到了新的一層：這層有沒看過的怪物特技、回音地板、祭壇／商人／節拍之神，就提一下（危險的先講，一次最多兩個）
   const SHOP_CODES = ['Sh', 'S2', 'S3', 'Mk', 'Mq', 'L1', 'L2'];
@@ -1320,19 +1320,23 @@
     if (!st || mode !== 'game' || busy) return;
     if (!st.items.book) return;
     bookTab = tab || bookTab;
-    const n = MT.COLLECT.filter(k => st.found && st.found[k] != null).length;
-    const tabs = `<div class="bookTabs"><button class="btn ${bookTab === 'mon' ? 'primary' : ''}" data-tab="mon">${esc(MT.t('tabMon'))}</button>`
-      + `<button class="btn ${bookTab === 'col' ? 'primary' : ''}" data-tab="col">${esc(MT.t('tabCol'))} ${n}／${MT.COLLECT.length}</button></div>`;
-    let html;
-    if (bookTab === 'mon') {
-      const seen = [];
-      for (const row of st.maps[st.floor]) for (const c of row) if (MT.MONSTERS[c] && !seen.includes(c)) seen.push(c);
-      html = seen.length ? seen.map(monRow).join('') : `<p class="muted">${esc(MT.t('noMonsters'))}</p>`;
-    } else html = MT.COLLECT.map(colRow).join('');
-    openModal(bookTab === 'mon' ? MT.t('bookTitle') + ' · ' + MT.t('floorN', { n: st.floor }) : MT.t('btnBook'), tabs + html, body => {
-      body.querySelectorAll('[data-tab]').forEach(b => b.addEventListener('click', () => { if (b.dataset.tab === bookTab) return; closeModal(); openBook(b.dataset.tab); }));
+    // 面板固定大小、分頁鈕釘在上面、清單在下面捲：切分頁時按鈕不會跑位置（Ken 指定），切換也不重開面板
+    const render = body => {
+      const n = MT.COLLECT.filter(k => st.found && st.found[k] != null).length;
+      $('#mTitle').textContent = bookTab === 'mon' ? MT.t('bookTitle') + ' · ' + MT.t('floorN', { n: st.floor }) : MT.t('btnBook');
+      let html;
+      if (bookTab === 'mon') {
+        const seen = [];
+        for (const row of st.maps[st.floor]) for (const c of row) if (MT.MONSTERS[c] && !seen.includes(c)) seen.push(c);
+        html = seen.length ? seen.map(monRow).join('') : `<p class="muted">${esc(MT.t('noMonsters'))}</p>`;
+      } else html = MT.COLLECT.map(colRow).join('');
+      body.innerHTML = `<div class="bookTabs"><button class="btn ${bookTab === 'mon' ? 'primary' : ''}" data-tab="mon">${esc(MT.t('tabMon'))}</button>`
+        + `<button class="btn ${bookTab === 'col' ? 'primary' : ''}" data-tab="col">${esc(MT.t('tabCol'))} ${n}／${MT.COLLECT.length}</button></div>`
+        + `<div class="bookList">${html}</div>`;
+      body.querySelectorAll('[data-tab]').forEach(b => b.addEventListener('click', () => { if (b.dataset.tab === bookTab) return; bookTab = b.dataset.tab; sfx('select'); render(body); }));
       body.querySelectorAll('[data-read]').forEach(b => b.addEventListener('click', async () => { closeModal(); await runScript(MT.PAGE_SCRIPTS[b.dataset.read]); }));
-    });
+    };
+    openModal('', '', body => { body.parentElement.classList.add('book'); render(body); }, () => $('#modal .panel').classList.remove('book'));
   }
   // 第一次拿到收藏品：頭上飄一行「收進收藏品圖鑑」（不用 toast，免得蓋掉撿到東西的提示）
   function colNotice() { floatText(st.x, st.y - 0.8, MT.t('colNew'), '#ffe9a8', 13); }
@@ -1575,31 +1579,38 @@
       .map(([sp, k]) => tutRow(img(sp, null, 'big'), '', MT.t('tut_t_' + k))).join('') },
   ];
   let tutGo = null;   // 教學開著時的翻頁（鍵盤左右鍵用）
-  function openTutorial(fromTitle, startPage) {   // 選單、標題畫面、資訊列的「？」都開得了（教學的圖和例子不看目前這局）；startPage＝直接翻到第幾頁
+  // 選單、標題畫面、資訊列的「？」都開得了（教學的圖和例子不看目前這局）；startPage＝直接翻到第幾頁；
+  // single＝遇到機制時彈出的那一頁：只看這頁，底下只有「關閉」（Ken 指定）
+  function openTutorial(fromTitle, startPage, single) {
     if (!fromTitle && (!st || mode !== 'game' || busy)) return;
     let page = startPage || 0;
     const n = TUT_PAGES.length;
     openModal(MT.t('tutorial'), '', body => {
       const show = () => {
         const i = page + 1;
-        $('#mTitle').textContent = `${MT.t('tutorial')}　${i}／${n}`;
+        $('#mTitle').textContent = single ? MT.t('tutorial') : `${MT.t('tutorial')}　${i}／${n}`;
         const dots = TUT_PAGES.map((_, j) => `<button class="tutDot ${j === page ? 'on' : ''}" data-p="${j}" aria-label="${j + 1}"></button>`).join('');
         const P = TUT_PAGES[page];
-        body.innerHTML = `<h3 class="tutH">${esc(MT.t('tut_' + i + 't'))}</h3>${P.pic ? `<div class="tutPicBox">${P.pic()}</div>` : ''}`
-          + `<p class="tutText">${esc(MT.t('tut_' + i, { at: MT.t('name_at'), df: MT.t('name_df'), hp: MT.t('name_hp'), HP: MT.t('name_HP') }))}</p>${P.after ? P.after() : ''}`
-          + `<div class="tutNav"><button class="btn" data-d="-1" ${page ? '' : 'disabled'}>${esc(MT.t('tut_prev'))}</button><span class="tutDots">${dots}</span>`
-          + `<button class="btn primary" data-d="1">${esc(MT.t(page === n - 1 ? 'tut_done' : 'tut_next'))}</button></div>`;
+        // 內容放在 tutPage 裡（太長就自己捲），翻頁列固定在面板底部：每頁一樣大，「下一頁」不會跑位置（Ken 指定）
+        body.innerHTML = `<div class="tutPage"><h3 class="tutH">${esc(MT.t('tut_' + i + 't'))}</h3>${P.pic ? `<div class="tutPicBox">${P.pic()}</div>` : ''}`
+          + `<p class="tutText">${esc(MT.t('tut_' + i, { at: MT.t('name_at'), df: MT.t('name_df'), hp: MT.t('name_hp'), HP: MT.t('name_HP') }))}</p>${P.after ? P.after() : ''}</div>`
+          + (single ? `<div class="tutNav"><span></span><button class="btn primary" data-close>${esc(MT.t('tut_close'))}</button></div>`
+            : `<div class="tutNav"><button class="btn" data-d="-1" ${page ? '' : 'disabled'}>${esc(MT.t('tut_prev'))}</button><span class="tutDots">${dots}</span>`
+            + `<button class="btn primary" data-d="1">${esc(MT.t(page === n - 1 ? 'tut_done' : 'tut_next'))}</button></div>`);
+        body.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', closeModal));
         body.querySelectorAll('[data-d]').forEach(b => b.addEventListener('click', () => tutGo(Number(b.dataset.d))));
         body.querySelectorAll('[data-p]').forEach(b => b.addEventListener('click', () => { page = Number(b.dataset.p); sfx('select'); show(); }));
         body.parentElement.scrollTop = 0;
       };
       tutGo = d => {
+        if (single) { if (d > 0) closeModal(); return; }   // 單頁：鍵盤右鍵＝關閉，左鍵不動
         if (page + d >= n) { closeModal(); return; }
         if (page + d < 0) return;
         page += d; sfx('select'); show();
       };
+      if (!single) body.parentElement.classList.add('tut');   // 單頁不用翻，面板照內容高度就好
       show();
-    }, () => { tutGo = null; });
+    }, () => { tutGo = null; $('#modal .panel').classList.remove('tut'); });
   }
 
   /* ───────── 雲端同步 ───────── */

@@ -232,10 +232,20 @@ input[type=text], input[type=password] { width: 100%; padding: 10px 12px; border
 .tutText { margin: 0 0 10px; line-height: 1.7; white-space: pre-line; }
 .tutEx { font-size: 14px; color: #d8d0f0; background: var(--panel2); border-radius: 8px; padding: 8px 10px; }
 .tutRow { display: flex; gap: 12px; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--line); }
-.tutRow:has(+ .tutNav) { border-bottom: 0; }
+.tutRow:has(+ .tutNav), .tutPage > .tutRow:last-child { border-bottom: 0; }
 .tutRow img { width: 40px; height: 40px; flex: none; background: #2a2648; border-radius: 8px; }
 .tutRow .small { color: #d8d0f0; }
 .tutNav { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 14px; }
+/* 教學面板固定大小：內容在中間捲，翻頁列釘在底部，每一頁的「下一頁」都在同一個位置 */
+.panel.tut { height: min(680px, calc(100dvh - 24px)); display: flex; flex-direction: column; overflow: hidden; }
+.panel.tut #mBody { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.panel.tut .tutPage { flex: 1; min-height: 0; overflow-y: auto; }
+.panel.tut .tutNav { flex: none; padding-top: 10px; border-top: 1px solid var(--line); }
+/* 圖鑑同理：怪物／收藏品兩頁一樣大，分頁鈕釘在上面 */
+.panel.book { height: min(680px, calc(100dvh - 24px)); display: flex; flex-direction: column; overflow: hidden; }
+.panel.book #mBody { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.panel.book .bookTabs { flex: none; }
+.panel.book .bookList { flex: 1; min-height: 0; overflow-y: auto; }
 .tutNav .btn { padding: 9px 12px; font-size: 14px; white-space: nowrap; }
 .tutDots { display: flex; justify-content: center; min-width: 0; }
 .tutDot { width: 14px; height: 24px; padding: 0; border: 0; background: none; cursor: pointer; position: relative; flex: none; }
