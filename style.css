@@ -39,7 +39,7 @@ button { font: inherit; color: inherit; }
 #stage.under { visibility: hidden; }
 #stage { position: relative; }
 #hud {
-  width: var(--mw); min-width: min(100%, 340px); display: grid; grid-template-columns: auto 1fr 1fr 1fr 1fr auto; grid-template-rows: auto auto;
+  width: var(--mw); min-width: min(100%, 340px); display: grid; grid-template-columns: auto 1fr 1fr 1fr 1fr; grid-template-rows: auto auto;
   gap: 2px 8px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px;
 }
 .hf { grid-row: 1 / 3; display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 40px; }
@@ -55,9 +55,6 @@ button { font: inherit; color: inherit; }
 .hk span { display: inline-flex; align-items: center; gap: 3px; }
 .hk img { width: 20px; height: 20px; }
 .hk b { font-size: 15px; font-variant-numeric: tabular-nums; }
-#cloudChip { grid-column: 6; grid-row: 1 / 3; width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel2); font-size: 16px; color: var(--muted); cursor: pointer; }
-#cloudChip[data-s="ok"] { color: #8cff8c; } #cloudChip[data-s="sync"] { color: var(--accent); }
-#cloudChip[data-s="err"] { color: var(--danger); } #cloudChip[data-s="offline"] { color: #ffae6a; }
 
 /* 地圖在狀態列與功能鍵列之間置中，功能鍵貼著螢幕下緣（拇指好按） */
 #mapWrap { position: relative; width: var(--mw); height: var(--mh); flex: none; margin: auto 0; }
@@ -89,7 +86,6 @@ button { font: inherit; color: inherit; }
   .hs b { font-size: 22px; }
   .hs .hl img { width: 18px; height: 18px; }
   .hk { grid-column: 1 / 3; grid-row: auto; justify-content: space-between; }
-  #cloudChip { grid-column: 1 / 3; grid-row: auto; width: 100%; border-radius: 8px; height: 30px; }
   #mapWrap { grid-column: 2; grid-row: 1 / 3; margin: 0; }
   #bar { grid-column: 1; grid-row: 2; width: auto; grid-template-columns: 1fr 1fr; align-self: start; }
   #bLook { grid-column: 1 / 3; }
@@ -169,6 +165,11 @@ input[type=text], input[type=password] { width: 100%; padding: 10px 12px; border
 .err { color: var(--danger); font-size: 14px; }
 .status { font-size: 14px; color: var(--muted); }
 .status[data-s="ok"] { color: #8cff8c; } .status[data-s="err"] { color: var(--danger); }
+/* 存檔頁最下面的雲端同步按鈕：● 的顏色跟著連線狀態 */
+#saveCloud { width: 100%; margin-top: 10px; }
+#saveCloud i { font-style: normal; color: var(--muted); }
+#saveCloud[data-s="ok"] i { color: #8cff8c; } #saveCloud[data-s="sync"] i { color: var(--accent); }
+#saveCloud[data-s="err"] i { color: var(--danger); } #saveCloud[data-s="offline"] i { color: #ffae6a; }
 
 .mon { display: flex; gap: 12px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); }
 .mon:last-child { border-bottom: 0; }

@@ -927,7 +927,6 @@
   $('#bFly').addEventListener('click', () => openFly());
   $('#bSave').addEventListener('click', () => openSaves());
   $('#bMenu').addEventListener('click', () => openMenu());
-  $('#cloudChip').addEventListener('click', () => openCloud());
 
   /* ───────── 選單 ───────── */
   let modalOnClose = null;
@@ -1030,9 +1029,10 @@
       + `<label class="lab">${esc(MT.t('slotManual'))}（${manuals.length}／${S.MANUAL_MAX}）</label>`
       + (canSave ? `<div class="row"><button class="btn" data-new="1">${esc(MT.t('saveNew'))}</button></div>` : '')
       + (manuals.length ? manuals.map((sl, i) => row(sl, MT.t('slotN', { n: manuals.length - i }))).join('') : `<p class="muted">${esc(MT.t('empty'))}</p>`)
-      + `<p class="muted small" id="saveCloud">${esc(MT.t('cloud'))}：${esc(cloudText())}</p>`;
+      + `<button class="btn" id="saveCloud" type="button" data-s="${MT.Sync.status}"><i>●</i> ${esc(MT.t('cloud'))}：${esc(cloudText())}</button>`;
     const yesNo = [{ key: 'n', label: MT.t('no') }, { key: 'y', label: MT.t('yes') }];
     openModal(MT.t('saveTitle'), html, body => {
+      body.querySelector('#saveCloud').addEventListener('click', () => { closeModal(); openCloud(); });
       const nb = body.querySelector('[data-new]');
       if (nb) nb.addEventListener('click', async () => {
         if (S.manualFull() && await ask(MT.t('manualFull', { n: S.MANUAL_MAX }), yesNo) !== 'y') return;
@@ -1088,13 +1088,11 @@
     openModal(MT.t('btnMenu'), `<div class="menu">
       <button class="btn" data-a="saves">${esc(MT.t('saveTitle'))}</button>
       <button class="btn" data-a="settings">${esc(MT.t('settings'))}</button>
-      <button class="btn" data-a="cloud">${esc(MT.t('cloud'))}</button>
       <button class="btn" data-a="title">${esc(MT.t('backTitle'))}</button></div>`, body => {
       body.querySelectorAll('[data-a]').forEach(b => b.addEventListener('click', () => {
         const a = b.dataset.a; closeModal();
         if (a === 'saves') openSaves();
         else if (a === 'settings') openSettings();
-        else if (a === 'cloud') openCloud();
         else if (a === 'title') { autosave(); showTitle(); }
       }));
     });
@@ -1131,9 +1129,9 @@
     return MT.t('cs_' + s);
   }
   function renderCloudChip() {
-    const c = $('#cloudChip');
-    c.dataset.s = MT.Sync.status;
-    c.title = MT.t('cloud') + '：' + cloudText();
+    // 雲端同步的入口在存檔頁最下面；存檔頁開著時跟著更新狀態
+    const c = $('#saveCloud');
+    if (c) { c.dataset.s = MT.Sync.status; c.innerHTML = `<i>●</i> ${esc(MT.t('cloud'))}：${esc(cloudText())}`; }
     const tc = $('#tCloud');
     if (tc) tc.textContent = MT.t('cloud') + ' · ' + cloudText();
   }

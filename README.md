@@ -48,7 +48,7 @@
 
 1. 建一個 **Private** repo（預設名稱 `CloudSave`，勾 Add a README file）
 2. 到 GitHub → Settings → Developer settings → Personal access tokens → **Fine-grained tokens** → Generate new token：Repository access 只選那個 repo，Permissions 的 **Contents** 設成 **Read and write**
-3. 遊戲裡按右上角的 ☁（或標題畫面的「雲端同步」）→ 貼上 token → repo 填 `你的帳號/你的 repo` → 連線
+3. 遊戲裡開存檔頁、按最下面的「雲端同步」（或標題畫面的「雲端同步」）→ 貼上 token → repo 填 `你的帳號/你的 repo` → 連線
 
 同步規則跟K書吧的進度格一樣：存檔是一條清單，**每台裝置只寫自己的格子**，所以手機和電腦不會互相蓋掉。每台裝置各有一格自動存檔；手動存檔所有裝置共用、新的在前、最多 99 格（滿了再存會擠掉最舊的），別台裝置存的只能讀不能覆蓋。「繼續遊戲」接的是所有裝置裡最新的自動存檔。每次換樓層、打完 Boss、買東西都會自動存檔並在幾秒內上傳；切走 App 或關掉分頁時也會上傳。打開時如果別台裝置有比較新的進度，會問你要不要讀取。
 
