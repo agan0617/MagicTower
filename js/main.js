@@ -716,8 +716,8 @@
     sfx('select');
     try { if (navigator.vibrate) navigator.vibrate(15); } catch (e) { /* 不支援就算了 */ }
   }
-  /* 說明卡的位置：依序找地圖外放得下的空白，都放不下才蓋住功能鍵／狀態列（仍然不蓋地圖）。
-     直向：地圖與功能鍵之間 → 狀態列與地圖之間 → 蓋住功能鍵 → 蓋住狀態列；
+  /* 說明卡的位置：依序找地圖外放得下的空白，不蓋地圖。
+     直向一律放在地圖上方（Ken 指定，不放下方）：狀態列與地圖之間 → 放不下就蓋住狀態列；
      橫向：左欄功能鍵下面 → 蓋住左欄的功能鍵 */
   function placeCard() {
     const R = el => el.getBoundingClientRect();
@@ -727,8 +727,7 @@
     const area = (top, bottom, x, below) => [top - s.top, bottom - s.top, x.left - s.left, x.width, below];
     const areas = wide
       ? [area(bar.bottom + 10, m.bottom, bar, true), area(hud.bottom + 10, m.bottom, bar, true)]
-      : [area(m.bottom + gap, bar.top - gap, m, true), area(hud.bottom + gap, m.top - gap, m, false),
-        area(m.bottom + gap, s.bottom - gap, m, true), area(s.top + 4, m.top - gap, m, false)];
+      : [area(hud.bottom + gap, m.top - gap, m, false), area(s.top + 4, m.top - gap, m, false)];
     const [, , x0, w0] = areas[0];
     monCard.style.left = x0 + 'px'; monCard.style.width = w0 + 'px';
     const h = monCard.offsetHeight;
