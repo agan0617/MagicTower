@@ -28,6 +28,8 @@
       flags: {},             // 劇情旗標、觸發過的劇本
       shops: { shop1: 0, shop2: 0, shop3: 0 },
       secrets: 0,            // 找到的暗牆數
+      echo: {},              // 每層「上一場戰鬥」損失的生命（回音地板照這個扣）：樓層 → 數字
+      mapV: 31,              // 地圖版本：舊存檔讀進來時，還沒去過的樓層換成這版的地圖（MT.migrate）
       steps: 0, kills: 0, playMs: 0,
       done: false,
     };
@@ -169,6 +171,23 @@
   };
   MT.pincerLoss = st => Math.floor(st.hp / 3);
 
+  /* 共鳴（第 4 區）：走進共鳴怪周圍八格（含斜角，3×3 的範圍），每一步失去牠的 aura 點生命
+     （固定值，防禦和技能都擋不掉）。兩隻的範圍重疊就扣兩份 */
+  MT.auraAt = function (st, f, x, y) {
+    let n = 0;
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+      if (!dx && !dy) continue;
+      const m = MT.MONSTERS[MT.tile(st, f, x + dx, y + dy)];
+      if (m && m.aura) n += m.aura;
+    }
+    return n;
+  };
+  /* 回音地板 Ec（第 3 區）：踩上去，這層上一場戰鬥損失的生命會再扣一次，踩過就散掉變空地。
+     還沒在這層打過就是 0，所以「最後打哪一隻再踩過去」是一個要算的順序 */
+  MT.echoCost = (st, f) => (st.echo && st.echo[f]) || 0;
+  // 走進 (x, y) 這一格要付的生命（回音＋共鳴；夾擊另外算，它是扣目前生命的比例、不會致命）
+  MT.hazardAt = (st, f, x, y) => (MT.tile(st, f, x, y) === 'Ec' ? MT.echoCost(st, f) : 0) + MT.auraAt(st, f, x, y);
+
   // Boss 還活著的樓層不能用風之羽飛走
   MT.canFly = st => !MT.NOFLY[st.floor] || !MT.findTile(st, st.floor, MT.NOFLY[st.floor]);
   MT.floorName = f => (f === 0 ? 'B1' : f + 'F');
@@ -176,7 +195,8 @@
   MT.shopPrice = (st, id) => MT.SHOPS[id].base + MT.SHOPS[id].step * st.shops[id];
 
   /* 往某方向走一步。回傳事件給畫面演出：
-     move／bump（牆）／fight／cantFight／pickup／door／noKey／stairs／talk／shop／script */
+     move／bump（牆）／fight／cantFight／pickup／door／noKey／stairs／talk／shop／script／tooHurt（回音、共鳴付不起）
+     move、pickup 可能帶 pincer／echo（踩了回音地板，0＝安靜）／aura（共鳴扣的生命） */
   MT.step = function (st, dir) {
     const d = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }[dir];
     st.dir = dir;
@@ -208,6 +228,8 @@
       const c = MT.calc(st, t);
       if (c.damage == null || c.damage >= st.hp) return Object.assign(ev, { type: 'cantFight', calc: c });
       st.hp -= c.damage;
+      if (!st.echo) st.echo = {};
+      st.echo[st.floor] = c.damage;   // 這層的回音地板之後就照這場扣
       st.gold += m.gold;
       st.exp += m.exp || 0;
       st.kills++;
@@ -243,7 +265,12 @@
       return Object.assign(ev, { type: 'stairs', to, script: MT.arrivalTrigger(st) });
     }
 
-    // 走得過去
+    // 走得過去。回音地板、共鳴的格子要先付生命，付了會倒下就不走（跟打不贏的怪一樣擋下來）
+    const echo = t === 'Ec' ? MT.echoCost(st, st.floor) : 0, aura = MT.auraAt(st, st.floor, nx, ny);
+    if (echo + aura > 0 && echo + aura >= st.hp) return Object.assign(ev, { type: 'tooHurt', loss: echo + aura, echo, aura });
+    if (t === 'Ec') { MT.setTile(st, st.floor, nx, ny, '..'); ev.echo = echo; }
+    if (aura) ev.aura = aura;
+    st.hp -= echo + aura;
     st.x = nx; st.y = ny; st.steps++;
     if (MT.pincerAt(st, st.floor, nx, ny)) { ev.pincer = MT.pincerLoss(st); st.hp -= ev.pincer; }
     if (MT.isItem(t)) {
@@ -395,6 +422,12 @@
     if (st.items.note == null) st.items.note = 0;
     if (st.items.flute == null) st.items.flute = 0;
     if (st.secrets == null) st.secrets = 0;
+    if (!st.echo) st.echo = {};
+    // 3.1 改了 11～19F 的地圖（回音地板、共鳴水晶）：還沒去過的樓層換成新地圖，去過的照舊（不動已經打過的格子）
+    if ((st.mapV || 0) < 31) {
+      MT.FLOORS.forEach((f, i) => { if (f && !st.visited.includes(i)) st.maps[i] = parseFloor(f); });
+      st.mapV = 31;
+    }
     if (st.items.chisel == null) st.items.chisel = 0;
     if (st.exp == null) { st.exp = 0; st.lv = 1; }
     if (st.shops.shop3 == null) st.shops.shop3 = 0;

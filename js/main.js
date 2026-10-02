@@ -117,6 +117,29 @@
     }
   }
 
+  /* 共鳴的範圍（3.1）：共鳴怪周圍八格裡走得進去的格子（空地、道具、回音地板）鋪一層粉紅色＋虛線框（同夾擊的提醒），
+     跟著共振一明一暗。水晶區的地板本來就是紫色，所以用粉紅才分得出來 */
+  function drawAura(t) {
+    const f = st.floor, m = st.maps[f];
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const c = m[y][x];
+      if (!(c === '..' || c === 'Ec' || MT.isItem(c)) || !MT.auraAt(st, f, x, y)) continue;
+      g.save(); g.globalAlpha = 0.2 + 0.1 * Math.sin(t / 240 + (x + y) * 0.9);
+      g.fillStyle = '#ff6ad8'; g.fillRect(x * TILE, y * TILE, TILE, TILE);
+      g.globalAlpha = 0.7; g.strokeStyle = '#ff9cf0'; g.setLineDash([4, 4]); g.lineWidth = 2;
+      g.strokeRect(x * TILE + 3, y * TILE + 3, TILE - 6, TILE - 6);
+      g.restore();
+    }
+  }
+  /* 回音地板（3.1）：一圈往外擴的波紋；腳下標「這時踩上去要扣多少」（這層上一場戰鬥的損失，還沒打過是 0） */
+  function drawEcho(x, y, t) {
+    const k = ((t / 1500) + x * 0.37 + y * 0.21) % 1, cx = x * TILE + TILE / 2, cy = y * TILE + TILE / 2;
+    g.save(); g.globalAlpha = 0.7 * (1 - k); g.strokeStyle = '#7affff'; g.lineWidth = 2;
+    g.beginPath(); g.arc(cx, cy, TILE * (0.12 + 0.36 * k), 0, Math.PI * 2); g.stroke(); g.restore();
+    const n = MT.echoCost(st, st.floor) + MT.auraAt(st, st.floor, x, y);
+    label(fmt(n), cx, y * TILE + TILE - 1, n >= st.hp ? '#ff4a4a' : n ? '#7affff' : '#8cff8c', 15);
+  }
+
   function drawHero(t) {
     let x = st.x, y = st.y;
     if (view.move) {
@@ -240,13 +263,15 @@
     const m = st.maps[f];
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
       const code = m[y][x];
-      const kind = code === '##' ? 'wall' : code === 'Hw' ? 'hidden' : code === 'Cw' ? 'cracked' : 'floor';
+      const kind = code === '##' ? 'wall' : code === 'Hw' ? 'hidden' : code === 'Cw' ? 'cracked' : code === 'Ec' ? 'echo' : 'floor';
       g.drawImage(MT.terrain(kind, zone, TILE, (x * 7 + y * 13) % 10), x * TILE, y * TILE);
     }
+    drawAura(t);
     drawRoute(t);
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
       const code = m[y][x];
-      if (code !== '##' && code !== '..' && code !== 'Hw' && code !== 'Cw') drawTile(code, x, y, t);
+      if (code === 'Ec') drawEcho(x, y, t);
+      else if (code !== '##' && code !== '..' && code !== 'Hw' && code !== 'Cw') drawTile(code, x, y, t);
     }
     // 開門：門往上淡出
     if (view.doorFade) {
@@ -576,6 +601,7 @@
       case 'bump': sfx('bump'); return false;
       case 'move':
         view.move = { fx, fy, t0: now(), dur: 95 }; sfx('step');
+        if (ev.echo != null || ev.aura) await hazardHit(ev);
         if (ev.pincer) await pincerHit(ev);
         if (ev.script) { await sleep(110); await runScript(ev.script); autosave(); }
         return !ev.script && !ev.pincer;
@@ -596,6 +622,7 @@
       case 'choose': await openChoose(); return false;
       case 'pickup': {
         view.move = { fx, fy, t0: now(), dur: 95 };
+        if (ev.aura) await hazardHit(ev);
         if (ev.pincer) await pincerHit(ev);
         const it = MT.ITEMS[ev.item];
         const g2 = ev.got;
@@ -620,6 +647,7 @@
         return false;
       }
       case 'noKey': sfx('error'); toast(MT.t('needKey_' + ev.key)); return false;
+      case 'tooHurt': sfx('error'); toast(MT.t('tooHurt', { n: ev.loss })); return false;
       case 'cantFight': {
         sfx('error');
         const nm = MT.monName(ev.tile);
@@ -643,6 +671,25 @@
     toast(MT.t('pincerHit', { n: ev.pincer }));
     renderHud();
     await sleep(320);
+    busy--;
+  }
+
+  /* 回音地板、共鳴（3.1）：回音是青色波紋＋這層上一場戰鬥的損失再來一次（0 就只是一陣安靜的波紋）；
+     共鳴是紫色、每一步一點，只有這次開遊戲第一次被震到時跳提示（走一整條共鳴走廊不要一直洗畫面） */
+  async function hazardHit(ev) {
+    busy++;
+    if (ev.echo != null) {
+      sparkle(st.x, st.y, 18, ['#7affff', '#4fd8cc', '#ffffff']);
+      if (ev.echo) { sfx('echoHit'); flash('#4fd8cc', 260); view.hurt = now() + 300; floatText(st.x, st.y, '-' + ev.echo, '#7affff', 18); toast(MT.t('echoHit', { n: ev.echo })); }
+      else { sfx('echoQuiet'); toast(MT.t('echoQuiet')); }
+    }
+    if (ev.aura) {
+      sfx('auraHit'); view.hurt = now() + 220;
+      floatText(st.x, st.y - (ev.echo ? 0.6 : 0), '-' + ev.aura, '#e0a8ff', 16);
+      if (!view.auraTold) { view.auraTold = true; toast(MT.t('auraHit', { n: ev.aura })); }
+    }
+    renderHud();
+    await sleep(ev.echo != null ? 320 : 90);
     busy--;
   }
 
@@ -849,10 +896,50 @@
     return cells;
   }
   // 優先只走空地；走不到才允許順路撿道具（撿道具只有好處，劇情道具撿到會停下來播劇情）
-  // 夾擊的格子盡量繞開（真的只能走那裡才走）
-  const safe = (x, y) => !MT.pincerAt(st, st.floor, x, y);
+  // 夾擊、共鳴的格子和回音地板盡量繞開（真的只能走那裡才走）
+  const safe = (x, y) => !MT.pincerAt(st, st.floor, x, y) && !MT.auraAt(st, st.floor, x, y);
   const findPath = (tx, ty) => bfs(tx, ty, (c, x, y) => c === '..' && safe(x, y)) || bfs(tx, ty, (c, x, y) => (c === '..' || MT.isItem(c)) && safe(x, y))
-    || bfs(tx, ty, c => c === '..' || MT.isItem(c));
+    || cheapest(tx, ty);
+  /* 繞不開的時候：挑「付的生命最少、再來步數最少」的路（共鳴範圍裡少走一格就少扣一次；夾擊算成很貴的一格）。
+     格子少，直接每輪挑最小的展開就好 */
+  function cheapest(tx, ty) {
+    const m = st.maps[st.floor], key = (x, y) => y * W + x, ec = MT.echoCost(st, st.floor);
+    const walk = c => c === '..' || c === 'Ec' || MT.isItem(c);
+    const cost = (x, y) => 1 + 1000 * ((m[y][x] === 'Ec' ? ec : 0) + MT.auraAt(st, st.floor, x, y) + (MT.pincerAt(st, st.floor, x, y) ? 5000 : 0));
+    const dist = new Map([[key(st.x, st.y), 0]]), prev = new Map([[key(st.x, st.y), null]]), open = [[st.x, st.y]], done = new Set();
+    while (open.length) {
+      let bi = 0;
+      for (let i = 1; i < open.length; i++) if (dist.get(key(...open[i])) < dist.get(key(...open[bi]))) bi = i;
+      const [x, y] = open.splice(bi, 1)[0], k0 = key(x, y);
+      if (done.has(k0)) continue;
+      done.add(k0);
+      if (x === tx && y === ty) break;
+      for (const [dx, dy] of Object.values(DIR_V)) {
+        const nx = x + dx, ny = y + dy;
+        if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
+        const end = nx === tx && ny === ty;
+        if (!end && !walk(m[ny][nx])) continue;
+        const d = dist.get(k0) + (walk(m[ny][nx]) ? cost(nx, ny) : 1), k = key(nx, ny);
+        if (dist.has(k) && dist.get(k) <= d) continue;
+        dist.set(k, d); prev.set(k, [x, y]); open.push([nx, ny]);
+      }
+    }
+    if (!prev.has(key(tx, ty))) return null;
+    const cells = [];
+    for (let c = [tx, ty]; prev.get(key(c[0], c[1])); c = prev.get(key(c[0], c[1]))) cells.unshift(c);
+    return cells;
+  }
+  /* 沿路線要付的生命（共鳴每一步、回音地板每一塊；夾擊是比例、不會致命，不算）。終點是怪、門、NPC 的話人不會站上去 */
+  function routeToll(cells) {
+    const m = st.maps[st.floor], ec = MT.echoCost(st, st.floor);
+    let n = 0;
+    cells.forEach(([x, y], i) => {
+      const c = m[y][x];
+      if (i === cells.length - 1 && !(c === '..' || c === 'Ec' || MT.isItem(c))) return;
+      n += (c === 'Ec' ? ec : 0) + MT.auraAt(st, st.floor, x, y);
+    });
+    return n;
+  }
 
   async function walkRoute(cells) {
     const id = {};
@@ -876,12 +963,14 @@
     const refuse = msg => { autoPath = null; clearRoute(); sfx('error'); cross(x, y); if (msg) toast(msg); };
     if (!cells) { refuse(); return; }
     let kind = 'walk';
-    const m = MT.MONSTERS[code];
+    const m = MT.MONSTERS[code], toll = routeToll(cells);
+    if (toll && toll >= st.hp) { refuse(MT.t('tooHurt', { n: toll })); return; }
+    if (toll) kind = 'hazard';
     if (code === 'Cw' && !st.items.chisel) { refuse(MT.t('needChisel')); return; }
     if (m && !(m.onBump && !st.flags['bump:' + code])) {   // 有劇情的 Boss 第一次碰是播劇情，不算開打
       const c = MT.calc(st, code);
       if (c.damage == null) { refuse(MT.t('cantHurtMsg', { name: MT.monName(code) })); return; }
-      if (c.damage >= st.hp) { refuse(MT.t('cantWin', { name: MT.monName(code), d: c.damage })); return; }
+      if (c.damage + toll >= st.hp) { refuse(MT.t('cantWin', { name: MT.monName(code), d: c.damage + toll })); return; }
       kind = 'fight';
     } else if (MT.DOORS[code]) {
       if (st.keys[MT.DOORS[code]] <= 0) { refuse(MT.t('needKey_' + MT.DOORS[code])); return; }
@@ -892,7 +981,7 @@
   }
 
   // 光標顏色（r,g,b）：平常白色，走去開打時帶一點淡紅
-  const CURSOR_RGB = { walk: '255,255,255', door: '255,255,255', fight: '255,176,176' };
+  const CURSOR_RGB = { walk: '255,255,255', door: '255,255,255', fight: '255,176,176', hazard: '226,176,255' };   // hazard：路上要付共鳴或回音
   // 終點光標：圓角方框＋淡淡的內光，約 1.6 秒一次緩慢明暗呼吸（同一般 RPG 的目的地游標）
   function cursor(x, y, rgb, t, ctx = g) {
     const a = 0.3 + 0.55 * (0.5 + 0.5 * Math.sin(t * Math.PI * 2 / 1600));
@@ -941,6 +1030,7 @@
     if (MT.MONSTERS[code]) return monRow(code);
     if (code === 'Hw') return `<div class="mon"><div class="mi"><div class="mn">${esc(MT.t('name_wall'))}</div><div class="md">${esc(MT.t('info_hidden'))}</div></div></div>`;
     if (code === 'Cw') return `<div class="mon"><div class="mi"><div class="mn">${esc(MT.t('name_Cw'))}</div><div class="md">${esc(MT.t('info_cracked', { n: st.items.chisel }))}</div></div></div>`;
+    if (code === 'Ec') return `<div class="mon">${echoImg()}<div class="mi"><div class="mn">${esc(MT.t('name_Ec'))}</div><div class="md">${esc(MT.t('info_Ec', { n: MT.echoCost(st, st.floor) }))}</div></div></div>`;
     const sp = spriteFor(code), it = MT.ITEMS[code], n = MT.NPCS[code];
     if (!sp) return '';
     let name = '', desc = '';
@@ -967,8 +1057,13 @@
     else return '';
     return `<div class="mon">${img(sp[0], sp[1], 'big')}<div class="mi"><div class="mn">${esc(name)}</div><div class="md">${esc(desc)}</div></div></div>`;
   }
-  // 地圖上一格的說明（勇者自己那格不算）；長按和查看模式共用
-  const infoAt = (x, y) => x === st.x && y === st.y ? '' : infoRow(st.maps[st.floor][y][x]);
+  const echoImg = () => `<img class="px big" src="${MT.terrain('echo', 3, 32, 0).toDataURL()}" alt="">`;
+  // 地圖上一格的說明（勇者自己那格不算）；長按和查看模式共用。共鳴範圍裡的格子多一列「走進來會失去多少」
+  function infoAt(x, y) {
+    if (x === st.x && y === st.y) return '';
+    const code = st.maps[st.floor][y][x], a = code === '..' || code === 'Ec' || MT.isItem(code) ? MT.auraAt(st, st.floor, x, y) : 0;
+    return infoRow(code) + (a ? `<div class="mon"><div class="mi"><div class="mn">${esc(MT.t('name_aura'))}</div><div class="md">${esc(MT.t('info_aura', { n: a }))}</div></div></div>` : '');
+  }
   function showInfo(html, x, y) {
     inspect = { x, y };
     monCard.innerHTML = html;
@@ -1141,7 +1236,7 @@
     const m = MT.MONSTERS[code], c = MT.calc(st, code);
     // 還沒拿到怪物圖鑑：只看得到名字
     if (!st.items.book) return `<div class="mon">${img(m.sprite, m.pal, 'big')}<div class="mi"><div class="mn">${esc(MT.monName(code))}</div><div class="md">${esc(MT.t('needBook'))}</div></div></div>`;
-    const sp = (m.sp || []).map(s => `<span class="tag">${esc(MT.t('sp_' + s, { p: Math.round((m.drain || 0) * 100) }))}</span>`).join('');
+    const sp = (m.sp || []).map(s => `<span class="tag">${esc(MT.t('sp_' + s, { p: Math.round((m.drain || 0) * 100), n: m.aura || 0 }))}</span>`).join('');
     const dmg = c.damage == null ? `<b class="bad">${esc(MT.t('cantHurt'))}</b>` : c.damage >= st.hp ? `<b class="bad">${c.damage}（${esc(MT.t('willLose'))}）</b>` : `<b style="color:${dmgColor(c)}">${c.damage}</b>`;
     const inv = (m.sp || []).includes('invincible');
     return `<div class="mon">${img(m.sprite, m.pal, 'big')}<div class="mi"><div class="mn">${esc(MT.monName(code))} ${sp}</div>
@@ -1316,7 +1411,7 @@
     tg.imageSmoothingEnabled = false;
     const mid = v => v * TILE + TILE / 2;
     cells.forEach((row, y) => row.forEach((code, x) => {
-      const kind = code === '##' ? 'wall' : code === 'Cw' ? 'cracked' : 'floor';
+      const kind = code === '##' ? 'wall' : code === 'Cw' ? 'cracked' : code === 'Ec' ? 'echo' : 'floor';
       tg.drawImage(MT.terrain(kind, opt.zone || 1, TILE, (x * 7 + y * 13) % 10), x * TILE, y * TILE);
     }));
     if (opt.route) {   // 同 drawRoute：淡白粗線，停在終點格的邊上
@@ -1369,11 +1464,11 @@
       [3, 0, '+' + ZV('HP'), '#ff7a7a'], [4, 0, '+' + MT.ITEMS.s1.value, '#ffae6a'], [5, 0, '+' + MT.ITEMS.a1.value, '#7ac8ff']] }) },
     { after: () => [['Sh', 'tut_altar', 'a'], ['Mk', 'frog', 'b'], ['L1', 'level_L1', 'c']]
       .map(([code, head, k]) => tutRow(img(...spriteFor(code), 'big'), MT.t(head), MT.t('tut_6' + k))).join('') },
-    { after: () => [['bb', 'first'], ['dw', 'double'], ['mg', 'magic'], ['mi', 'pierce'], ['vb', 'drain'], ['pg', 'pincer'], ['K1', 'boss']].map(([code, s]) => {
+    { after: () => [['bb', 'first'], ['dw', 'double'], ['mg', 'magic'], ['mi', 'pierce'], ['vb', 'drain'], ['pg', 'pincer'], ['rc', 'aura'], ['K1', 'boss']].map(([code, s]) => {
       const m = MT.MONSTERS[code];
-      const tag = MT.t('sp_' + s, { p: Math.round((m.drain || 0) * 100) }).replace(/\s*[（(].*$/, '');   // 括號裡的說明下面另外寫
-      return tutRow(img(m.sprite, m.pal, 'big'), tag, MT.t('tut_sp_' + s));
-    }).join('') },
+      const tag = MT.t('sp_' + s, { p: Math.round((m.drain || 0) * 100), n: m.aura || 0 }).replace(/\s*[（(].*$/, '');   // 括號裡的說明下面另外寫
+      return tutRow(img(m.sprite, m.pal, 'big'), tag, MT.t('tut_sp_' + s, { n: m.aura || 0 }));
+    }).join('') + tutRow(echoImg(), MT.t('name_Ec'), MT.t('tut_echo')) },
     { after: () => [['lens', 'look'], ['book', 'book'], ['feather', 'fly'], ['chisel', 'chisel'], ['porter', 'npc'], ['harp', 'skill'], ['page', 'save'], ['goldnote', 'rate']]
       .map(([sp, k]) => tutRow(img(sp, null, 'big'), '', MT.t('tut_t_' + k))).join('') },
   ];

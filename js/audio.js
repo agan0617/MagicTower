@@ -455,6 +455,24 @@
       g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.1, t + 0.02); g.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
       o.connect(g); g.connect(sfxBus); o.start(t); lfo.start(t); o.stop(t + 0.52); lfo.stop(t + 0.52);
     },
+    // ── 3.1 地形 ──
+    // 回音地板：上一場的那一擊在走廊裡又響了一次——同一記悶響一聲比一聲遠、越來越小
+    echoHit: t => {
+      for (let i = 0; i < 4; i++) {
+        const at = t + i * 0.14, k = 1 - i * 0.24;
+        noise(at, 0.07, 'bandpass', 1300 - i * 220, 0.45 * k, sfxBus, 1);
+        tone('square', 220 - i * 18, at, 0.09, 0.09 * k, sfxBus, 100);
+      }
+    },
+    // 回音地板，這層還沒打過：只有水面般的一圈輕響
+    echoQuiet: t => { tone('sine', 1568, t, 0.25, 0.06, sfxBus, 1480); tone('sine', 1568, t + 0.16, 0.25, 0.025, sfxBus, 1480); },
+    // 共鳴：水晶被震到的嗡——兩個靠很近的高音互相打架，加一點刺耳的雜音
+    auraHit: t => {
+      tone('triangle', 1760, t, 0.22, 0.07, sfxBus);
+      tone('triangle', 1790, t, 0.22, 0.07, sfxBus);
+      noise(t, 0.06, 'highpass', 6000, 0.12, sfxBus);
+      tone('sawtooth', 140, t, 0.1, 0.06, sfxBus, 90);
+    },
     hit: t => { noise(t, 0.08, 'bandpass', 1400, 0.5, sfxBus, 1); tone('square', 240, t, 0.08, 0.1, sfxBus, 110); },
     hurt: t => { tone('sawtooth', 160, t, 0.12, 0.15, sfxBus, 80); },
     kill: t => arp('square', ['e5', 'c5', 'g4', 'c4'], t, 0.04, 0.08, 0.1),

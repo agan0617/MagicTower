@@ -64,6 +64,7 @@
   PALS.metroB = { 1: '#c8f4ff', 2: '#8a5ad8', 3: '#ffd23a' };         // 節拍之神（進階）：水晶＋金
   PALS.soldierP = { 1: '#a8b0c0', 2: '#5a6274', 3: '#3d6fe0' };       // 受傷的士兵：鐵甲、藍罩袍
   PALS.lastGuard = { 1: '#e6c66a', 2: '#8a6a2a', 3: '#c83a3a' };      // 最後的守衛：金甲、紅罩袍
+  PALS.resonator = { 1: '#efe6ff', 2: '#9a7ae8', 3: '#ff9cf0' };      // 共鳴水晶（3.1）：淡紫晶體、粉色共振光
 
   const S = {
     // ── 王子阿爾特（綽號小鐵）：頭上小王冠 ──
@@ -305,6 +306,12 @@
       '......kk', '....kkPP', '...kPPPP', '..kPPPPP', '..kPPkkk', '..kPkkrk',
       '..kPkkkk', '...kPPPP', '..kkPkwk', '.kPPkPPw', 'kPPPkPwP', 'kPkPkPPP',
       'kk.kPPPP', '...kPPPk', '..kPPPk.', '..kkkk..',
+    ] },
+    // 共鳴水晶（3.1）：一叢尖尖的水晶，中間那根像音叉，兩隻小眼睛；3 是共振的亮光
+    resonator: { sym: true, pal: 'resonator', rows: [
+      '.......k', '......k3', '..k...k3', '.k3k..k1', '.k31k.k1', '.k11kk11',
+      '..k1k211', '..k2k211', '..kk1kw1', '..k11111', '.k221111', '.k222211',
+      'k2222222', 'kkkkkkkk', '.3......', '........',
     ] },
 
     // ── Boss ──
@@ -1278,7 +1285,8 @@
 
   /* 地板與牆：依區域畫（每格一張，快取）
      1＝石磚、2＝紅磚、3＝鏡之迴廊（銀青色的鏡面板＋斜向反光）、4＝水晶（斜切面）
-     kind：floor 地板、wall 牆、cracked 裂牆（用鑿子敲得開，裂痕要一眼看得出來）、hidden 暗道（幾乎跟牆一樣，只有一道髮絲般的細紋） */
+     kind：floor 地板、wall 牆、cracked 裂牆（用鑿子敲得開，裂痕要一眼看得出來）、hidden 暗道（幾乎跟牆一樣，只有一道髮絲般的細紋）、
+     echo 回音地板（地板加青色同心波紋） */
   const ZONE_STYLE = {
     1: { floor: '#2b2f3e', floor2: '#303548', wall: '#5d6680', wallHi: '#7d88a6', wallLo: '#3a4054', mortar: '#252a38' },
     2: { floor: '#34262b', floor2: '#3c2b31', wall: '#8a4a3e', wallHi: '#a86454', wallLo: '#5a2e28', mortar: '#2a1a1c' },
@@ -1300,7 +1308,7 @@
     const g = c.getContext('2d');
     const u = size / 16;
     const cell = (x, y) => g.fillRect(x * u, y * u, u, u);
-    if (kind === 'floor') {
+    if (kind === 'floor' || kind === 'echo') {
       g.fillStyle = (variant & 1) ? st.floor2 : st.floor;
       g.fillRect(0, 0, size, size);
       g.fillStyle = 'rgba(255,255,255,0.035)';
@@ -1310,7 +1318,15 @@
       g.fillRect(0, size - u, size, u);
       g.fillRect(size - u, 0, u, size);
       if (variant % 5 === 0) { g.fillStyle = 'rgba(255,255,255,0.05)'; g.fillRect(5 * u, 7 * u, 2 * u, u); }
-      if (zone === 3 && variant % 3 === 0) { g.fillStyle = 'rgba(79,216,204,0.07)'; g.fillRect(9 * u, 3 * u, u, u); g.fillRect(3 * u, 11 * u, u, u); }
+      if (zone === 3 && variant % 3 === 0 && kind === 'floor') { g.fillStyle = 'rgba(79,216,204,0.07)'; g.fillRect(9 * u, 3 * u, u, u); g.fillRect(3 * u, 11 * u, u, u); }
+      if (kind === 'echo') {
+        // 回音地板（3.1）：一圈一圈往外擴的青色波紋，中間一點亮光（地圖上另外疊一圈會動的波紋）
+        for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
+          const r = Math.hypot(x - 7.5, y - 7.5);
+          const a = Math.abs(r - 6.2) < 0.55 ? 0.6 : Math.abs(r - 3.6) < 0.5 ? 0.42 : r < 1.2 ? 0.85 : 0;
+          if (a) { g.fillStyle = `rgba(79,216,204,${a})`; cell(x, y); }
+        }
+      }
     } else {
       g.fillStyle = st.mortar;
       g.fillRect(0, 0, size, size);

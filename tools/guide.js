@@ -60,7 +60,10 @@ function actText(s) {
   const a = s.a, b = s.before, t = a.c.t;
   if (a.kind === 'door') return `開<b>${DOOR[t]}</b>`;
   if (a.kind === 'break') return '用鑿子敲開<b>裂牆</b>';
-  if (a.kind === 'pass') return `走過<b>夾擊</b>的格子（損失 ${b.hp - s.hp}）`;
+  if (a.kind === 'pass') {
+    const tile = MT.tile(b, a.c.f, a.c.x, a.c.y), what = tile === 'Ec' ? '回音地板' : MT.auraAt(b, a.c.f, a.c.x, a.c.y) ? '共鳴</b>範圍的<b>格子' : '夾擊</b>的<b>格子';
+    return `走過<b>${what}</b>（損失 ${b.hp - s.hp}）`;
+  }
   if (a.kind === 'fight') {
     const m = MT.MONSTERS[t];
     if (m.onBump && !b.flags['bump:' + t]) return `碰<b>${esc(mn(t))}</b>（劇情）`;
@@ -95,7 +98,7 @@ const preText = es => {
   return parts.join('<br>');
 };
 const statLine = s => `生命 <b class="hp">${s.hp}</b>　攻擊 <b class="atk">${s.atk}</b>　防禦 <b class="def">${s.def}</b>　金幣 <b class="gold">${s.gold}</b>　Lv <b>${s.lv}</b>（經驗 ${s.exp}）　鑰匙 <b class="ky">銅 ${s.ky}</b>／<b class="kb">銀 ${s.kb}</b>／<b class="kr">金 ${s.kr}</b>${s.skill ? `　技能 <b>${MT.t('skill_' + s.skill.type)}${s.skill.lv ? ' Lv' + s.skill.lv : '（未鑑定）'}</b>` : ''}`;
-const SPN = { first: '先攻', magic: '魔法', pierce: '破甲', double: '連擊', drain: '吸血', pincer: '夾擊', boss: 'Boss', invincible: '無敵' };
+const SPN = { first: '先攻', magic: '魔法', pierce: '破甲', double: '連擊', drain: '吸血', pincer: '夾擊', aura: '共鳴', boss: 'Boss', invincible: '無敵' };
 const spText = m => (m.sp || []).map(s => `<span class="tag${s === 'boss' ? ' boss' : ''}">${SPN[s]}${s === 'drain' ? ' ' + Math.round(m.drain * 100) + '%' : ''}</span>`).join(' ');
 function monTable(state, f) {
   const seen = [];
@@ -121,12 +124,12 @@ const NOTES = {
   8: '小偷用 30 金賣三把「撿到的」銅鑰匙（鑰匙圈上刻著王宮廚房）。獄卒長（2×2，連擊）守著鐵盾和大愛心；日記第二頁在右上。下半部一整排夾擊石像，先從側邊打掉一隻再走中間。',
   9: '銀劍在中間的金門後面。右側的信差鴿子送來國王寄的《風之羽》（請用爪子簽收）。右下的裂牆後面是紅色小劍、藍色小盾。',
   10: '弦之魔女（3×3）3200 血。打倒後豎琴之靈出現在 Boss 的位置，<b>碰它選技能</b>：選了就不能換，要到 12F 找老琴師鑑定才會生效。',
-  11: '古老音叉祭壇在中間。鏡中少女送生命 +600，提醒你去 12F 找老琴師。吸血蝙蝠開打前吸走目前生命的 20%：<b>血少的時候再去打</b>。右側 (10,6) 是暗牆。',
+  11: '<b>回音地板</b>從這層開始（地上一圈圈青色波紋，腳下的數字＝現在踩要扣多少）：踩之前最後打的那隻挑便宜的。古老音叉祭壇在中間。鏡中少女送生命 +600，提醒你去 12F 找老琴師。吸血蝙蝠開打前吸走目前生命的 20%：<b>血少的時候再去打</b>。右側 (10,6) 是暗牆。',
   12: '<b>老琴師在中間</b>：碰他就鑑定技能，勇者 Lv12、Lv22 時再碰可以升級。中間金門後面有第三把鑿子。',
   13: '右上是<b>進階節拍之神</b>：每級給的能力是 3F 的兩倍多，從這裡開始都在這邊升。呱呱商人的表哥自稱正牌，鑰匙比較貴。鏡之騎士（2×2）守著銀盾。',
   14: '琴師學徒：<b>320 金幣防禦 +14</b>（「保證——大概——不會壞」）。碎鏡小鬼很多，破甲讓防禦只算一半。',
   15: '回音之鏡（3×3）6500 血、連擊；鏡子裡是七歲、唱得完美的自己。打倒後找回「笛」。',
-  16: '水晶祭壇在中間。占星師說「東南角有星光從牆縫漏出來」：<b>暗牆 (10,12)</b>，後面是紅色小劍、藍色小盾、大愛心（路線沒走）。',
+  16: '<b>共鳴水晶</b>從這層開始：周圍八格（粉紅色）每走一步扣 80。樓梯口那隻擋著往祭壇的捷徑，值得先打；其他的可以先付過路費，等攻擊高了再回來打比較便宜。水晶祭壇在中間。占星師說「東南角有星光從牆縫漏出來」：<b>暗牆 (10,12)</b>，後面是紅色小劍、藍色小盾、大愛心（路線沒走）。',
   17: '<b>日記第三頁</b>在左邊中間。迷路的小節拍送一把銀鑰匙。',
   18: '回音指揮（2×2，魔法）守著金劍。',
   19: '<b>失落的音符在最上面的金門後面</b>（真結局必需）。最後的衛兵送生命 +1500。金盾：用鑿子敲開中間的裂牆，或從下面打兩隻無聲刺客。',
@@ -192,7 +195,8 @@ const html = `<!doctype html>
 <ul>
 <li><b>戰鬥是固定結果</b>：勇者先攻，雙方輪流，每一下的傷害是「攻擊 − 對方防禦」。攻擊不高於對方防禦就完全打不動。</li>
 <li><b>回合數</b>＝怪物生命 ÷（你的攻擊 − 怪物防禦），無條件進位；你損失的生命＝（回合數 − 1）× 怪物每下的傷害。</li>
-<li><b>先攻</b>：開打前先打你一下。<b>魔法</b>：無視防禦。<b>破甲</b>：防禦只算一半。<b>連擊</b>：一回合打兩下。<b>吸血</b>：開打前先吸走你目前生命的一定比例（血少時打比較划算）。<b>夾擊</b>：走進兩隻夾擊怪中間的格子，失去目前生命的 1/3。</li>
+<li><b>先攻</b>：開打前先打你一下。<b>魔法</b>：無視防禦。<b>破甲</b>：防禦只算一半。<b>連擊</b>：一回合打兩下。<b>吸血</b>：開打前先吸走你目前生命的一定比例（血少時打比較划算）。<b>夾擊</b>：走進兩隻夾擊怪中間的格子，失去目前生命的 1/3。<b>共鳴</b>（16F 起的共鳴水晶）：走進牠周圍八格，每一步失去 80 生命，防禦和技能都擋不掉。</li>
+<li><b>回音地板</b>（11–15F，地上一圈圈青色波紋）：踩上去，這層「上一場戰鬥」損失的生命會再扣一次，踩過就散掉。所以踩之前最後打的那隻要挑便宜的。</li>
 <li>同色鑰匙開同色門（銅／銀／金）。紅色小劍加攻擊、藍色小盾加防禦、小愛心／大愛心補生命，數值依區域：1–5F 小劍小盾 +2、愛心 +50／+200；6–10F 與 B1 小劍小盾 +3、愛心 +100／+400；11–15F 小劍小盾 +3、愛心 +150／+600；16–20F 小劍小盾 +4、愛心 +250／+1000。</li>
 <li><b>經驗值</b>：打怪會得到，3F 節拍之神、13F 進階節拍之神換等級（共用等級，13F 給得多）。</li>
 <li><b>《怪物圖鑑》</b>要在 1F 撿到才看得到怪物能力；<b>《風之羽》</b>在 9F，可以在去過的樓層之間飛，Boss 還活著的樓層飛不走。</li>
@@ -207,7 +211,7 @@ const html = `<!doctype html>
 <tr><td>回音</td><td>被打的那一下彈回 35%／60%／85%，無視防禦</td><td>高攻怪、Boss：牠打你越痛死得越快</td><td>防禦太高時怪打不痛你，彈回去的也少</td></tr>
 <tr><td>連音</td><td>每回合多打一下：+60%／+100%／+100%＋50%</td><td>高血、低防的怪</td><td>對剛好過門檻的高防怪，多的那下很小</td></tr>
 </tbody></table>
-<p>選完要到 <b>12F 老琴師</b>鑑定才生效；勇者 Lv12、Lv22 時再找他升級。三種都打得通：自動高手三種各跑一次，分數都在 21000～22600（這份路線選的是「${MT.t('skill_' + fin.skill.type)}」）。</p>
+<p>選完要到 <b>12F 老琴師</b>鑑定才生效；勇者 Lv12、Lv22 時再找他升級。三種都打得通：自動高手（寬度 4）三種各跑一次，分數在 17500～20300（這份路線選的是「${MT.t('skill_' + fin.skill.type)}」）。</p>
 </section>
 
 <section id="tips">
@@ -273,12 +277,19 @@ ${finalPre.length ? `<p class="muted">${preText(finalPre)}</p>` : ''}
     const f = Number(cv.dataset.floor), rows = MAPS[cv.dataset.sec].map(r => r.split(' ')), zone = MT.zoneOf(f);
     cv.width = T * 11; cv.height = T * 15;
     rows.forEach((row, y) => row.forEach((code, x) => {
-      const kind = code === '##' ? 'wall' : code === 'Hw' ? 'hidden' : code === 'Cw' ? 'cracked' : 'floor';
+      const kind = code === '##' ? 'wall' : code === 'Hw' ? 'hidden' : code === 'Cw' ? 'cracked' : code === 'Ec' ? 'echo' : 'floor';
       g.drawImage(MT.terrain(kind, zone, T, (x * 7 + y * 13) % 10), x * T, y * T);
+    }));
+    // 共鳴範圍：共鳴水晶周圍八格裡走得進去的格子鋪粉紅（同遊戲畫面）
+    rows.forEach((row, y) => row.forEach((code, x) => {
+      if (!(code === '..' || code === 'Ec' || MT.ITEMS[code])) return;
+      let a = 0;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const r2 = rows[y + dy], m = r2 && MT.MONSTERS[r2[x + dx]]; if ((dx || dy) && m && m.aura) a++; }
+      if (a) { g.fillStyle = 'rgba(255,106,216,0.28)'; g.fillRect(x * T, y * T, T, T); }
     }));
     const done = new Set();
     rows.forEach((row, y) => row.forEach((code, x) => {
-      if (['##', '..', 'Hw', 'Cw'].includes(code)) return;
+      if (['##', '..', 'Hw', 'Cw', 'Ec'].includes(code)) return;
       const sp = spriteFor(code); if (!sp) return;
       const n = MT.MONSTERS[code] && MT.MONSTERS[code].size || 1;
       if (n > 1) { if (done.has(code)) return; done.add(code); g.drawImage(big(sp[0], sp[1], n), x * T, y * T); return; }

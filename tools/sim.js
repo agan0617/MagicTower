@@ -2,6 +2,7 @@
    - weak（新手）：看到門有鑰匙就開、怪挑最便宜的打、祭壇只買生命、交易有錢就接
    - mid（一般）：貪婪＋一步前瞻（原本 tools/solve.js 的玩家）
    - strong（高手）：beam search，每一步保留評分最高的 B 個局面一路搜到通關
+   - human（真人型）：同樣的 beam search，但只知道去過的樓層、每爬上新樓層就定案（像第一次玩、會存檔重來的真人）
    暗牆預設當牆（opt.secrets 才會走進去），所以評價基準不含隱藏房間。
    地圖上的事件：拿得到的道具、會自己說完話的 NPC、踩到的劇情都在 collect 裡自動處理（不花任何代價）；
    門、怪、商店、交易是要做決定的「動作」。 */
@@ -21,6 +22,7 @@ function clone(st) {
   o.equip = Object.assign({}, st.equip);
   o.shops = Object.assign({}, st.shops);
   o.flags = Object.assign({}, st.flags);
+  o.echo = Object.assign({}, st.echo);   // 每層上一場的損失（回音地板）：各局面各自一份
   o.pages = st.pages.slice();
   o.layers = st.layers.slice();
   o.visited = st.visited.slice();
@@ -39,6 +41,8 @@ function logList(st) {
 const maxFloor = st => Math.max(...st.visited);
 const isTalker = t => MT.isNpc(t) && !MT.NPCS[t].shop && !MT.NPCS[t].deal && !MT.NPCS[t].level && !MT.NPCS[t].choose && !MT.NPCS[t].sage;
 const NPC_ACT = n => n.shop || n.deal || n.level || n.choose;
+// 走進這格要付生命：夾擊（目前生命的 1/3）、共鳴（固定值）、回音地板（這層上一場的損失）
+const costly = (st, f, x, y) => MT.pincerAt(st, f, x, y) || MT.auraAt(st, f, x, y) > 0 || MT.tile(st, f, x, y) === 'Ec';
 
 /* 把走得到的免費東西全撿完（跨樓層）：道具、NPC 對話、踩到的劇情。回傳走得到的格子 */
 function collect(st, opt) {
@@ -73,10 +77,10 @@ function collect(st, opt) {
         const nx = x + dx, ny = y + dy, t = MT.tile(st, f, nx, ny);
         const k = f + ',' + nx + ',' + ny;
         if (seen.has(k)) continue;
-        // 夾擊的那格不走（會一口氣失去三分之一生命）
-        if (t === '..' || t === 'UU' || t === 'DD') { if (!MT.pincerAt(st, f, nx, ny)) { seen.add(k); q.push([f, nx, ny]); } }
+        // 夾擊、共鳴的那格不白走（要付生命，算成 frontier 的「pass」動作）；回音地板 Ec 不是 '..'，本來就不在這裡走
+        if (t === '..' || t === 'UU' || t === 'DD') { if (!costly(st, f, nx, ny)) { seen.add(k); q.push([f, nx, ny]); } }
         else if (t === 'Hw' && secrets) { MT.setTile(st, f, nx, ny, '..'); st.secrets++; changed = true; }
-        else if (MT.isItem(t)) {
+        else if (MT.isItem(t) && !costly(st, f, nx, ny)) {
           const sf = st.floor; st.floor = f;
           const got = MT.pickup(st, t); MT.setTile(st, f, nx, ny, '..');
           st.floor = sf; changed = true;
@@ -118,8 +122,8 @@ function frontier(st, reach, ban) {
   for (const [f, x, y] of reach) for (const [dx, dy] of DIRS) {
     const nx = x + dx, ny = y + dy, t = MT.tile(st, f, nx, ny);
     const isMon = MT.isMonster(t);
-    // 夾擊的空格也算一個「要付代價才過得去」的閘門（踩進去失去三分之一生命）
-    const pin = (t === '..' || MT.isItem(t)) && MT.pincerAt(st, f, nx, ny);
+    // 夾擊、共鳴的空格（或道具）與回音地板也算「要付代價才過得去」的閘門
+    const pin = (t === '..' || t === 'Ec' || MT.isItem(t)) && costly(st, f, nx, ny);
     if (!(isMon || pin || MT.DOORS[t] || t === 'Cw' || (MT.isNpc(t) && NPC_ACT(MT.NPCS[t])))) continue;
     let k = f + ',' + nx + ',' + ny;
     if (isMon && MT.monSize(t) > 1) { const o = MT.blockOrigin(st, f, nx, ny); k = f + ',' + o[0] + ',' + o[1]; }
@@ -156,7 +160,7 @@ function doAction0(st, a) {
   if (a.kind === 'level') { goNpc(); return MT.buyLevel(st, a.id); }
   if (a.kind === 'choose') { goNpc(); MT.chooseSkill(st, a.skill); return true; }
   if (a.kind === 'break') { if (!st.items.chisel) return false; act(st, a.c); return true; }
-  if (a.kind === 'pass') { act(st, a.c); return st.hp > 0; }
+  if (a.kind === 'pass') { const ev = act(st, a.c); return ev.type !== 'tooHurt' && st.hp > 0; }
   const t = a.c.t;
   if (MT.isMonster(t)) {
     const m = MT.MONSTERS[t];
@@ -230,8 +234,9 @@ function stairNeed(st, f) {
   return null;
 }
 
-function potential(st) {
-  const top = Math.min(MT.TOP, maxFloor(st) + 1);
+// ahead：連還沒去過的下一層的怪也算進去（新手／一般／高手都偷看一層；真人型 human 不偷看，只算去過的樓層）
+function potential(st, ahead = true) {
+  const top = Math.min(MT.TOP, maxFloor(st) + (ahead ? 1 : 0));
   let dmg = 0;
   for (let f = 1; f <= top; f++) {
     const m = st.maps[f], seen = new Set();
@@ -282,6 +287,7 @@ function solveWeak(opt = {}) {
       || as.find(a => a.kind === 'buy' && a.what === 'hp')
       || as.find(a => a.kind === 'door')
       || as.filter(a => a.kind === 'fight').sort((a, b) => cost(st, a) - cost(st, b))[0]
+      || as.find(a => a.kind === 'pass')   // 沒別的事做才硬走過夾擊／共鳴／回音地板
       || as.find(a => a.kind === 'buy' && (a.what === 'y' || a.what === 'b'));
     if (!pick) break;
     doAction(st, pick);
@@ -357,5 +363,52 @@ function solveStrong(opt = {}) {
   return result(far || newRun());
 }
 
+/* 真人型：模擬「第一次玩、會存檔重來」的真人。跟高手一樣用 beam search，但
+   - 只知道去過的樓層：評分不偷看還沒上去的那一層（potential 的 ahead＝false）
+   - 不能回到過去：最好的局面一爬上新樓層就「存檔」，beam 只留那一個局面往下走，
+     之前的決定（鑰匙花在哪、先拿攻還是防）都定了，到了上面才發現不對也改不回來
+   width＝在同一段裡肯試幾種走法（會讀檔重來幾次）。高手能保留不同的歷史一路比到通關，這裡不行
+   noise＝判斷失準的程度：每個局面的評分加上 ±noise/2 的亂數（真人不會精算，常把差不多的兩步看反）；
+   seed 固定亂數，同一組參數跑出來一樣 */
+function rngOf(seed) {   // mulberry32
+  let a = seed >>> 0;
+  return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+function solveHuman(opt = {}) {
+  const width = opt.width || 4, noise = opt.noise || 0, rng = rngOf(opt.seed || 1);
+  let beam = [newRun(opt)];
+  collect(beam[0], opt);
+  let committed = maxFloor(beam[0]), best = null, depth = 0, last = beam;
+  while (beam.length && depth++ < 4000) {
+    last = beam;
+    const next = [], seen = new Set();
+    for (const st of beam) {
+      const as = actions(st, frontier(st, collect(st, opt), opt.ban));
+      for (const a of as) {
+        const s2 = clone(st);
+        if (!doAction(s2, a)) continue;
+        collect(s2, opt);
+        if (s2.done) { const sc = MT.rating(s2).score; if (!best || sc > best.score) best = { st: s2, score: sc }; continue; }
+        const g = sig(s2);
+        if (seen.has(g)) continue;
+        seen.add(g);
+        s2._p = potential(s2, false) + (noise ? (rng() - 0.5) * noise : 0);
+        next.push(s2);
+      }
+    }
+    next.sort((a, b) => b._p - a._p);
+    // 最好的那個局面到了新樓層：存檔，從這裡重新開始試
+    if (next.length && maxFloor(next[0]) > committed) { committed = maxFloor(next[0]); beam = [next[0]]; continue; }
+    const keep = next.slice(0, width), groups = new Map();
+    for (const s of next) { const k = maxFloor(s) + ':' + (s.keys.y > 0 ? 1 : 0); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(s); }
+    for (const g of groups.values()) for (const s of g.slice(0, Math.max(1, width >> 2))) if (!keep.includes(s)) keep.push(s);
+    beam = keep;
+    if (best && beam.every(s => s.hp + s.gold * 6 < best.score * 0.5)) break;
+  }
+  if (best) return result(best.st);
+  const far = last.slice().sort((a, b) => maxFloor(b) - maxFloor(a) || b._p - a._p)[0];
+  return result(far || newRun());
+}
+
 function setSkills(list) { skillChoices = list; }
-module.exports = { setSkills, logList, newRun, MT, clone, collect, frontier, actions, doAction, potential, solveWeak, solveMid, solveStrong, maxFloor };
+module.exports = { setSkills, logList, newRun, MT, clone, collect, frontier, actions, doAction, potential, solveWeak, solveMid, solveStrong, solveHuman, maxFloor };

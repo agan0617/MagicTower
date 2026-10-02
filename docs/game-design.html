@@ -75,8 +75,8 @@ blockquote { margin: 10px 0; padding: 6px 14px; border-left: 3px solid var(--acc
 <main>
 <header class="top">
   <h1>魔塔：失落的旋律　遊戲設計文件</h1>
-  <div class="meta">依 3.0.7 撰寫　·　2026-10-02</div>
-  <div class="note">3.0.0 是關卡全面改版：20 層＋隱藏層 B1、經驗值與等級、三選一技能、大型 Boss、路上 NPC、暗牆與裂牆。3.0.2～3.0.5：序章加兩幕過場、加生命的道具改成愛心、標題畫面與選單加圖文教學。3.0.6 音效優化，3.0.7 最終 Boss 加強。關卡設計規則與平衡流程另見 repo 根目錄的 <code>DESIGN.md</code>。</div>
+  <div class="meta">依 3.1.0 撰寫　·　2026-10-02</div>
+  <div class="note">3.0.0 是關卡全面改版：20 層＋隱藏層 B1、經驗值與等級、三選一技能、大型 Boss、路上 NPC、暗牆與裂牆。3.0.2～3.0.5：序章加兩幕過場、加生命的道具改成愛心、標題畫面與選單加圖文教學。3.0.6 音效優化，3.0.7 最終 Boss 加強。<b>3.1.0：第 3 區加回音地板、第 4 區加共鳴水晶（跟位置有關的機制），新增真人型自動玩家並照它重定評價門檻。</b>關卡設計規則與平衡流程另見 repo 根目錄的 <code>DESIGN.md</code>。</div>
 </header>
 
 <!-- ───────────── 1 ───────────── -->
@@ -86,11 +86,11 @@ blockquote { margin: 10px 0; padding: 6px 14px; border-left: 3px solid var(--acc
 <tr><td>遊戲名稱</td><td class="wrap">魔塔：失落的旋律（英文 Magic Tower: The Lost Melody）</td></tr>
 <tr><td>類型</td><td class="wrap">經典「魔塔」式固定數值解謎 RPG：戰鬥結果完全確定，打之前就知道代價，核心是資源（生命、鑰匙、金幣、經驗值、鑿子）的取捨與開門、打怪順序</td></tr>
 <tr><td>平台</td><td class="wrap">網頁版 PWA（GitHub Pages：<code>agan0617.github.io/MagicTower/</code>，可安裝、可離線）；Android App 外殼是開線上網頁的 WebView（User-Agent 帶 <code>MagicTowerApp/x.y.z</code>），遊戲本體與網頁版共用同一份程式</td></tr>
-<tr><td>規模</td><td class="wrap">20 層原創關卡＋隱藏層 B1，每層 11×15 格；四區、四隻 3×3 大型 Boss（5F 鼓魔像、10F 弦之魔女、15F 回音之鏡、20F 靜默指揮家）與四隻 2×2 中 Boss；40 種怪物；17 位 NPC；兩種結局；通關評價 S／A／B／C</td></tr>
+<tr><td>規模</td><td class="wrap">20 層原創關卡＋隱藏層 B1，每層 11×15 格；四區、四隻 3×3 大型 Boss（5F 鼓魔像、10F 弦之魔女、15F 回音之鏡、20F 靜默指揮家）與四隻 2×2 中 Boss；41 種怪物；第 3 區回音地板 9 塊、第 4 區共鳴水晶 8 隻；17 位 NPC；兩種結局；通關評價 S／A／B／C</td></tr>
 <tr><td>語言</td><td class="wrap">繁體中文／English／日本語（介面與全部劇情）</td></tr>
-<tr><td>設計目標</td><td class="wrap">「會玩和不會玩要有明顯差距」：每一扇門、每一個房間都是取捨，怪物依打法分類（高攻、高防、高血、魔法、吸血、連擊、夾擊、破甲），技能三選一讓同一張地圖有不同的最佳路線。用自動玩家驗證：新手卡在 3F、一般卡在 5F、高手通關約 19500～22600 分</td></tr>
+<tr><td>設計目標</td><td class="wrap">「會玩和不會玩要有明顯差距」：每一扇門、每一個房間都是取捨，怪物依打法分類（高攻、高防、高血、魔法、吸血、連擊、夾擊、破甲、共鳴），技能三選一讓同一張地圖有不同的最佳路線；後兩區各加一種走位機制（回音地板、共鳴），地圖不只是開門順序題。用自動玩家驗證：新手卡在 3F、一般卡在 5F、真人型八成通關（沒過的全卡在 4F，通關分數中位數約 14100）、高手通關約 17500～21800 分</td></tr>
 <tr><td>目標體驗</td><td class="wrap">「手機上單手點一點就能玩的經典魔塔」＋「一個青春期王子跟自己和解的短篇故事」。音樂隨劇情一層層回來（低音→鼓→和聲→笛→主旋律）；沿路的 NPC 與多蕾帶來幽默橋段；所有音樂、美術由程式產生，無任何外部素材</td></tr>
-<tr><td>版本</td><td class="wrap">網頁版 3.0.7（<code>index.html</code> 的 <code>MT.VERSION</code>、<code>sw.js</code> 的 <code>mt-3.0.7</code>）；存檔格式 v3（<code>MT.SAVE_V = 3</code>，2.x 存檔讀不了）</td></tr>
+<tr><td>版本</td><td class="wrap">網頁版 3.1.0（<code>index.html</code> 的 <code>MT.VERSION</code>、<code>sw.js</code> 的 <code>mt-3.1.0</code>）；存檔格式 v3（<code>MT.SAVE_V = 3</code>，2.x 存檔讀不了）</td></tr>
 </table></div>
 
 <!-- ───────────── 2 ───────────── -->
@@ -168,7 +168,7 @@ blockquote { margin: 10px 0; padding: 6px 14px; border-left: 3px solid var(--acc
 <h3>3.1 移動與操作</h3>
 <div class="tw"><table>
 <tr><th>操作</th><th class="wrap">行為（<code>main.js</code>）</th></tr>
-<tr><td>點地圖格子</td><td class="wrap">BFS 找路：<b>先只走空地</b>，走不到才允許順路撿道具（<code>findPath</code>）；畫一條淡白細線＋終點圓角光標（約 1.6 秒呼吸一次），勇者每 105ms 走一格，走過的線段消失。走到一半點別處就改走新路線；點自己停下；點牆、鐵門或走不到的格子閃紅色 ✕</td></tr>
+<tr><td>點地圖格子</td><td class="wrap">BFS 找路：<b>先只走空地</b>，走不到才允許順路撿道具（<code>findPath</code>）；夾擊、共鳴的格子和回音地板都繞開，真的繞不開才走「付的生命最少、再來步數最少」的路（<code>cheapest</code>，3.1）。整條路線要付的生命先算好（<code>routeToll</code>）：付不起直接擋下來，付得起光標變粉紫色；畫一條淡白細線＋終點圓角光標（約 1.6 秒呼吸一次），勇者每 105ms 走一格，走過的線段消失。走到一半點別處就改走新路線；點自己停下；點牆、鐵門或走不到的格子閃紅色 ✕</td></tr>
 <tr><td>點怪物／門</td><td class="wrap">一下就出發（2.0.9 起不需再點確認）。出發前先檢查：打不動（攻擊 ≤ 怪物防禦）、打不贏（損失 ≥ 目前生命）、沒鑰匙，直接擋下並提示原因，不會白走。走去開打時光標帶淡紅色</td></tr>
 <tr><td>長按（420ms）</td><td class="wrap">怪物、道具、門、鐵門、樓梯、商人／祭壇、NPC 跳說明卡（怪物＝圖鑑那一列：能力與預估損失；門＝要哪把鑰匙與身上幾把；道具＝撿起來加多少）。手指移動超過 14px 取消長按；手機會震動 15ms。說明卡放在地圖外（直向在地圖上方，橫向在左欄功能鍵下方）</td></tr>
 <tr><td>查看模式</td><td class="wrap">功能鍵列第一顆「查看」：開啟時按鈕變黃、地圖框淡黃，點一下只看說明不移動；再按一次、<code>Esc</code>、返回鍵或方向鍵離開</td></tr>
@@ -178,6 +178,7 @@ blockquote { margin: 10px 0; padding: 6px 14px; border-left: 3px solid var(--acc
 <tr><td>教學</td><td class="wrap">標題畫面或選單 → 教學，8 頁圖文（目標、移動、戰鬥、鑰匙與門、道具、金幣與經驗、怪物特技、小技巧），左右鍵或下方圓點翻頁。示意圖由 <code>tutScene</code> 用地圖同款圖塊即時畫出，戰鬥頁的損失數字與例子照 <code>MT.calc</code> 實算（假設生命 200／攻擊 10／防禦 10），改數值不用改圖</td></tr>
 <tr><td>Android 返回鍵</td><td class="wrap"><code>MT.onBack</code>：先關確認框 → 關視窗 → 離開查看模式 → 開選單</td></tr>
 <tr><td>夾擊格</td><td class="wrap">自動尋路會盡量繞開兩隻夾擊怪中間的格子；夾擊怪腳下有紅色虛線框</td></tr>
+<tr><td>回音地板／共鳴（3.1）</td><td class="wrap">回音地板是一圈圈青色波紋、腳下標「現在踩要扣多少」；共鳴水晶周圍八格鋪粉紅色＋虛線框（水晶區地板是紫色，用粉紅才分得出來）。長按或查看會跳說明（共鳴範圍裡的空地也有）。踩到時青色／粉紅數字從勇者身上跳出來；共鳴每一步都扣，提示只在這次開遊戲第一次跳</td></tr>
 <tr><td>暗牆／裂牆</td><td class="wrap">暗牆看起來就是牆，點下去會走過去（發現暗道）；裂牆要有鑿子，沒有時點下去會提示</td></tr>
 <tr><td>怪物圖鑑</td><td class="wrap">1F 撿到之前，地圖上不顯示戰鬥代價，長按怪物只看得到名字</td></tr>
 </table></div>
@@ -203,6 +204,7 @@ damage  = drain + 怪物出手 × (連擊 ? 2 : 1) × monHit</code></pre>
 <li>能不能打：damage == null 或 damage ≥ 目前生命 時拒絕開打</li>
 <li>勝利：生命 −damage、金幣與經驗值增加、整塊（大型怪物）變空地，再檢查本層鐵門</li>
 <li><b>夾擊</b>（<code>MT.pincerAt</code>）：走進兩隻夾擊怪（左右或上下）中間的格子，立刻失去目前生命的 1/3</li>
+<li><b>回音地板</b>、<b>共鳴</b>（3.1）：見 3.13。兩者付了會倒下就不走（事件 <code>tooHurt</code>），跟打不贏的怪一樣擋下來</li>
 <li><b>大型怪物</b>：<code>size</code> 2 或 3，地圖上 size×size 格都寫同一個代碼、共用一條血（<code>MT.blockOrigin</code>、<code>MT.clearBlock</code>）</li>
 <li>攻擊減少回合數、防禦減少每一下：兩者價值比 ≈（怪物每下傷害）÷（勇者每下傷害），所以高攻怪讓防禦值錢、高血高防怪讓攻擊值錢</li>
 </ul>
@@ -242,11 +244,11 @@ damage  = drain + 怪物出手 × (連擊 ? 2 : 1) × monHit</code></pre>
 <pre><code>金幣 += 銅鑰×10 + 銀鑰×50 + 金鑰×100        // 鑰匙照呱呱商人價格換回金幣
 折算 = 在 16F 水晶祭壇一次一次買生命（每次漲價）＋ 經驗值一級一級升（只算 L2 的生命）
 分數 = 剩餘生命 + 折算
-S：分數 ≥ 20000 且真結局　A：≥ 15500　B：≥ 9500　其餘 C</code></pre>
-<p>門檻照自動玩家的分數定（3.0.7：高手寬度 4 三種技能約 19100～20700、寬度 12 約 21800～25900，熟手寬度 2 約 18700）。照「實際去買」模擬，避免「囤著不花、照起始價換算反而最多」的漏洞。最佳紀錄先比等級再比分數。</p>
+S：分數 ≥ 20000 且真結局　A：≥ 16000　B：≥ 12000　其餘 C</code></pre>
+<p>3.1 起門檻照<b>真人型自動玩家</b>的通關分數分佈定（寬度 1～2 × noise 500／2000、各 12 個種子共 48 次，通關 39 次）：B 12000 ≈ 後 1/4（約 12700）、A 16000 ≈ 前 1/4（約 15800）；S 20000 比真人型最好的一次（19800）還高，要到高手水準＋真結局（3.1 高手寬度 4：沉穩低音 17555、回音 20296、連音 19402；寬度 12：20465）。3.0.7 以前是照熟手／高手的分數定，真人型幾乎都落在 B，C 幾乎沒人。照「實際去買」模擬，避免「囤著不花、照起始價換算反而最多」的漏洞。最佳紀錄先比等級再比分數。</p>
 
 <h3>3.9 經驗值與等級（<code>MT.LEVEL</code>）</h3>
-<p>打怪拿經驗值（全塔約 4721）。節拍之神換等級：價格 = 10 + 6 ×（目前等級 − 1），3F 的 L1 與 13F 的 L2 共用等級。L1 每級 +120 生命 +2 攻 +2 防；L2 每級 +300 生命 +4 攻 +4 防。等級也是技能升級的門票。</p>
+<p>打怪拿經驗值（全塔約 4961）。節拍之神換等級：價格 = 10 + 6 ×（目前等級 − 1），3F 的 L1 與 13F 的 L2 共用等級。L1 每級 +120 生命 +2 攻 +2 防；L2 每級 +300 生命 +4 攻 +4 防。等級也是技能升級的門票。</p>
 
 <h3>3.10 技能（<code>MT.SKILL</code>）</h3>
 <div class="tw"><table>
@@ -258,7 +260,7 @@ S：分數 ≥ 20000 且真結局　A：≥ 15500　B：≥ 9500　其餘 C</cod
 <ul>
 <li>10F 打倒弦之魔女後碰豎琴之靈三選一（<code>MT.chooseSkill</code>，lv 0＝還不生效），12F 老琴師鑑定後 lv 1（<code>MT.sage</code>）；勇者 Lv12、Lv22 時再找他升到 lv 2、3</li>
 <li>老琴師台詞依狀態變化：沒技能／鑑定（三種各一句）／升級（三種各一句）／等級不夠（告訴你要幾級）／已滿級（問你有沒有看到他的假牙）</li>
-<li>自動高手三種都能通關、分數接近（回音 22578、連音 21177、沉穩低音 20995）</li>
+<li>自動高手三種都能通關、分數接近（3.1、寬度 4：回音 20296、連音 19402、沉穩低音 17555）</li>
 </ul>
 
 <h3>3.11 路上的 NPC（<code>MT.NPCS</code>）</h3>
@@ -290,8 +292,20 @@ S：分數 ≥ 20000 且真結局　A：≥ 15500　B：≥ 9500　其餘 C</cod
 <li><b>裂牆</b> <code>Cw</code>：要鑿子，敲開人不動、鑿子少一把。全塔 7 面、鑿子 4 把，要挑（1F 那面通往 B1）</li>
 </ul>
 
+<h3 id="s3-13">3.13 回音地板與共鳴（3.1）</h3>
+<p>前兩區的取捨主要是開門順序；後兩區各加一種「走到哪裡要付生命」的機制，讓地圖也是走位題，主題也跟著區域走（鏡之迴廊的回音、水晶的共振）。</p>
+<div class="tw"><table>
+<tr><th>機制</th><th class="wrap">規則</th><th class="wrap">要算的事</th><th>位置</th></tr>
+<tr><td>回音地板 <code>Ec</code></td><td class="wrap">踩上去，<b>這層</b>上一場戰鬥損失的生命再扣一次，踩過就變空地（<code>MT.echoCost</code>）。每層各記各的（<code>st.echo[樓層]</code>，打完怪在 <code>MT.step</code> 寫入），別層打的不算；這層還沒打過是 0</td><td class="wrap">「踩之前最後打哪一隻」：先打一隻便宜的再踩就只扣一點。都放在要先打過怪才到得了的地方（<code>audit.js</code> 規則 8），一上樓先踩過去拿不到便宜</td><td class="wrap">11F (10,2)(5,14)、12F (5,7) 老琴師正下方 (7,13)、13F (10,2)(4,10)、14F (0,13)(7,14)、15F (2,14)</td></tr>
+<tr><td>共鳴水晶 <code>rc</code></td><td class="wrap">周圍八格（3×3，含斜角）每走進一格失去 80 生命，防禦和技能都擋不掉（<code>MT.auraAt</code>，兩隻重疊扣兩份）。本身是魔法攻擊、高防禦：生命 500、攻擊 150、防禦 190</td><td class="wrap">守在路口的「過路費」：現在就打（沒技能時剛到 16F 約 1200 血，攻擊堆上去之後三、四百），還是先每次經過付 80、等變強再回來打。高手實跑：只有擋住祭壇捷徑的 16F 那隻馬上打，其他都留到後面</td><td class="wrap">16F (5,2) 樓梯口、(5,13)（取代水晶重騎士）、17F (5,7)(8,9)、18F (10,5)(4,12)、19F (5,4)(5,9)</td></tr>
+</table></div>
+<ul>
+<li>存檔：<code>st.echo</code> 與地圖版本 <code>st.mapV = 31</code>。3.0.x 的存檔讀進來時（<code>MT.migrate</code>），<b>還沒去過的樓層換成 3.1 的地圖</b>，去過的照舊，所以進行中的存檔上去 11F 以後也看得到新機制</li>
+<li>自動玩家：走這兩種格子都算成要付代價的動作（<code>pass</code>），跟夾擊一樣；<code>clone</code> 要連 <code>st.echo</code> 一起複製，不然 beam 裡的局面會共用同一份回音紀錄</li>
+</ul>
+
 <!-- ───────────── 4 ───────────── -->
-<h2 id="s4">4. 數值表（3.0.7）</h2>
+<h2 id="s4">4. 數值表（3.1.0）</h2>
 <h3>4.1 怪物</h3>
 <div class="tw"><table>
 <tr><th>代號</th><th>名稱</th><th>生命</th><th>攻擊</th><th>防禦</th><th>金幣</th><th>經驗</th><th>出現樓層（數量）</th><th>特殊能力</th></tr>
@@ -327,16 +341,17 @@ S：分數 ≥ 20000 且真結局　A：≥ 15500　B：≥ 9500　其餘 C</cod
 <tr><td>EM</td><td>回音之鏡</td><td class="n">6500</td><td class="n">250</td><td class="n">125</td><td class="n">300</td><td class="n">200</td><td>15F×1</td><td class="wrap"><span class="tag boss">Boss</span> <span class="tag">連擊</span> 3×3 死亡→<code>fluteGet</code></td></tr>
 <tr><td>cv</td><td>水晶吸血鬼</td><td class="n">380</td><td class="n">290</td><td class="n">150</td><td class="n">45</td><td class="n">35</td><td class="wrap">16F×3、17F×3、18F×4、19F×1</td><td><span class="tag">吸血 25%</span> <span class="tag">先攻</span></td></tr>
 <tr><td>am</td><td>大巫師</td><td class="n">320</td><td class="n">160</td><td class="n">165</td><td class="n">45</td><td class="n">35</td><td class="wrap">16F×3、17F×3、18F×2、19F×2</td><td><span class="tag">魔法</span></td></tr>
-<tr><td>kd</td><td>水晶重騎士</td><td class="n">800</td><td class="n">300</td><td class="n">160</td><td class="n">50</td><td class="n">40</td><td class="wrap">16F×3、17F×2、18F×3、19F×2</td><td>—</td></tr>
+<tr><td>kd</td><td>水晶重騎士</td><td class="n">800</td><td class="n">300</td><td class="n">160</td><td class="n">50</td><td class="n">40</td><td class="wrap">16F×2、17F×2、18F×3、19F×2</td><td>—</td></tr>
 <tr><td>cg</td><td>水晶魔像</td><td class="n">120</td><td class="n">330</td><td class="n">205</td><td class="n">50</td><td class="n">40</td><td class="wrap">16F×1、17F×1、18F×3、19F×1</td><td>—</td></tr>
 <tr><td>nb</td><td>夜梟</td><td class="n">420</td><td class="n">260</td><td class="n">170</td><td class="n">45</td><td class="n">35</td><td class="wrap">16F×1、17F×2、19F×2</td><td><span class="tag">連擊</span></td></tr>
 <tr><td>dk</td><td>無聲刺客</td><td class="n">360</td><td class="n">320</td><td class="n">160</td><td class="n">50</td><td class="n">40</td><td class="wrap">16F×1、17F×2、19F×4</td><td><span class="tag">破甲</span> <span class="tag">先攻</span></td></tr>
+<tr><td>rc</td><td>共鳴水晶（3.1）</td><td class="n">500</td><td class="n">150</td><td class="n">190</td><td class="n">45</td><td class="n">35</td><td class="wrap">16F×2、17F×2、18F×2、19F×2</td><td class="wrap"><span class="tag">魔法</span> <span class="tag">共鳴 80</span></td></tr>
 <tr><td>rg</td><td>休止符衛士</td><td class="n">900</td><td class="n">330</td><td class="n">190</td><td class="n">70</td><td class="n">50</td><td>20F×2</td><td>—</td></tr>
 <tr><td>K4</td><td>回音指揮</td><td class="n">6000</td><td class="n">340</td><td class="n">185</td><td class="n">200</td><td class="n">150</td><td>18F×1</td><td><span class="tag boss">Boss</span> <span class="tag">魔法</span> 2×2</td></tr>
 <tr><td>M1</td><td>靜默指揮家</td><td class="n">9999</td><td class="n">350</td><td class="n">200</td><td class="n">0</td><td class="n">0</td><td>20F×1</td><td class="wrap"><span class="tag boss">Boss</span> <span class="tag">無敵</span> 3×3 碰到→<code>maestroDrum</code></td></tr>
 <tr><td>M2</td><td>靜默指揮家</td><td class="n">9000</td><td class="n">450</td><td class="n">200</td><td class="n">0</td><td class="n">0</td><td>20F（劇情放置）</td><td class="wrap"><span class="tag boss">Boss</span> 3×3 死亡→<code>ending</code></td></tr>
 </table></div>
-<p class="muted">全塔怪物金幣合計約 6436、經驗值約 4721（不含劇情、祭壇、交易）。數量由 <code>MT.FLOORS</code> 統計；大型怪物一塊算一隻。</p>
+<p class="muted">全塔怪物金幣合計約 6746、經驗值約 4961（3.1 加了共鳴水晶）（不含劇情、祭壇、交易）。數量由 <code>MT.FLOORS</code> 統計；大型怪物一塊算一隻。</p>
 
 <h3>4.2 道具（依區域變化）</h3>
 <div class="tw"><table>
@@ -392,19 +407,19 @@ S：分數 ≥ 20000 且真結局　A：≥ 15500　B：≥ 9500　其餘 C</cod
 <tr><td>8F</td><td class="n">2</td><td class="wrap">門衛石像×4、啞靈×2、紅袍巫師×2、雙刀劍客×2、骷髏隊長</td><td class="wrap">地牢：小偷（交易：便宜的銅鑰匙）、獄卒長（2×2）守著鐵盾與日記第二頁；下半是一整排的連戰（鐵柵欄＝夾擊石像兩兩一組）</td></tr>
 <tr><td>9F</td><td class="n">2</td><td class="wrap">骷髏隊長×3、塔之衛兵×3、雙刀劍客×3、啞靈、紅袍巫師</td><td class="wrap">兵器庫：銀劍、信差鴿子（給風之羽）、高攻獸人與高防衛兵交錯，決定先拿攻還是防；裂牆後面是一顆藍寶石＋紅寶石</td></tr>
 <tr><td>10F</td><td class="n">2</td><td class="wrap">骷髏隊長×4、啞靈×3、門衛石像×2、弦之魔女、塔之衛兵</td><td class="wrap">弦之魔女（3×3）：打倒後，豎琴之靈讓你三選一技能</td></tr>
-<tr><td>11F</td><td class="n">3</td><td class="wrap">無聲合唱團員×4、吸血蝙蝠×3、碎鏡小鬼×3、回音幽靈×2、石像守衛</td><td class="wrap">鏡之迴廊入口：古老音叉祭壇、鏡中少女（提示老琴師在 12F）、吸血蝙蝠登場（血少的時候再去打）</td></tr>
-<tr><td>12F</td><td class="n">3</td><td class="wrap">吸血蝙蝠×3、碎鏡小鬼×3、回音幽靈×2、鏡面守衛×2、無聲合唱團員</td><td class="wrap">老琴師：技能鑑定與升級；第三把鑿子；鏡像夾擊衛兵守著一條走廊</td></tr>
-<tr><td>13F</td><td class="n">3</td><td class="wrap">吸血蝙蝠×4、石像守衛×3、黑騎士×3、無聲合唱團員×2、鏡之騎士</td><td class="wrap">回音長廊：進階節拍之神、呱呱商人的表哥（自稱正牌，比較貴）、鏡之騎士（2×2）守著銀盾</td></tr>
-<tr><td>14F</td><td class="n">3</td><td class="wrap">碎鏡小鬼×2、無聲合唱團員×2、回音幽靈×2、黑騎士×2、吸血蝙蝠</td><td class="wrap">鏡宮：老琴師的學徒（交易：金幣換防禦）；破甲的鏡像士兵很多，防禦只算一半</td></tr>
-<tr><td>15F</td><td class="n">3</td><td class="wrap">石像守衛×2、回音幽靈×2、黑騎士×2、鏡面守衛×2、回音之鏡</td><td class="wrap">回音之鏡（3×3）：打倒後找回「笛」</td></tr>
-<tr><td>16F</td><td class="n">4</td><td class="wrap">水晶吸血鬼×3、水晶重騎士×3、大巫師×3、無聲刺客、夜梟</td><td class="wrap">水晶迴廊：水晶祭壇；占星師（提示暗牆與失落的音符）</td></tr>
-<tr><td>17F</td><td class="n">4</td><td class="wrap">水晶吸血鬼×3、大巫師×3、無聲刺客×2、水晶重騎士×2、夜梟×2</td><td class="wrap">觀星台：日記第三頁、迷路的小精靈（送銀鑰匙）；裂牆後面是金鑰匙</td></tr>
-<tr><td>18F</td><td class="n">4</td><td class="wrap">水晶吸血鬼×4、水晶重騎士×3、水晶魔像×3、大巫師×2、回音指揮</td><td class="wrap">回音長廊：指揮家的聲音；回音指揮（2×2）守著金劍</td></tr>
-<tr><td>19F</td><td class="n">4</td><td class="wrap">無聲刺客×4、水晶重騎士×2、夜梟×2、大巫師×2、水晶吸血鬼</td><td class="wrap">前廳：失落的音符在金門後面；金盾在最長的連戰走廊盡頭；最後的衛兵</td></tr>
+<tr><td>11F</td><td class="n">3</td><td class="wrap">無聲合唱團員×4、吸血蝙蝠×3、碎鏡小鬼×3、回音幽靈×2、石像守衛</td><td class="wrap">鏡之迴廊入口：古老音叉祭壇、鏡中少女（提示老琴師在 12F）、吸血蝙蝠登場（血少的時候再去打）；回音地板第一次出現：右上 (10,2)、下方走廊 (5,14)</td></tr>
+<tr><td>12F</td><td class="n">3</td><td class="wrap">吸血蝙蝠×3、碎鏡小鬼×3、回音幽靈×2、鏡面守衛×2、無聲合唱團員</td><td class="wrap">老琴師：技能鑑定與升級；第三把鑿子；鏡像夾擊衛兵守著一條走廊；回音地板在老琴師正下方 (5,7)（找他鑑定、升級都要踩）與右下 (7,13)</td></tr>
+<tr><td>13F</td><td class="n">3</td><td class="wrap">吸血蝙蝠×4、石像守衛×3、黑騎士×3、無聲合唱團員×2、鏡之騎士</td><td class="wrap">回音長廊：進階節拍之神、呱呱商人的表哥（自稱正牌，比較貴）、鏡之騎士（2×2）守著銀盾；回音地板 (10,2) 在往進階節拍之神的路上、(4,10) 在左下補給前</td></tr>
+<tr><td>14F</td><td class="n">3</td><td class="wrap">碎鏡小鬼×2、無聲合唱團員×2、回音幽靈×2、黑騎士×2、吸血蝙蝠</td><td class="wrap">鏡宮：老琴師的學徒（交易：金幣換防禦）；破甲的鏡像士兵很多，防禦只算一半；下半部左右兩條路各一塊回音地板 (0,13)(7,14)</td></tr>
+<tr><td>15F</td><td class="n">3</td><td class="wrap">石像守衛×2、回音幽靈×2、黑騎士×2、鏡面守衛×2、回音之鏡</td><td class="wrap">回音之鏡（3×3）：打倒後找回「笛」；最下排左邊一塊回音地板 (2,14)</td></tr>
+<tr><td>16F</td><td class="n">4</td><td class="wrap">水晶吸血鬼×3、水晶重騎士×3、大巫師×3、無聲刺客、夜梟</td><td class="wrap">水晶迴廊：水晶祭壇；占星師（提示暗牆與失落的音符）；共鳴水晶第一次出現：樓梯口 (5,2)（一出樓梯就在範圍裡，也擋著往祭壇的捷徑）、下方 (5,13)</td></tr>
+<tr><td>17F</td><td class="n">4</td><td class="wrap">水晶吸血鬼×3、大巫師×3、無聲刺客×2、水晶重騎士×2、夜梟×2</td><td class="wrap">觀星台：日記第三頁、迷路的小精靈（送銀鑰匙）；裂牆後面是金鑰匙；共鳴水晶守著中間走廊與金鑰匙 (5,7)、右下房間 (8,9)</td></tr>
+<tr><td>18F</td><td class="n">4</td><td class="wrap">水晶吸血鬼×4、水晶重騎士×3、水晶魔像×3、大巫師×2、回音指揮</td><td class="wrap">回音長廊：指揮家的聲音；回音指揮（2×2）守著金劍；共鳴水晶守著東側主線 (10,5)、下方走廊 (4,12)</td></tr>
+<tr><td>19F</td><td class="n">4</td><td class="wrap">無聲刺客×4、水晶重騎士×2、夜梟×2、大巫師×2、水晶吸血鬼</td><td class="wrap">前廳：失落的音符在金門後面；金盾在最長的連戰走廊盡頭；最後的衛兵；共鳴水晶 (5,4) 罩住上方繞路的走廊、(5,9) 擋在最後的衛兵與裂牆（金盾的捷徑）前面</td></tr>
 <tr><td>20F</td><td class="n">4</td><td>休止符衛士×2、靜默指揮家</td><td class="wrap">靜默舞台：指揮家（3×3）；兩隻休止符衛士打倒才開鐵門</td></tr>
 <tr><td>B1</td><td class="n">2</td><td class="wrap">胖老鼠×4、啞靈、骷髏隊長、紅袍巫師、塔之衛兵</td><td class="wrap">地下室（隱藏層）：小偷的老家，堆滿偷來的東西；胖老鼠（致敬胖老鼠工作室）</td></tr>
 </table></div>
-<p>設計規則（<code>tools/audit.js</code> 自動檢查）：沒有白開的房間、沒有多餘的門、NPC 不擋路、樓梯兩側直接互通、暗牆不在主線上、左右鏡射位置不放一樣的內容（Boss 層例外）、每層免費道具最多 3 個。</p>
+<p>設計規則（<code>tools/audit.js</code> 自動檢查）：沒有白開的房間、沒有多餘的門、NPC 不擋路、樓梯兩側直接互通、暗牆不在主線上、左右鏡射位置不放一樣的內容（Boss 層例外）、每層免費道具最多 3 個、回音地板要先打過怪才到得了（3.1）。</p>
 
 <h2 id="s6">6. 系統</h2>
 <h3>6.1 存檔（<code>sync.js</code>、<code>main.js</code>）</h3>
@@ -414,7 +429,7 @@ S：分數 ≥ 20000 且真結局　A：≥ 15500　B：≥ 9500　其餘 C</cod
 <li><b>手動存檔</b>：所有裝置共用，最多 99 格、新的在前，滿了再存擠掉最舊的；別台裝置存的只能讀不能覆蓋</li>
 <li><b>繼續遊戲</b>：接所有裝置裡最新的自動存檔</li>
 <li><b>最佳紀錄</b>：kind <code>best</code>，一台裝置一格，標題畫面顯示所有裝置裡最好的一次</li>
-<li><b>版本相容</b>：<code>MT.SAVE_V = 3</code>，3.0.0 起 20 層、地圖全部重畫，2.x 存檔（v2）列出但讀不了；<code>MT.migrate</code> 補新欄位</li>
+<li><b>版本相容</b>：<code>MT.SAVE_V = 3</code>，3.0.0 起 20 層、地圖全部重畫，2.x 存檔（v2）列出但讀不了；<code>MT.migrate</code> 補新欄位（3.1 起還會把沒去過的樓層換成新地圖，見 3.13）</li>
 <li>裝置 id 第一次使用時隨機產生，存在 <code>mt.device</code></li>
 </ul>
 
@@ -439,7 +454,7 @@ S：分數 ≥ 20000 且真結局　A：≥ 15500　B：≥ 9500　其餘 C</cod
 
 <h3>6.5 離線快取（<code>sw.js</code>）</h3>
 <ul>
-<li>僅在 https 下註冊 service worker；快取名 <code>mt-3.0.7</code>，安裝時以 <code>cache: 'reload'</code> 預先快取全部檔案（繞過 GitHub Pages 的 10 分鐘 HTTP 快取，避免新頁配舊 js）</li>
+<li>僅在 https 下註冊 service worker；快取名 <code>mt-3.1.0</code>，安裝時以 <code>cache: 'reload'</code> 預先快取全部檔案（繞過 GitHub Pages 的 10 分鐘 HTTP 快取，避免新頁配舊 js）</li>
 <li>讀取策略：先回快取秒開、背景抓新版更新快取，下次開啟生效；非同源（GitHub API）不快取；啟用時刪掉舊版快取</li>
 <li>Android App 外殼也是開線上網址，一樣靠這個離線</li>
 </ul>
@@ -456,6 +471,7 @@ S：分數 ≥ 20000 且真結局　A：≥ 15500　B：≥ 9500　其餘 C</cod
 <li>地形四套：石磚、紅磚、新的鏡面（銀色鏡板＋青色框＋斜光）、水晶；另有裂牆（明顯的黑色裂痕）與暗牆（幾乎看不出的細縫）</li>
 <li>3.0.2：序章逃跑的兩張跑步圖 <code>heroRunA</code>／<code>heroRunB</code>（還沒拿鐵鎚、眼角掛淚）</li>
 <li>3.0.3：加生命的道具改成愛心，跟狀態列的生命愛心同一個形象——小愛心 <code>heartS</code>（<code>hp</code>）、金邊大愛心＋右上角閃光 <code>heartBig</code>（<code>HP</code>，跟金邊藍盾同一套做法）；舊的藥水圖 <code>potion</code> 拿掉。劇情裡鏡中少女「這瓶藥水送你」是直接補血，文字保留</li>
+<li>3.1：共鳴水晶 <code>resonator</code>（一叢尖水晶、中間一根像音叉，配色 <code>resonator</code> 淡紫＋粉色共振光）；地形多一種 <code>echo</code>（回音地板：地板加青色同心波紋，地圖上再疊一圈會動的波紋）</li>
 <li>教學頁的示意圖不是另存的圖檔，是 <code>tutScene</code> 用上面這些圖與地板牆壁當場畫的，改圖會自動跟上</li>
 <li>序章、標題、結局動畫沿用 2.x，3.0.2 序章多了逃跑與第一鎚兩幕</li>
 </ul>
@@ -464,6 +480,7 @@ S：分數 ≥ 20000 且真結局　A：≥ 15500　B：≥ 9500　其餘 C</cod
 <li>全部 Web Audio 即時合成，沒有任何音檔</li>
 <li>分層配樂：一開始只有 base；打倒鼓魔像加 drums、弦之魔女加 strings、<b>回音之鏡加 winds（3.0 新增的笛聲部：三角波＋慢慢加深的顫音）</b>、結局加 lead。title、tower、boss 三首都有笛的副旋律</li>
 <li>序章音效：<code>crackLaugh</code>（破音＋哄笑）、<code>heartbeat</code>（八下一下比一下快的心跳）、<code>clang</code>（3.0.2，第一鎚的打鐵聲）</li>
+<li>3.1：<code>echoHit</code>（上一場那一記悶響一聲比一聲遠）、<code>echoQuiet</code>（還沒打過，只有水面般的輕響）、<code>auraHit</code>（水晶被震到的嗡：兩個很近的高音互相打架）</li>
 </ul>
 
 <h2 id="s8">8. 技術架構</h2>
@@ -480,14 +497,14 @@ S：分數 ≥ 20000 且真結局　A：≥ 15500　B：≥ 9500　其餘 C</cod
 <tr><td><code>js/main.js</code></td><td class="wrap">畫面繪製、點擊／長按／鍵盤、自動尋路、戰鬥與劇本演出、選單（圖鑑、飛行、存讀、商店、設定、教學、雲端）、序章／結局動畫、標題畫面、自動存檔時機、App 介面（<code>MT.onBack</code>、<code>appPause</code>、<code>appResume</code>）</td></tr>
 <tr><td><code>style.css</code></td><td class="wrap">版面（直向／橫向以 5:4 長寬比切換）、元件樣式</td></tr>
 <tr><td><code>sw.js</code>、<code>manifest.webmanifest</code></td><td class="wrap">離線快取與 PWA 安裝資訊（standalone、任意方向）</td></tr>
-<tr><td><code>tools/</code></td><td class="wrap"><code>sim.js</code> 三種程度的自動玩家（新手／一般／高手）共用程式、<code>solve.js</code> 平衡檢查（三種玩家各打一次，確認打得通並算評價基準）、<code>audit.js</code> 關卡稽核（白開的房間、多餘的門、擋路 NPC、樓梯岔路…）、<code>check_reach.js</code> 連通檢查、<code>rooms.js</code> 印出一層的區域與相連的門怪、<code>show.js</code> 印出一層地圖與不付代價拿得到的東西、<code>count.js</code> 每層資源統計、<code>guide.js</code>＋<code>guide.css</code> 通關攻略產生器（高手實跑一次，切段畫地圖、步驟表、怪物代價表；道具名讀遊戲的 <code>name_*</code>）、<code>test_sync.js</code> 同步測試、<code>make_icons.py</code> 圖示</td></tr>
+<tr><td><code>tools/</code></td><td class="wrap"><code>sim.js</code> 四種自動玩家（新手／一般／真人型／高手）共用程式、<code>solve.js</code> 平衡檢查（四種玩家各打一次，確認打得通；真人型可以換亂數種子跑很多次看分佈，用來定評價門檻）、<code>audit.js</code> 關卡稽核（白開的房間、多餘的門、擋路 NPC、樓梯岔路、白踩的回音地板…）、<code>check_reach.js</code> 連通檢查、<code>rooms.js</code> 印出一層的區域與相連的門怪、<code>show.js</code> 印出一層地圖與不付代價拿得到的東西、<code>count.js</code> 每層資源統計、<code>guide.js</code>＋<code>guide.css</code> 通關攻略產生器（高手實跑一次，切段畫地圖、步驟表、怪物代價表；道具名讀遊戲的 <code>name_*</code>）、<code>test_sync.js</code> 同步測試、<code>make_icons.py</code> 圖示</td></tr>
 </table></div>
 
 <h3>8.2 資料流</h3>
 <pre><code>輸入（點擊／長按／鍵盤／App 返回鍵）
-  → main.js：tapTile → findPath（BFS）→ walkRoute → stepOnce(dir)
+  → main.js：tapTile → findPath（BFS，繞不開才 cheapest）→ routeToll → walkRoute → stepOnce(dir)
     → core.js：MT.step(st, dir) 改狀態，回傳事件
-        move／bump／secret／break／noChisel／fight／cantFight／pickup／door／noKey／stairs／talk／shop／deal／level／sage／choose／script（move、pickup 可能帶 pincer）
+        move／bump／secret／break／noChisel／fight／cantFight／pickup／door／noKey／tooHurt／stairs／talk／shop／deal／level／sage／choose／script（move、pickup 可能帶 pincer／echo／aura）
   → main.js 依事件演出（動畫、音效、提示、HUD）
     → 有 script 時 runScript：演出指令自己處理，狀態指令（give／stat／key／flag／set／swap／leave／layer／ending）呼叫 MT.applyCmd
   → autosave → MT.Sync.saveAuto(MT.pack(st)) → localStorage → 2.5 秒後 push 到 GitHub</code></pre>
@@ -498,7 +515,7 @@ S：分數 ≥ 20000 且真結局　A：≥ 15500　B：≥ 9500　其餘 C</cod
 <li>版本號在兩處：<code>index.html</code> 的 <code>MT.VERSION</code>（設定頁顯示「網頁版 vX」）與 <code>sw.js</code> 的 <code>VERSION = 'mt-X'</code></li>
 <li><b>改版必須把 <code>sw.js</code> 的 VERSION 加一</b>，否則已開過的瀏覽器會繼續用快取裡的舊檔</li>
 <li>App 外殼版號由 User-Agent 的 <code>MagicTowerApp/x.y.z</code> 讀出，網頁更新不需重包 App</li>
-<li>改關卡或數值後依序跑 <code>node tools/check_reach.js</code>、<code>node tools/audit.js</code>、<code>node tools/solve.js</code>（新手／一般／高手三種自動玩家），細節見 <code>DESIGN.md</code></li>
+<li>改關卡或數值後依序跑 <code>node tools/check_reach.js</code>、<code>node tools/audit.js</code>、<code>node tools/solve.js</code>（新手／一般／真人型／高手四種自動玩家），細節見 <code>DESIGN.md</code></li>
 <li>改關卡、數值或道具名稱後重產通關攻略：<code>node tools/guide.js &lt;輸出&gt; --width 4 --skill reflect</code>（這組拿得到 S）</li>
 </ul>
 
@@ -522,8 +539,9 @@ S：分數 ≥ 20000 且真結局　A：≥ 15500　B：≥ 9500　其餘 C</cod
 <tr><td>3.0.2～3.0.5</td><td>2026-10-02</td><td class="wrap">3.0.2：序章在被嘲笑與開始打鐵之間加兩幕過場（逃出練唱廳、第一鎚，新音效 clang）。3.0.3：加生命的道具改成小愛心／金邊大愛心，飛進資訊列的 +數字改用資訊列同一組顏色。3.0.4～3.0.5：選單與標題畫面加 8 頁圖文教學（示意圖用遊戲圖塊即時畫、戰鬥例子照 MT.calc 實算）；攻略產生器改讀遊戲的道具名</td></tr>
 <tr><td>3.0.6</td><td>2026-10-02</td><td class="wrap">整體音效優化：對話每個角色一種聲音（audio.js VOICES）、序章各幕補音效、撿取與數字落進資訊列的音效、Boss／反彈／吸血的打擊聲</td></tr>
 <tr><td>3.0.7</td><td>2026-10-02</td><td class="wrap">靜默指揮家（M2）攻擊 380 → 450：原本把資源換完再打只扣約 600 血、結局沒有壓力，加強後約 2800。評價門檻跟著下修為 S 20000／A 15500／B 9500（高手寬度 4 回音 22578 → 20734，仍是 S＋真結局）</td></tr>
+<tr><td>3.1.0</td><td>2026-10-02</td><td class="wrap">跟位置有關的機制：第 3 區回音地板（踩上去，這層上一場戰鬥的損失再扣一次，9 塊）、第 4 區共鳴水晶（周圍八格每步 80，8 隻）；點地圖時算整條路要付的生命、繞不開才走最便宜的路；教學、圖鑑、說明卡、攻略產生器、三語跟著補；舊存檔沒去過的樓層換成新地圖。新增真人型自動玩家（只知道去過的樓層、上樓就定案、評分加亂數），照它的通關分數分佈把評價門檻改成 S 20000／A 16000／B 12000；稽核加「回音地板要先打過怪才到得了」</td></tr>
 </table></div>
-<p class="muted">2026-09-30 首版至 2026-10-02 的 3.0.7。</p>
+<p class="muted">2026-09-30 首版至 2026-10-02 的 3.1.0。</p>
 
 </main>
 </body>

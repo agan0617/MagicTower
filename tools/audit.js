@@ -6,13 +6,16 @@
    5. 暗牆在主線上：不走暗牆就到不了上樓梯
    6. 左右內容重複：鏡射位置放一樣的怪、道具、門（超過 40% 列出來）
    7. 免費道具：從樓梯不付任何代價就撿得到的（超過 3 個列出來）
+   8. 白踩的回音地板：不打任何怪就走得到（這層還沒打過，回音是 0，一上樓先踩過去就沒有取捨了）
    加 --sim：再用高手自動玩家跑一次，列出每層到達時紅寶石／藍寶石的價值比（攻擊比防禦值錢幾倍）*/
 'use strict';
 const S = require('./sim.js');
 const MT = S.MT;
 const st = MT.newGame();
 const W = MT.W, H = MT.H, D = [[0, -1], [0, 1], [-1, 0], [1, 0]];
-const isGate = t => MT.isMonster(t) || !!MT.DOORS[t] || t === 'Cw' || t === 'Hw';
+const isGate = t => MT.isMonster(t) || !!MT.DOORS[t] || t === 'Cw' || t === 'Hw' || t === 'Ec';
+// 共鳴的格子：要付生命才走得過，跟門、怪一樣算閘門
+const auraCell = (f, x, y) => MT.auraAt(st, f, x, y) > 0;
 const leaves = t => { const n = MT.NPCS[t]; return !!n && (!!n.deal || (n.talk && (MT.SCRIPTS[n.talk] || []).some(c => c[0] === 'leave'))); };
 const blocks = t => t === '##' || t === 'Gt' || (MT.isNpc(t) && !leaves(t) && t !== 'Om');
 const inb = (x, y) => x >= 0 && y >= 0 && x < W && y < H;
@@ -70,9 +73,9 @@ const roots = f => {
     const m = st.maps[f];
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
       if (!MT.DOORS[m[y][x]]) continue;
-      const sides = D.map(([dx, dy]) => [x + dx, y + dy]).filter(([a, b]) => inb(a, b) && !blocks(m[b][a]) && !isGate(m[b][a]));
+      const sides = D.map(([dx, dy]) => [x + dx, y + dy]).filter(([a, b]) => inb(a, b) && !blocks(m[b][a]) && !isGate(m[b][a]) && !auraCell(f, a, b));
       if (sides.length < 2) continue;
-      const r = flood(m, [sides[0]], (c, a, b) => !(a === x && b === y) && !blocks(c) && !isGate(c));
+      const r = flood(m, [sides[0]], (c, a, b) => !(a === x && b === y) && !blocks(c) && !isGate(c) && !auraCell(f, a, b));
       if (sides.slice(1).every(p => r.has(p.join()))) rows.push(`${MT.floorName(f)} ${m[y][x]}@${x},${y}`);
     }
   }
@@ -143,11 +146,24 @@ const roots = f => {
   const rows = [];
   for (const f of floors) {
     const m = st.maps[f];
-    const r = flood(m, roots(f), c => !blocks(c) && !isGate(c));
+    const r = flood(m, roots(f), (c, a, b) => !blocks(c) && !isGate(c) && !auraCell(f, a, b));
     const free = [...r].map(k => k.split(',').map(Number)).map(([a, b]) => m[b][a]).filter(t => MT.isItem(t));
     if (free.length > 3 && !MT.NOFLY[f]) rows.push(`${MT.floorName(f)} ${free.length} 個：${free.join(' ')}`);
   }
   report('免費道具 ≤ 3', rows);
+}
+// 8. 白踩的回音地板：從樓梯只開門、不打怪就走得到旁邊
+{
+  const rows = [];
+  for (const f of floors) {
+    const m = st.maps[f];
+    const r = flood(m, roots(f), c => !blocks(c) && !MT.isMonster(c) && c !== 'Cw' && c !== 'Hw' && c !== 'Ec');
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      if (m[y][x] !== 'Ec') continue;
+      if (D.some(([dx, dy]) => r.has((x + dx) + ',' + (y + dy)))) rows.push(`${MT.floorName(f)} Ec@${x},${y}`);
+    }
+  }
+  report('回音地板要先打過怪才到得了', rows);
 }
 // --sim：攻防價值比
 if (process.argv.includes('--sim')) {
