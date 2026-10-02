@@ -2,16 +2,19 @@
 (function (MT) {
   'use strict';
 
-  const W = 11, H = 11;
+  const W = 11, H = 15;
   const clone = o => JSON.parse(JSON.stringify(o));
   const parseFloor = rows => rows.map(r => r.split(' '));
 
   MT.W = W; MT.H = H;
+  // 存檔格式版本：2.0.0 地圖由 11×11 加高成 11×15，1.x 的存檔（v1）存的是舊地圖，讀不了
+  MT.SAVE_V = 2;
+  MT.canLoad = data => !!data && data.v === MT.SAVE_V;
 
   MT.newGame = function () {
     const s = MT.START;
     return {
-      v: 1,
+      v: MT.SAVE_V,
       floor: s.floor, x: s.x, y: s.y, dir: 'up',
       hp: s.hp, atk: s.atk, def: s.def, gold: s.gold,
       keys: clone(s.keys),
@@ -219,15 +222,9 @@
   // 真結局：三頁日記全撿齊，並帶著失落的音符打倒指揮家
   MT.isTrueEnding = st => st.pages.length >= 3 && !!st.items.note;
 
-  /* 舊存檔補上新版加的東西：14F 還沒去過就把失落的音符放回去 */
+  /* 存檔補上新版加的欄位（2.0.0 起只讀得了 v2 存檔，1.x 的地圖修補都用不到了） */
   MT.migrate = function (st) {
     if (st.items.note == null) st.items.note = 0;
-    // 1.3.1 前跟國王（原巴納比）談過的存檔：他還擋在 2F 通道上，讓他退進凹處
-    const m2 = st.maps[2];
-    if (m2 && st.flags.bardTalked && m2[5][3] === 'Om') { m2[5][3] = '..'; m2[4][3] = 'Om'; }
-    const m = st.maps[14];
-    // 14F 還沒去過、或去過但那間紅門房還沒打開
-    if (m && !st.items.note && m[1][5] === '..' && (!st.visited.includes(14) || m[2][5] === 'Rd')) m[1][5] = 'FN';
     return st;
   };
 

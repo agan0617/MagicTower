@@ -3,7 +3,8 @@
   'use strict';
   const MT = window.MT;
   const $ = s => document.querySelector(s);
-  const TILE = 48, SC = 3, N = 11, SIZE = TILE * N;
+  // 地圖 W×H 格（2.0.0 起 11×15）；SIZE 是開場／結局動畫的正方形畫布
+  const TILE = 48, SC = 3, W = MT.W, H = MT.H, MW = TILE * W, MH = TILE * H, SIZE = TILE * 11;
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const now = () => performance.now();
@@ -21,7 +22,7 @@
   };
 
   const canvas = $('#map');
-  canvas.width = canvas.height = SIZE;
+  canvas.width = MW; canvas.height = MH;
   const g = canvas.getContext('2d');
   g.imageSmoothingEnabled = false;
 
@@ -152,6 +153,14 @@
         g.beginPath(); g.roundRect ? g.roundRect(bx - 16, by - 26, 32, 24, 6) : g.rect(bx - 16, by - 26, 32, 24); g.fill(); g.stroke();
         g.fillStyle = '#1b1a26'; g.font = 'bold 18px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
         g.fillText(f.text, bx, by - 13); g.restore();
+      } else if (f.kind === 'cross') {
+        const r = 13;
+        g.save(); g.globalAlpha = 1 - k; g.lineCap = 'round';
+        for (const [lw, col] of [[9, 'rgba(0,0,0,0.6)'], [5, '#ff4a4a']]) {
+          g.lineWidth = lw; g.strokeStyle = col; g.beginPath();
+          g.moveTo(f.x - r, f.y - r); g.lineTo(f.x + r, f.y + r); g.moveTo(f.x + r, f.y - r); g.lineTo(f.x - r, f.y + r); g.stroke();
+        }
+        g.restore();
       } else if (f.kind === 'note') {
         const dt = t - f.t0;
         g.save(); g.globalAlpha = 1 - k; g.fillStyle = f.color; g.font = 'bold 20px serif'; g.textAlign = 'center';
@@ -168,12 +177,13 @@
     g.save();
     if (view.shakeUntil > t) g.translate((Math.random() - 0.5) * view.shake, (Math.random() - 0.5) * view.shake);
     const m = st.maps[f];
-    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
       const code = m[y][x];
       const wall = code === '##';
       g.drawImage(MT.terrain(wall ? 'wall' : 'floor', zone, TILE, (x * 7 + y * 13) % 10), x * TILE, y * TILE);
     }
-    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    drawRoute(t);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
       const code = m[y][x];
       if (code !== '##' && code !== '..') drawTile(code, x, y, t);
     }
@@ -196,6 +206,7 @@
         g.restore();
       }
     }
+    drawMarks(t);
     drawHero(t);
     drawFx(t);
     g.restore();
@@ -205,19 +216,19 @@
       view.fadeCur = view.fadeFrom + (view.fadeTo - view.fadeFrom) * k;
       if (k >= 1) view.fade = view.fadeTo;
     } else view.fadeCur = view.fade;
-    if (view.fadeCur > 0) { g.fillStyle = `rgba(8,6,16,${view.fadeCur})`; g.fillRect(0, 0, SIZE, SIZE); }
+    if (view.fadeCur > 0) { g.fillStyle = `rgba(8,6,16,${view.fadeCur})`; g.fillRect(0, 0, MW, MH); }
     if (view.flash) {
       const k = (t - view.flash.t0) / view.flash.dur;
       if (k >= 1) view.flash = null;
-      else { g.save(); g.globalAlpha = 1 - k; g.fillStyle = view.flash.color; g.fillRect(0, 0, SIZE, SIZE); g.restore(); }
+      else { g.save(); g.globalAlpha = 1 - k; g.fillStyle = view.flash.color; g.fillRect(0, 0, MW, MH); g.restore(); }
     }
     if (view.banner) {
       const k = (t - view.banner.t0) / 1100;
       if (k >= 1) view.banner = null;
       else {
         g.save(); g.globalAlpha = k < 0.15 ? k / 0.15 : k > 0.75 ? (1 - k) / 0.25 : 1;
-        g.fillStyle = 'rgba(8,6,16,0.6)'; g.fillRect(0, SIZE / 2 - 40, SIZE, 80);
-        label(view.banner.text, SIZE / 2, SIZE / 2 + 14, '#ffe9a8', 40);
+        g.fillStyle = 'rgba(8,6,16,0.6)'; g.fillRect(0, MH / 2 - 40, MW, 80);
+        label(view.banner.text, MW / 2, MH / 2 + 14, '#ffe9a8', 40);
         g.restore();
       }
     }
@@ -295,7 +306,7 @@
       const box = $('#dialog');
       box.hidden = false;
       box.classList.toggle('narr', !speaker);
-      box.classList.toggle('top', !!st && st.y >= 6);
+      box.classList.toggle('top', !!st && st.y >= Math.ceil(H / 2));
       const pc = $('#dPortrait');
       if (speaker && PORTRAIT[speaker]) {
         const p = PORTRAIT[speaker];
@@ -499,57 +510,178 @@
     if (mode === 'game') { playMusic(musicFor()); autosave(); }
   }
 
-  /* 點地圖走過去：只穿過空地，終點可以是任何東西（碰到就觸發） */
-  function findPath(tx, ty) {
+  /* ───────── 點地圖移動 ─────────
+     手機上沒有方向鍵，一律點地圖：點一下就畫出路線（虛線＋終點框），勇者沿著走過去，走過的那段跟著消失。
+     終點是怪物或門（會扣血、用掉鑰匙）時，第一下只顯示路線和代價，同一格再點一次才出發，誤觸不會白白損失。
+     長按怪物顯示牠的能力（同圖鑑那一列）。 */
+  let route = null;     // { cells:[[x,y]…], kind, door } 畫在地圖上的路線；kind：walk／fight／door
+  let pending = null;   // 等第二下確認的終點 'x,y'
+  let inspect = null;   // 長按中的怪物 { x, y }
+  function clearRoute() { route = null; pending = null; }
+
+  // BFS：只穿過 pass(代碼) 為真的格子，終點可以是任何東西（碰到就觸發）。回傳不含起點、含終點的格子
+  function bfs(tx, ty, pass) {
     const m = st.maps[st.floor];
-    const key = (x, y) => y * N + x;
+    const key = (x, y) => y * W + x;
     const prev = new Map([[key(st.x, st.y), null]]);
     const q = [[st.x, st.y]];
     while (q.length) {
       const [x, y] = q.shift();
       if (x === tx && y === ty) break;
-      for (const [d, [dx, dy]] of Object.entries(DIR_V)) {
+      for (const [dx, dy] of Object.values(DIR_V)) {
         const nx = x + dx, ny = y + dy;
-        if (nx < 0 || ny < 0 || nx >= N || ny >= N || prev.has(key(nx, ny))) continue;
-        const code = m[ny][nx];
-        const isTarget = nx === tx && ny === ty;
-        if (code !== '..' && !isTarget) continue;
-        prev.set(key(nx, ny), [x, y, d]);
+        if (nx < 0 || ny < 0 || nx >= W || ny >= H || prev.has(key(nx, ny))) continue;
+        if ((nx !== tx || ny !== ty) && !pass(m[ny][nx])) continue;
+        prev.set(key(nx, ny), [x, y]);
         q.push([nx, ny]);
       }
     }
     if (!prev.has(key(tx, ty))) return null;
-    const path = [];
-    for (let k = key(tx, ty); prev.get(k); ) { const p = prev.get(k); path.unshift(p[2]); k = key(p[0], p[1]); }
-    return path;
+    const cells = [];
+    for (let c = [tx, ty]; prev.get(key(c[0], c[1])); c = prev.get(key(c[0], c[1]))) cells.unshift(c);
+    return cells;
   }
-  async function walkPath(path) {
+  // 優先只走空地；走不到才允許順路撿道具（撿道具只有好處，劇情道具撿到會停下來播劇情）
+  const findPath = (tx, ty) => bfs(tx, ty, c => c === '..') || bfs(tx, ty, c => c === '..' || MT.isItem(c));
+
+  async function walkRoute(cells) {
     const id = {};
     autoPath = id;
-    for (const d of path) {
+    for (const [nx, ny] of cells) {
       if (autoPath !== id) return;
       while (busy) { await sleep(30); if (autoPath !== id) return; }
-      const cont = await stepOnce(d);
+      if (Math.abs(nx - st.x) + Math.abs(ny - st.y) !== 1) break;   // 位置變了（換樓層、劇情移動）
+      const cont = await stepOnce(nx > st.x ? 'right' : nx < st.x ? 'left' : ny > st.y ? 'down' : 'up');
       if (!cont) break;
       await sleep(105);
     }
-    if (autoPath === id) autoPath = null;
+    if (autoPath === id) { autoPath = null; route = null; }
   }
-  canvas.addEventListener('pointerdown', e => {
-    if (mode !== 'game' || busy) return;
-    MT.Audio.init();
-    const r = canvas.getBoundingClientRect();
-    const x = Math.floor((e.clientX - r.left) / r.width * N), y = Math.floor((e.clientY - r.top) / r.height * N);
-    if (x === st.x && y === st.y) return;
-    const p = findPath(x, y);
-    if (p && p.length) walkPath(p);
-    else if (Math.abs(x - st.x) + Math.abs(y - st.y) === 1) stepOnce(x > st.x ? 'right' : x < st.x ? 'left' : y > st.y ? 'down' : 'up');
-  });
 
-  /* 按住連續走（十字鍵與鍵盤共用） */
+  function tapTile(x, y) {
+    if (x < 0 || y < 0 || x >= W || y >= H) return;
+    if (x === st.x && y === st.y) { autoPath = null; clearRoute(); return; }
+    const code = st.maps[st.floor][y][x];
+    const cells = code === '##' || code === 'Gt' ? null : findPath(x, y);   // 牆和鐵門不能當終點
+    const refuse = msg => { autoPath = null; clearRoute(); sfx('error'); cross(x, y); if (msg) toast(msg); };
+    if (!cells) { refuse(); return; }
+    let kind = 'walk', msg = '';
+    const m = MT.MONSTERS[code];
+    if (m && !(m.onBump && !st.flags['bump:' + code])) {   // 有劇情的 Boss 第一次碰是播劇情，不用確認
+      const c = MT.calc(st, code);
+      if (c.damage == null) { refuse(MT.t('cantHurtMsg', { name: MT.monName(code) })); return; }
+      if (c.damage >= st.hp) { refuse(MT.t('cantWin', { name: MT.monName(code), d: c.damage })); return; }
+      kind = 'fight'; msg = c.damage ? MT.t('confirmFight', { d: c.damage }) : MT.t('confirmFight0');
+    } else if (MT.DOORS[code]) {
+      const k = MT.DOORS[code];
+      if (st.keys[k] <= 0) { refuse(MT.t('needKey_' + k)); return; }
+      kind = 'door'; msg = MT.t('confirmDoor_' + k);
+    }
+    const at = x + ',' + y;
+    if (kind !== 'walk' && pending !== at) {
+      autoPath = null;   // 正在走的話先停下來，等確認
+      pending = at; route = { cells, kind, door: MT.DOORS[code] };
+      sfx('select'); toast(msg);
+      return;
+    }
+    pending = null;
+    route = { cells, kind, door: MT.DOORS[code] };
+    walkRoute(cells);
+  }
+
+  const ROUTE_COLOR = { walk: '#ffe066', fight: '#ff6a6a', y: '#ffd84a', b: '#6ab8ff', r: '#ff6a6a' };
+  const routeColor = r => ROUTE_COLOR[r.kind === 'door' ? r.door : r.kind];
+  // 格子四角的框線，fast＝閃快一點（等確認中）
+  function brackets(x, y, color, t, fast) {
+    const k = 1 + Math.sin(t / (fast ? 110 : 200)) * 0.05;
+    const s = TILE * k, ox = x * TILE + (TILE - s) / 2, oy = y * TILE + (TILE - s) / 2, a = s * 0.3;
+    g.save(); g.lineCap = 'round';
+    for (const [lw, col] of [[7, 'rgba(0,0,0,0.55)'], [4, color]]) {
+      g.lineWidth = lw; g.strokeStyle = col; g.beginPath();
+      g.moveTo(ox, oy + a); g.lineTo(ox, oy); g.lineTo(ox + a, oy);
+      g.moveTo(ox + s - a, oy); g.lineTo(ox + s, oy); g.lineTo(ox + s, oy + a);
+      g.moveTo(ox + s, oy + s - a); g.lineTo(ox + s, oy + s); g.lineTo(ox + s - a, oy + s);
+      g.moveTo(ox + a, oy + s); g.lineTo(ox, oy + s); g.lineTo(ox, oy + s - a);
+      g.stroke();
+    }
+    g.restore();
+  }
+  // 路線：從勇者連到終點的流動虛線（畫在地板上、道具和怪物底下）
+  function drawRoute(t) {
+    if (!route) return;
+    const cells = route.cells, i = cells.findIndex(c => c[0] === st.x && c[1] === st.y);
+    const rest = cells.slice(i + 1);
+    if (!rest.length) return;
+    const c0 = TILE / 2;
+    g.save(); g.lineCap = 'round'; g.lineJoin = 'round';
+    g.setLineDash([1, 13]); g.lineDashOffset = -t / 45;
+    for (const [lw, col] of [[10, 'rgba(0,0,0,0.5)'], [6, routeColor(route)]]) {
+      g.lineWidth = lw; g.strokeStyle = col; g.beginPath();
+      g.moveTo(view.hx * TILE + c0, view.hy * TILE + c0);
+      for (const [x, y] of rest) g.lineTo(x * TILE + c0, y * TILE + c0);
+      g.stroke();
+    }
+    g.restore();
+  }
+  // 終點框、長按中的怪物框（畫在怪物上面）
+  function drawMarks(t) {
+    if (route) {
+      const [tx, ty] = route.cells[route.cells.length - 1];
+      if (tx !== st.x || ty !== st.y) brackets(tx, ty, routeColor(route), t, !!pending);
+    }
+    if (inspect) brackets(inspect.x, inspect.y, '#ffffff', t);
+  }
+  // 點到走不到的地方：那格閃一下紅色 ✕
+  const cross = (x, y) => view.fx.push({ kind: 'cross', x: x * TILE + TILE / 2, y: y * TILE + TILE / 2, t0: now(), life: 550 });
+
+  /* 長按怪物：地圖上方或下方（避開那隻怪）浮出能力卡，再點一下任何地方收起來 */
+  const monCard = $('#monCard');
+  function showMonCard(code, x, y) {
+    inspect = { x, y };
+    monCard.innerHTML = monRow(code);
+    monCard.classList.toggle('top', y >= Math.ceil(H / 2));
+    monCard.hidden = false;
+    sfx('select');
+    try { if (navigator.vibrate) navigator.vibrate(15); } catch (e) { /* 不支援就算了 */ }
+  }
+  function hideMonCard() { if (monCard.hidden) return false; monCard.hidden = true; inspect = null; return true; }
+  monCard.addEventListener('pointerdown', e => { e.preventDefault(); hideMonCard(); });
+
+  const tileAt = e => {
+    const r = canvas.getBoundingClientRect();
+    return [Math.floor((e.clientX - r.left) / r.width * W), Math.floor((e.clientY - r.top) / r.height * H)];
+  };
+  let press = null;   // 按下中的手指：放開時才算「點」，在怪物上按住超過 LONG_MS 就是「長按」
+  const LONG_MS = 420;
+  canvas.addEventListener('pointerdown', e => {
+    if (mode !== 'game') return;
+    e.preventDefault();
+    if (press) return;   // 第二根手指不理
+    if (advanceDialog() || hideMonCard() || busy) return;
+    const [x, y] = tileAt(e);
+    press = { id: e.pointerId, cx: e.clientX, cy: e.clientY, long: false, timer: 0 };
+    const code = MT.tile(st, st.floor, x, y);
+    if (MT.isMonster(code)) press.timer = setTimeout(() => { if (press) { press.long = true; showMonCard(code, x, y); } }, LONG_MS);
+  });
+  canvas.addEventListener('pointermove', e => {
+    // 手指滑開就不算長按（放開時仍照放開的位置算一次點擊）
+    if (press && e.pointerId === press.id && Math.hypot(e.clientX - press.cx, e.clientY - press.cy) > 14) clearTimeout(press.timer);
+  });
+  canvas.addEventListener('pointerup', e => {
+    if (!press || e.pointerId !== press.id) return;
+    clearTimeout(press.timer);
+    const long = press.long;
+    press = null;
+    if (long || mode !== 'game' || busy) return;
+    tapTile(...tileAt(e));
+  });
+  canvas.addEventListener('pointercancel', () => { if (press) clearTimeout(press.timer); press = null; });
+  canvas.addEventListener('contextmenu', e => e.preventDefault());   // 長按不要跳出系統選單
+
+  /* 鍵盤：按住連續走（電腦用） */
   let holdDir = null, holdTimer = null;
   function startHold(d) {
-    autoPath = null;
+    autoPath = null; clearRoute(); hideMonCard();
     if (holdDir === d) return;
     holdDir = d;
     clearTimeout(holdTimer);
@@ -561,41 +693,6 @@
     tick();
   }
   function stopHold(d) { if (!d || holdDir === d) { holdDir = null; clearTimeout(holdTimer); } }
-  /* 十字鍵：整塊操作區都收觸控。手指按著的時候，滑進哪一顆就往哪走（一開始按在空白處也行），
-     不放開滑到另一顆就換方向；已經在走的時候滑到按鈕之間的空隙，改用「離十字鍵中心哪邊較遠」判斷，換向才不會斷 */
-  const pad = $('#pad'), padZone = $('#stick'), padBtns = [...pad.querySelectorAll('[data-dir]')];
-  let padId = null;
-  function padDir(e) {
-    const el = document.elementFromPoint(e.clientX, e.clientY);
-    const b = el && el.closest && el.closest('#pad [data-dir]');
-    if (b) return b.dataset.dir;
-    if (!holdDir) return null; // 還沒碰到任何一顆：不動
-    const r = pad.getBoundingClientRect();
-    const dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
-    if (Math.hypot(dx, dy) < r.height * 0.12) return holdDir; // 正中間：維持原方向
-    return Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
-  }
-  function padShow(d) { padBtns.forEach(b => b.classList.toggle('on', b.dataset.dir === d)); }
-  function padMove(e) {
-    const d = padDir(e);
-    if (d && d !== holdDir) { startHold(d); padShow(d); }
-  }
-  function padEnd(e) {
-    if (e.pointerId !== padId) return;
-    padId = null; stopHold(); padShow(null);
-  }
-  padZone.addEventListener('pointerdown', e => {
-    e.preventDefault(); MT.Audio.init();
-    if (advanceDialog() || padId !== null) return;
-    padId = e.pointerId;
-    try { padZone.setPointerCapture(e.pointerId); } catch (err) { /* 沒有真的觸控時抓不到，不影響 */ }
-    stopHold();
-    padMove(e);
-  });
-  padZone.addEventListener('pointermove', e => { if (e.pointerId === padId) padMove(e); });
-  padZone.addEventListener('pointerup', padEnd);
-  padZone.addEventListener('pointercancel', padEnd);
-  padZone.addEventListener('lostpointercapture', padEnd);
   const KEYMAP = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', w: 'up', s: 'down', a: 'left', d: 'right', W: 'up', A: 'left', D: 'right' };
   document.addEventListener('keydown', e => {
     MT.Audio.init();
@@ -624,7 +721,7 @@
   let modalOnClose = null;
   function openModal(title, html, onBind, onClose) {
     busy++;
-    stopHold(); autoPath = null;
+    stopHold(); autoPath = null; clearRoute(); hideMonCard();
     const m = $('#modal');
     m.hidden = false;
     $('#mTitle').textContent = title;
@@ -655,20 +752,22 @@
     });
   }
 
+  // 一隻怪物的能力與這場的代價（圖鑑和長按卡片共用）
+  function monRow(code) {
+    const m = MT.MONSTERS[code], c = MT.calc(st, code);
+    const sp = (m.sp || []).map(s => `<span class="tag">${esc(MT.t('sp_' + s))}</span>`).join('');
+    const dmg = c.damage == null ? `<b class="bad">${esc(MT.t('cantHurt'))}</b>` : c.damage >= st.hp ? `<b class="bad">${c.damage}（${esc(MT.t('willLose'))}）</b>` : `<b style="color:${dmgColor(c)}">${c.damage}</b>`;
+    const inv = (m.sp || []).includes('invincible');
+    return `<div class="mon">${img(m.sprite, m.pal, 'big')}<div class="mi"><div class="mn">${esc(MT.monName(code))} ${sp}</div>
+      <div class="ms">${esc(MT.t('hp'))} ${inv ? '???' : m.hp}　${esc(MT.t('atk'))} ${inv ? '???' : m.atk}　${esc(MT.t('def'))} ${inv ? '???' : m.def}　${esc(MT.t('gold'))} ${m.gold}</div>
+      <div class="md">${esc(MT.t('dmg'))}：${dmg}</div></div></div>`;
+  }
   function openBook() {
     if (!st || mode !== 'game' || busy) return;
     if (!st.items.book) return;
     const seen = [];
     for (const row of st.maps[st.floor]) for (const c of row) if (MT.MONSTERS[c] && !seen.includes(c)) seen.push(c);
-    const rows = seen.map(code => {
-      const m = MT.MONSTERS[code], c = MT.calc(st, code);
-      const sp = (m.sp || []).filter(s => s !== 'boss' || true).map(s => `<span class="tag">${esc(MT.t('sp_' + s))}</span>`).join('');
-      const dmg = c.damage == null ? `<b class="bad">${esc(MT.t('cantHurt'))}</b>` : c.damage >= st.hp ? `<b class="bad">${c.damage}（${esc(MT.t('willLose'))}）</b>` : `<b style="color:${dmgColor(c)}">${c.damage}</b>`;
-      const inv = (m.sp || []).includes('invincible');
-      return `<div class="mon">${img(m.sprite, m.pal, 'big')}<div class="mi"><div class="mn">${esc(MT.monName(code))} ${sp}</div>
-        <div class="ms">${esc(MT.t('hp'))} ${inv ? '???' : m.hp}　${esc(MT.t('atk'))} ${inv ? '???' : m.atk}　${esc(MT.t('def'))} ${inv ? '???' : m.def}　${esc(MT.t('gold'))} ${m.gold}</div>
-        <div class="md">${esc(MT.t('dmg'))}：${dmg}</div></div></div>`;
-    });
+    const rows = seen.map(monRow);
     openModal(MT.t('bookTitle') + ' · ' + MT.t('floorN', { n: st.floor }), rows.length ? rows.join('') : `<p class="muted">${esc(MT.t('noMonsters'))}</p>`);
   }
 
@@ -696,8 +795,12 @@
     if (s < 86400) return MT.t('hoursAgo', { n: Math.floor(s / 3600) });
     return MT.t('daysAgo', { n: Math.floor(s / 86400) });
   }
+  // 1.x 的存檔（v1）是 11×11 的舊地圖，2.0 讀不了
+  const loadable = sl => !!sl && MT.canLoad(sl.data);
+  const latestAuto = () => MT.Sync.autos().find(loadable) || null;
   function slotLine(sl) {
     if (!sl) return `<span class="muted">${esc(MT.t('empty'))}</span>`;
+    if (!loadable(sl)) return `<span class="muted">${esc(MT.t('oldSave'))} · ${esc(sl.device || '')} · ${esc(timeAgo(sl.at))}</span>`;
     const dev = (sl.device || '') + (MT.Sync.isMine(sl) ? `（${MT.t('thisDevice')}）` : '');
     return `${MT.t('floorN', { n: sl.floor })} · ${esc(MT.t('hp'))} ${sl.hp} · ${esc(dev)} · ${esc(timeAgo(sl.at))}`;
   }
@@ -708,7 +811,7 @@
     const S = MT.Sync, canSave = !fromTitle;
     const row = (sl, name) => `<div class="slot"><div class="sn">${esc(name)}</div><div class="sd">${slotLine(sl)}</div><div class="sb">
         ${canSave && sl.kind !== 'auto' && S.isMine(sl) ? `<button class="btn" data-save="${esc(sl.id)}">${esc(MT.t('saveHere'))}</button>` : ''}
-        <button class="btn primary" data-load="${esc(sl.id)}">${esc(MT.t('loadThis'))}</button></div></div>`;
+        ${loadable(sl) ? `<button class="btn primary" data-load="${esc(sl.id)}">${esc(MT.t('loadThis'))}</button>` : ''}</div></div>`;
     const autos = S.autos(), manuals = S.manuals();
     const html = `<label class="lab">${esc(MT.t('slotAuto'))}</label>`
       + (autos.length ? autos.map(sl => row(sl, sl.device || MT.t('slotAuto'))).join('') : `<p class="muted">${esc(MT.t('empty'))}</p>`)
@@ -731,7 +834,7 @@
       }));
       body.querySelectorAll('[data-load]').forEach(b => b.addEventListener('click', async () => {
         const sl = S.byId(b.dataset.load);
-        if (!sl) return;
+        if (!loadable(sl)) return;
         if (!fromTitle && await ask(MT.t('loadConfirm'), yesNo) !== 'y') return;
         closeModal();
         startGame(MT.unpack(sl.data));
@@ -857,7 +960,7 @@
   // 別台裝置有比較新的自動存檔 → 問要不要讀
   async function checkCloudNewer() {
     if (!st || mode !== 'game') return;
-    const a = MT.Sync.latestAuto();
+    const a = latestAuto();
     if (!a || a.at <= lastAutoAt || MT.Sync.isMine(a)) return;
     while (busy) await sleep(200);
     busy++;
@@ -1289,7 +1392,7 @@
   function renderTitle() {
     $('#tTitle').textContent = MT.t('title');
     $('#tSub').textContent = MT.t('subtitle');
-    const auto = MT.Sync.latestAuto();
+    const auto = latestAuto();
     const cont = $('#tContinue');
     cont.hidden = !auto;
     cont.innerHTML = `${esc(MT.t('continue'))}${auto ? `<small>${slotLine(auto)}</small>` : ''}`;
@@ -1306,7 +1409,7 @@
     MT.Audio.play('title', ['base', 'drums', 'strings', 'lead']);
     MT.Sync.pull().then(() => { if (mode === 'title') renderTitle(); });
   }
-  $('#tContinue').addEventListener('click', () => { MT.Audio.init(); const a = MT.Sync.latestAuto(); if (a) startGame(MT.unpack(a.data)); });
+  $('#tContinue').addEventListener('click', () => { MT.Audio.init(); const a = latestAuto(); if (a) startGame(MT.unpack(a.data)); });
   $('#tNew').addEventListener('click', async () => {
     MT.Audio.init();
     if (MT.Sync.myAuto() && await ask(MT.t('confirmNew'), [{ key: 'n', label: MT.t('no') }, { key: 'y', label: MT.t('yes') }]) !== 'y') return;
@@ -1324,6 +1427,7 @@
     mode = 'game'; busy = 0;
     $('#title').hidden = true; $('#cine').hidden = true; $('#stage').classList.remove('under');
     view.fairy = false; view.move = null; view.dying = null; view.fx = []; view.fade = 0; view.fadeTo = 0; view.fadeCur = 0;
+    autoPath = null; clearRoute(); hideMonCard();
     playClock = Date.now();
     renderHud();
     playMusic(musicFor());
@@ -1332,7 +1436,7 @@
       const id = MT.stepTrigger(st);
       if (!id) autosave();
       if (id) setTimeout(() => runScript(id).then(autosave), 700);
-    } else lastAutoAt = (MT.Sync.latestAuto() || {}).at || 0;
+    } else lastAutoAt = (latestAuto() || {}).at || 0;
   }
 
   async function startEnding() {
