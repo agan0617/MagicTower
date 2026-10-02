@@ -1,0 +1,518 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>魔塔 遊戲設計文件</title>
+<style>
+:root {
+  --bg: #f7f6fb; --fg: #1d1b2a; --muted: #5d5a70; --card: #ffffff; --line: #dcd8e8;
+  --accent: #6a34a8; --accent2: #c9921a; --code: #efeaf8; --th: #ece7f6; --warn-bg: #fff4d6; --warn-fg: #6b4b00;
+  --nav-w: 230px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #12111c; --fg: #e8e6f2; --muted: #a29fb8; --card: #1c1a2a; --line: #34304a;
+    --accent: #c07cf5; --accent2: #ffd84a; --code: #26233a; --th: #26233a; --warn-bg: #3a2f10; --warn-fg: #ffe08a;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 12px; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.7 system-ui, -apple-system, "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", sans-serif; }
+a { color: var(--accent); }
+code { background: var(--code); padding: 1px 5px; border-radius: 4px; font-size: .9em; font-family: ui-monospace, Consolas, monospace; }
+pre { background: var(--code); padding: 12px 14px; border-radius: 8px; overflow-x: auto; font-size: .88em; line-height: 1.55; }
+pre code { background: none; padding: 0; }
+nav#toc { position: fixed; top: 0; left: 0; bottom: 0; width: var(--nav-w); overflow-y: auto; padding: 20px 16px; border-right: 1px solid var(--line); background: var(--card); font-size: .92em; }
+nav#toc b { display: block; margin-bottom: 8px; color: var(--accent); }
+nav#toc ol { padding-left: 20px; margin: 0; }
+nav#toc li { margin: 3px 0; }
+nav#toc a { color: var(--fg); text-decoration: none; }
+nav#toc a:hover { color: var(--accent); }
+main { margin-left: var(--nav-w); padding: 28px 40px 80px; max-width: 1100px; }
+header.top h1 { margin: 0 0 4px; font-size: 1.9em; }
+header.top .meta { color: var(--muted); font-size: .92em; }
+.note { background: var(--warn-bg); color: var(--warn-fg); border-radius: 8px; padding: 10px 14px; margin: 14px 0; font-size: .94em; }
+h2 { margin-top: 48px; padding-bottom: 6px; border-bottom: 2px solid var(--line); }
+h3 { margin-top: 28px; color: var(--accent); }
+.tw { overflow-x: auto; margin: 12px 0; border: 1px solid var(--line); border-radius: 8px; -webkit-overflow-scrolling: touch; }
+table { border-collapse: collapse; width: 100%; font-size: .9em; background: var(--card); }
+th, td { padding: 6px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; white-space: nowrap; }
+td.wrap, th.wrap { white-space: normal; min-width: 220px; }
+th { background: var(--th); font-weight: 600; position: sticky; top: 0; }
+td.n { text-align: right; font-variant-numeric: tabular-nums; }
+tr:last-child td { border-bottom: none; }
+.tag { display: inline-block; padding: 0 6px; border-radius: 4px; font-size: .8em; background: var(--code); margin-right: 3px; }
+.tag.boss { background: #9a2228; color: #fff; }
+.tag.tbd { background: var(--warn-bg); color: var(--warn-fg); }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; }
+.card h4 { margin: 0 0 6px; }
+.muted { color: var(--muted); }
+blockquote { margin: 10px 0; padding: 6px 14px; border-left: 3px solid var(--accent); color: var(--muted); }
+@media (max-width: 860px) {
+  nav#toc { position: static; width: auto; border-right: none; border-bottom: 1px solid var(--line); }
+  main { margin-left: 0; padding: 18px 16px 60px; }
+  header.top h1 { font-size: 1.5em; }
+}
+</style>
+</head>
+<body>
+<nav id="toc">
+  <b>目錄</b>
+  <ol>
+    <li><a href="#s1">概要</a></li>
+    <li><a href="#s2">世界觀與劇情</a></li>
+    <li><a href="#s3">核心玩法</a></li>
+    <li><a href="#s4">數值表</a></li>
+    <li><a href="#s5">關卡結構</a></li>
+    <li><a href="#s6">系統</a></li>
+    <li><a href="#s7">美術與音效</a></li>
+    <li><a href="#s8">技術架構</a></li>
+    <li><a href="#s9">附錄：版本演進</a></li>
+  </ol>
+</nav>
+<main>
+<header class="top">
+  <h1>魔塔：失落的旋律　遊戲設計文件</h1>
+  <div class="meta">依 3.0.1 撰寫　·　2026-10-02</div>
+  <div class="note">3.0.0 是關卡全面改版：20 層＋隱藏層 B1、經驗值與等級、三選一技能、大型 Boss、路上 NPC、暗牆與裂牆。關卡設計規則與平衡流程另見 repo 根目錄的 <code>DESIGN.md</code>。</div>
+</header>
+
+<!-- ───────────── 1 ───────────── -->
+<h2 id="s1">1. 概要</h2>
+<div class="tw"><table>
+<tr><th>項目</th><th>內容</th></tr>
+<tr><td>遊戲名稱</td><td class="wrap">魔塔：失落的旋律（英文 Magic Tower: The Lost Melody）</td></tr>
+<tr><td>類型</td><td class="wrap">經典「魔塔」式固定數值解謎 RPG：戰鬥結果完全確定，打之前就知道代價，核心是資源（生命、鑰匙、金幣、經驗值、鑿子）的取捨與開門、打怪順序</td></tr>
+<tr><td>平台</td><td class="wrap">網頁版 PWA（GitHub Pages：<code>agan0617.github.io/MagicTower/</code>，可安裝、可離線）；Android App 外殼是開線上網頁的 WebView（User-Agent 帶 <code>MagicTowerApp/x.y.z</code>），遊戲本體與網頁版共用同一份程式</td></tr>
+<tr><td>規模</td><td class="wrap">20 層原創關卡＋隱藏層 B1，每層 11×15 格；四區、四隻 3×3 大型 Boss（5F 鼓魔像、10F 弦之魔女、15F 回音之鏡、20F 靜默指揮家）與四隻 2×2 中 Boss；40 種怪物；17 位 NPC；兩種結局；通關評價 S／A／B／C</td></tr>
+<tr><td>語言</td><td class="wrap">繁體中文／English／日本語（介面與全部劇情）</td></tr>
+<tr><td>設計目標</td><td class="wrap">「會玩和不會玩要有明顯差距」：每一扇門、每一個房間都是取捨，怪物依打法分類（高攻、高防、高血、魔法、吸血、連擊、夾擊、破甲），技能三選一讓同一張地圖有不同的最佳路線。用自動玩家驗證：新手卡在 3F、一般卡在 5F、高手通關約 19500～22600 分</td></tr>
+<tr><td>目標體驗</td><td class="wrap">「手機上單手點一點就能玩的經典魔塔」＋「一個青春期王子跟自己和解的短篇故事」。音樂隨劇情一層層回來（低音→鼓→和聲→笛→主旋律）；沿路的 NPC 與多蕾帶來幽默橋段；所有音樂、美術由程式產生，無任何外部素材</td></tr>
+<tr><td>版本</td><td class="wrap">網頁版 3.0.1（<code>index.html</code> 的 <code>MT.VERSION</code>、<code>sw.js</code> 的 <code>mt-3.0.1</code>）；存檔格式 v3（<code>MT.SAVE_V = 3</code>，2.x 存檔讀不了）</td></tr>
+</table></div>
+
+<!-- ───────────── 2 ───────────── -->
+<h2 id="s2">2. 世界觀與劇情</h2>
+<h3>2.1 世界觀</h3>
+<p>里拉王國是音樂之國：清晨有鐘聲，傍晚的廣場上總有人唱歌。主題是<b>變聲期的憤怒與羞恥</b>——塔裡遇到的敵人其實都是主角自己：5F 鼓魔像是<b>怒氣</b>、10F 弦之魔女是<b>別人的眼光</b>、15F 回音之鏡是<b>一直拿現在跟小時候比的那個他</b>、塔頂的靜默指揮家是<b>想把所有聲音關掉的那個他</b>。</p>
+
+<h3>2.2 主要角色</h3>
+<div class="tw"><table>
+<tr><th>角色</th><th>程式代號</th><th>說明</th></tr>
+<tr><td>阿爾特（小鐵）</td><td><code>tink</code>／勇者</td><td class="wrap">15 歲王子，7 歲起是豐收祭合唱團領唱；今年變聲、破音被笑，躲進打鐵鋪敲鐵。外形隨攻擊＋防禦分四階（70／170／300），武器盾照實際裝備畫（鐵→銀→金）</td></tr>
+<tr><td>多蕾</td><td><code>doremi</code></td><td class="wrap">豐收祭之歌的精靈（會講話的八分音符），劇情時現身。真結局揭曉她就是阿爾特小時候的歌聲</td></tr>
+<tr><td>國王巴索</td><td><code>Om</code>／<code>bard</code></td><td class="wrap">阿爾特的父親。進塔後在 2F，聲音被收走只能比手勢；送兩把王宮廚房的銅鑰匙，再碰時會偷瞄暗牆。9F 用信差鴿子寄來《風之羽》。三頁日記其實是他 15 歲時寫的</td></tr>
+<tr><td>靜默指揮家</td><td><code>M1</code>／<code>M2</code>／<code>maestro</code></td><td class="wrap">從阿爾特影子裡站起的黑衣人（20F，3×3）。結局面具裂開，底下是阿爾特自己的臉（Mz）</td></tr>
+<tr><td>回音之鏡</td><td><code>EM</code>／<code>echo</code></td><td class="wrap">15F Boss（3×3、連擊）：一面巨大的鏡子，裡面是七歲、戴小王冠、唱得完美無瑕的自己。打碎它，碎片照出的是現在的他（「臉好臭。」「可是很真。」）</td></tr>
+<tr><td>老鐵匠</td><td><code>smith</code></td><td class="wrap">序章教他「鐵燒紅的時候才打得出形狀」；3.0 起也被捲進塔裡，在 7F 幫他磨刀（交易），塔裡的鑿子都是他塞的</td></tr>
+<tr><td>豎琴之靈</td><td><code>Hs</code>／<code>harpghost</code></td><td class="wrap">打倒弦之魔女後出現，教他三種唱法其中一種</td></tr>
+<tr><td>老琴師</td><td><code>Sg</code>／<code>harpist</code></td><td class="wrap">12F，鑑定唱法讓技能生效、之後升級；年輕時也是男高音，變聲後只能唱低音，「結果低音唱得比高音還好」</td></tr>
+<tr><td>其他 NPC</td><td>見 3.11</td><td class="wrap">老門房、受傷的衛兵、小偷與他的奶奶、信差鴿子、鏡中少女、琴師學徒、占星師、迷路的小節拍、最後的衛兵、呱呱商人與他的表哥、節拍之神</td></tr>
+</table></div>
+
+<h3>2.3 序章（<code>main.js</code> 的 <code>PROLOGUE</code>，新遊戲時播放，可略過）</h3>
+<ol>
+<li>廣場：鎮民一起唱歌，阿爾特是領唱（<code>pro_1</code>～<code>pro_2</code>，配樂 title）</li>
+<li>練唱破音、全場哄笑（音效 <code>crackLaugh</code>）；「笑聲很快就停了。可是在他耳朵裡，那陣笑聲一直沒有停」</li>
+<li>打鐵鋪：老鐵匠的話（<code>pro_3b</code>）</li>
+<li>國王來唸他：「明天就是豐收祭了。你到底還要躲到什麼時候？」</li>
+<li>阿爾特吼：「吵死了！全部都給我閉嘴！」→ 爐火熄滅、心跳（音效 <code>heartbeat</code>，八下一下比一下快）、白天的笑聲與嘮叨在他身邊打轉（<code>rage_echo</code>），影子開始自己動</li>
+<li>影子裡站起戴面具的黑衣人，舉起指揮棒把所有聲音捲進夜空；天亮時鐘樓位置多了一座漆黑高塔，全國發不出聲音</li>
+<li>遇見多蕾：「整個王國的聲音都被收進那座塔了……只剩下你的」→ 阿爾特承認「應該是我害的吧」→ 出發</li>
+</ol>
+
+
+<h3>2.4 各樓層劇情節點</h3>
+<p>踩到就觸發的劇情（<code>MT.TRIGGERS</code>）：</p>
+<div class="tw"><table>
+<tr><th>樓層</th><th>觸發</th><th>劇本</th><th>內容</th></tr>
+<tr><td>B1</td><td>踩 (5,14)</td><td><code>b1Enter</code></td><td class="wrap">進地下室：箱子上都寫著「不是偷的」</td></tr>
+<tr><td>1F</td><td>踩 (5,14)</td><td><code>f1Start</code></td><td class="wrap">多蕾教學（圖鑑改成要在 1F 撿到）</td></tr>
+<tr><td>5F</td><td>踩 (5,5)</td><td><code>golemIntro</code></td><td>鼓魔像：「全部……給我閉嘴！」</td></tr>
+<tr><td>10F</td><td>踩 (5,5)</td><td><code>sirenIntro</code></td><td>弦之魔女嘲諷「破音王子」</td></tr>
+<tr><td>15F</td><td>踩 (5,5)</td><td><code>echoIntro</code></td><td class="wrap">回音之鏡：鏡子裡是七歲、唱得完美的自己。「留下來吧，在鏡子裡你永遠都唱得好聽」</td></tr>
+<tr><td>18F</td><td>踩 (10,10)</td><td><code>f18Voice</code></td><td>畫面變暗，指揮家的聲音勸他回去</td></tr>
+<tr><td>19F</td><td>踩 (0,0)</td><td><code>f19Doremi</code></td><td>多蕾道謝、提醒存檔</td></tr>
+<tr><td>20F</td><td>踩 (5,12)</td><td><code>f20Intro</code></td><td class="wrap">音樂停、指揮家開口；多蕾提醒先打倒兩隻休止符衛士</td></tr>
+<tr><td>20F</td><td>踩 (5,3)</td><td><code>maestroIntro</code></td><td>對峙：「我可是你自己許的願」</td></tr>
+</table></div>
+<p>其他事件：</p>
+<div class="tw"><table>
+<tr><th>樓層</th><th>時機</th><th>劇本</th><th>內容</th></tr>
+<tr><td>1F</td><td>撿《怪物圖鑑》</td><td><code>bookGet</code></td><td>從這時起看得到怪物能力和戰鬥代價</td></tr>
+<tr><td>2F</td><td>碰國王</td><td><code>bard</code></td><td class="wrap">國王送兩把銅鑰匙（王宮廚房的備用鑰匙），退到牆邊讓路；再碰時一直偷瞄左邊的牆（暗牆提示）</td></tr>
+<tr><td>3F</td><td>撿 P1</td><td><code>page1</code></td><td>日記第一頁</td></tr>
+<tr><td>4F</td><td>撿鑿子</td><td><code>chiselGet</code></td><td>老鐵匠的鑿子，可敲開裂牆</td></tr>
+<tr><td>5F</td><td>打倒鼓魔像</td><td><code>drumGet</code></td><td>大鼓、鼓聲回來、鐵門開</td></tr>
+<tr><td>8F</td><td>撿 P2</td><td><code>page2</code></td><td>日記第二頁</td></tr>
+<tr><td>9F</td><td>碰信差鴿子</td><td><code>fd</code></td><td class="wrap">國王寄來《風之羽》（請用爪子簽收）</td></tr>
+<tr><td>10F</td><td>打倒弦之魔女</td><td><code>harpGet</code></td><td class="wrap">豎琴、和聲回來；豎琴之靈出現在 Boss 位置，碰它選技能</td></tr>
+<tr><td>12F</td><td>碰老琴師</td><td><code>（MT.sage）</code></td><td class="wrap">鑑定技能（生效）；Lv12、Lv22 時再碰可升級，台詞隨技能與等級改變</td></tr>
+<tr><td>15F</td><td>打倒回音之鏡</td><td><code>fluteGet</code></td><td>笛、笛聲回來</td></tr>
+<tr><td>17F</td><td>撿 P3</td><td><code>page3</code></td><td class="wrap">日記第三頁，署名「王子巴索，十五歲」；失落音符的線索</td></tr>
+<tr><td>19F</td><td>撿 FN</td><td><code>noteGet</code></td><td>金門後的失落的音符</td></tr>
+<tr><td>20F</td><td>第一次碰 M1</td><td><code>maestroDrum</code></td><td class="wrap">M1 無敵 → 用破音的歌聲唱 → 整塊 3×3 換成可打的 M2</td></tr>
+<tr><td>20F</td><td>打倒 M2</td><td><code>ending</code></td><td class="wrap">面具裂開（中央換成 Mz）；真結局條件成立時插入 trueEndTalk</td></tr>
+</table></div>
+
+<h3>2.5 結局</h3>
+<div class="card"><b>一般結局</b><p>王國的聲音回來；阿爾特回到合唱團站最後一排，破音時還是會臉紅；吵完架的隔天會去敲國王的門。結尾提示：「三頁日記，還有一個失落的音符……也許，還有另一個結局。」</p></div>
+<div class="card"><b>★ 真結局</b><p>條件（<code>MT.isTrueEnding</code>）：三頁日記（3F、8F、17F）全撿齊，且帶著 19F 金門後的失落的音符打倒指揮家。多蕾融進他的聲音；新結尾是國王半年前請宮廷樂師改的；國王日記多了一頁「今天在台下跟著他一起唱了。三十年來第一次」。</p></div>
+
+<!-- ───────────── 3 ───────────── -->
+<h2 id="s3">3. 核心玩法</h2>
+<h3>3.1 移動與操作</h3>
+<div class="tw"><table>
+<tr><th>操作</th><th class="wrap">行為（<code>main.js</code>）</th></tr>
+<tr><td>點地圖格子</td><td class="wrap">BFS 找路：<b>先只走空地</b>，走不到才允許順路撿道具（<code>findPath</code>）；畫一條淡白細線＋終點圓角光標（約 1.6 秒呼吸一次），勇者每 105ms 走一格，走過的線段消失。走到一半點別處就改走新路線；點自己停下；點牆、鐵門或走不到的格子閃紅色 ✕</td></tr>
+<tr><td>點怪物／門</td><td class="wrap">一下就出發（2.0.9 起不需再點確認）。出發前先檢查：打不動（攻擊 ≤ 怪物防禦）、打不贏（損失 ≥ 目前生命）、沒鑰匙，直接擋下並提示原因，不會白走。走去開打時光標帶淡紅色</td></tr>
+<tr><td>長按（420ms）</td><td class="wrap">怪物、道具、門、鐵門、樓梯、商人／祭壇、NPC 跳說明卡（怪物＝圖鑑那一列：能力與預估損失；門＝要哪把鑰匙與身上幾把；道具＝撿起來加多少）。手指移動超過 14px 取消長按；手機會震動 15ms。說明卡放在地圖外（直向在地圖上方，橫向在左欄功能鍵下方）</td></tr>
+<tr><td>查看模式</td><td class="wrap">功能鍵列第一顆「查看」：開啟時按鈕變黃、地圖框淡黃，點一下只看說明不移動；再按一次、<code>Esc</code>、返回鍵或方向鍵離開</td></tr>
+<tr><td>鍵盤</td><td class="wrap">方向鍵／WASD 走（按住每 125ms 連續走）；<code>B</code> 圖鑑、<code>F</code> 飛行、<code>Shift+S</code> 存讀、<code>Esc</code> 選單（查看模式中為離開查看）；<code>Enter</code>／空白鍵推進對話與過場</td></tr>
+<tr><td>功能鍵列</td><td class="wrap">查看／圖鑑／飛行／存讀／選單。圖鑑列出<b>本層</b>所有怪物（需先有《怪物圖鑑》）</td></tr>
+<tr><td>Android 返回鍵</td><td class="wrap"><code>MT.onBack</code>：先關確認框 → 關視窗 → 離開查看模式 → 開選單</td></tr>
+<tr><td>夾擊格</td><td class="wrap">自動尋路會盡量繞開兩隻夾擊怪中間的格子；夾擊怪腳下有紅色虛線框</td></tr>
+<tr><td>暗牆／裂牆</td><td class="wrap">暗牆看起來就是牆，點下去會走過去（發現暗道）；裂牆要有鑿子，沒有時點下去會提示</td></tr>
+<tr><td>怪物圖鑑</td><td class="wrap">1F 撿到之前，地圖上不顯示戰鬥代價，長按怪物只看得到名字</td></tr>
+</table></div>
+
+
+
+<h3 id="s3-2">3.2 戰鬥公式（<code>MT.calc</code>）</h3>
+<p>勇者先攻、雙方輪流，戰鬥結果在開打前就確定：</p>
+<pre><code>若怪物有 invincible → 打不動（damage = null）
+heroHit = 勇者攻擊 − 怪物防禦               // ≤ 0 → 打不動
+raw     = magic  ? 怪物攻擊                   // 魔法：無視防禦
+        : pierce ? max(0, 怪物攻擊 − ⌊勇者防禦/2⌋) // 破甲：防禦只算一半
+        :          max(0, 怪物攻擊 − 勇者防禦)
+monHit  = 技能「沉穩低音」? ⌊raw × (1 − 吸收比例)⌋ : raw
+strikes = [heroHit] ＋ 技能「連音」每回合額外的那幾下
+drain   = 吸血 ? ⌊目前生命 × m.drain⌋ : 0      // 開打前先吸
+
+沒有反彈：turns = ⌊(怪物生命 − 1) / Σstrikes⌋ + 1
+          怪物出手 = turns − 1 (+1 先攻)
+有反彈（技能「回音」）：照回合模擬，怪物每出手一下就扣自己 ⌈raw × 反彈比例⌉
+damage  = drain + 怪物出手 × (連擊 ? 2 : 1) × monHit</code></pre>
+<ul>
+<li>能不能打：damage == null 或 damage ≥ 目前生命 時拒絕開打</li>
+<li>勝利：生命 −damage、金幣與經驗值增加、整塊（大型怪物）變空地，再檢查本層鐵門</li>
+<li><b>夾擊</b>（<code>MT.pincerAt</code>）：走進兩隻夾擊怪（左右或上下）中間的格子，立刻失去目前生命的 1/3</li>
+<li><b>大型怪物</b>：<code>size</code> 2 或 3，地圖上 size×size 格都寫同一個代碼、共用一條血（<code>MT.blockOrigin</code>、<code>MT.clearBlock</code>）</li>
+<li>攻擊減少回合數、防禦減少每一下：兩者價值比 ≈（怪物每下傷害）÷（勇者每下傷害），所以高攻怪讓防禦值錢、高血高防怪讓攻擊值錢</li>
+</ul>
+
+<h3>3.3 鑰匙與門</h3>
+<ul>
+<li>三級：銅（Yk／Yd）→ 銀（Bk／Bd）→ 金（Rk／Rd），每扇用掉 1 把。全塔門數遠多於鑰匙（銅門 159、銀門 17、金門 5；鑰匙 94／15／3），不可能全開</li>
+<li>鐵門（Gt）：指定格子的怪物都打倒就開（<code>MT.GATES</code>）：5F／10F／15F 的 (5,1) ← Boss；20F (5,4) ← 兩隻休止符衛士</li>
+<li>前期每層一上樓的區域放一把鑰匙，上樓路線只需 1～2 扇門；中後期越來越緊</li>
+</ul>
+
+<h3>3.4 道具</h3>
+<ul>
+<li>藥水、寶石：數值依所在區域（見 4.2）。裝備固定數值（見 4.3）</li>
+<li>工具（<code>kind: 'tool'</code>）：《怪物圖鑑》<code>Mb</code>（1F）、老鐵匠的鑿子 <code>Ch</code>（4F、7F 暗牆後、12F 金門後、B1 奶奶給，共 4 把）</li>
+<li>劇情道具：《風之羽》（9F 鴿子）、大鼓／豎琴／笛（Boss）、日記三頁、失落的音符</li>
+</ul>
+
+<h3 id="s3-5">3.5 商店、交易定價</h3>
+<p>祭壇每次奉獻三選一（生命／攻擊／防禦），價格 = base + step × 該祭壇已購次數；鑰匙商人固定價；交易一次性，成交後 NPC 離開。數字見 4.4。</p>
+
+<h3>3.6 飛行</h3>
+<ul>
+<li>需持有《風之羽》（<b>9F</b> 信差鴿子；2.x 是 2F，太早拿到顯得廉價）；可飛到任一去過的樓層，B1 去過才列出來</li>
+<li><b>Boss 層禁飛</b>（<code>MT.NOFLY</code>）：5F／10F／15F／20F 的 Boss 還活著時不能飛走</li>
+</ul>
+
+<h3>3.7 樓層與地圖尺寸</h3>
+<ul>
+<li>20 層＋隱藏層 B1（<code>MT.BOTTOM = 0</code>、<code>MT.TOP = 20</code>，<code>MT.floorName</code>），每層 11×15</li>
+<li>四區（<code>MT.zoneOf</code>）：1＝1–5F 石磚、2＝6–10F 紅磚（B1 也算 2）、3＝11–15F 鏡之迴廊、4＝16–20F 水晶</li>
+<li>B1 入口：1F 左下的裂牆後面的下樓梯</li>
+<li>起始：1F (5,14)，生命 1000、攻擊 10、防禦 10、金幣 0、銅鑰匙 1、Lv1</li>
+</ul>
+
+<h3 id="s3-8">3.8 通關評價（<code>MT.rating</code>）</h3>
+<pre><code>金幣 += 銅鑰×10 + 銀鑰×50 + 金鑰×100        // 鑰匙照呱呱商人價格換回金幣
+折算 = 在 16F 水晶祭壇一次一次買生命（每次漲價）＋ 經驗值一級一級升（只算 L2 的生命）
+分數 = 剩餘生命 + 折算
+S：分數 ≥ 22000 且真結局　A：≥ 17000　B：≥ 11000　其餘 C</code></pre>
+<p>門檻照自動高手玩家的分數區間（約 19500～22600）定。照「實際去買」模擬，避免「囤著不花、照起始價換算反而最多」的漏洞。最佳紀錄先比等級再比分數。</p>
+
+<h3>3.9 經驗值與等級（<code>MT.LEVEL</code>）</h3>
+<p>打怪拿經驗值（全塔約 4721）。節拍之神換等級：價格 = 10 + 6 ×（目前等級 − 1），3F 的 L1 與 13F 的 L2 共用等級。L1 每級 +120 生命 +2 攻 +2 防；L2 每級 +300 生命 +4 攻 +4 防。等級也是技能升級的門票。</p>
+
+<h3>3.10 技能（<code>MT.SKILL</code>）</h3>
+<div class="tw"><table>
+<tr><th>唱法</th><th>代號</th><th>Lv1／Lv2／Lv3</th><th>強在</th></tr>
+<tr><td>沉穩低音</td><td><code>absorb</code></td><td class="wrap">少受 20%／少受 35%／少受 50%</td><td class="wrap">連擊、魔法、Boss 都有效，最穩</td></tr>
+<tr><td>回音</td><td><code>reflect</code></td><td class="wrap">反彈 35%／反彈 60%／反彈 85%</td><td>高攻怪與 Boss；無視防禦</td></tr>
+<tr><td>連音</td><td><code>double</code></td><td class="wrap">多打 60%／100%／100%＋50%</td><td>高血、低防的怪</td></tr>
+</table></div>
+<ul>
+<li>10F 打倒弦之魔女後碰豎琴之靈三選一（<code>MT.chooseSkill</code>，lv 0＝還不生效），12F 老琴師鑑定後 lv 1（<code>MT.sage</code>）；勇者 Lv12、Lv22 時再找他升到 lv 2、3</li>
+<li>老琴師台詞依狀態變化：沒技能／鑑定（三種各一句）／升級（三種各一句）／等級不夠（告訴你要幾級）／已滿級（問你有沒有看到他的假牙）</li>
+<li>自動高手三種都能通關、分數接近（回音 22578、連音 21177、沉穩低音 20995）</li>
+</ul>
+
+<h3>3.11 路上的 NPC（<code>MT.NPCS</code>）</h3>
+<p>NPC 一律站在凹處、不擋通道；說話型的第一次說 <code>talk</code>、之後說 <code>again</code>；交易型（<code>MT.DEALS</code>）成交後離開。</p>
+<div class="tw"><table>
+<tr><th>NPC</th><th>代號</th><th>樓層</th><th>類型</th><th>用處</th></tr>
+<tr><td>國王巴索</td><td><code>Om</code></td><td>2F</td><td>對話</td><td>兩把銅鑰匙、暗牆提示</td></tr>
+<tr><td>老門房</td><td><code>N1</code></td><td>1F</td><td>提示</td><td class="wrap">「鑰匙永遠比門少」、左下裂牆後有樓梯；站了三十年</td></tr>
+<tr><td>受傷的衛兵</td><td><code>N2</code></td><td>4F</td><td>贈送</td><td class="wrap">防禦 +3 後離開（被大蝙蝠咬了屁股）</td></tr>
+<tr><td>老鐵匠</td><td><code>N3</code></td><td>7F</td><td>交易</td><td class="wrap">100 金 → 攻擊 +6；塔裡的鑿子都是他塞的</td></tr>
+<tr><td>小偷</td><td><code>N4</code></td><td>8F</td><td>交易</td><td class="wrap">30 金 → 銅鑰匙 ×3（鑰匙圈刻著王宮廚房）</td></tr>
+<tr><td>信差鴿子</td><td><code>Fd</code></td><td>9F</td><td>贈送</td><td>《風之羽》</td></tr>
+<tr><td>豎琴之靈</td><td><code>Hs</code></td><td>10F</td><td>三選一</td><td>打倒弦之魔女後出現，選技能後消失</td></tr>
+<tr><td>鏡中少女</td><td><code>N5</code></td><td>11F</td><td>提示＋贈送</td><td class="wrap">生命 +600，提示 12F 老琴師</td></tr>
+<tr><td>老琴師</td><td><code>Sg</code></td><td>12F</td><td>鑑定／升級</td><td>技能生效與升級；找不到假牙</td></tr>
+<tr><td>節拍之神</td><td><code>L1</code></td><td>3F</td><td>經驗換等級</td><td class="wrap">每級 +120 生命 +2 攻 +2 防</td></tr>
+<tr><td>進階節拍之神</td><td><code>L2</code></td><td>13F</td><td>經驗換等級</td><td class="wrap">每級 +300 生命 +4 攻 +4 防（與 L1 共用等級與價格）</td></tr>
+<tr><td>呱呱商人的表哥</td><td><code>Mq</code></td><td>13F</td><td>商店</td><td>自稱正牌，鑰匙比較貴</td></tr>
+<tr><td>琴師學徒</td><td><code>N6</code></td><td>14F</td><td>交易</td><td class="wrap">320 金 → 防禦 +14（「保證——大概——不會壞」）</td></tr>
+<tr><td>占星師</td><td><code>N7</code></td><td>16F</td><td>提示</td><td>東南角暗牆、失落音符與真結局條件</td></tr>
+<tr><td>迷路的小節拍</td><td><code>N8</code></td><td>17F</td><td>贈送</td><td>銀鑰匙 ×1</td></tr>
+<tr><td>最後的衛兵</td><td><code>N9</code></td><td>19F</td><td>贈送</td><td>生命 +1500</td></tr>
+<tr><td>小偷的奶奶</td><td><code>Nb</code></td><td>B1</td><td>贈送</td><td class="wrap">鑿子 ×1；叫你看到孫子時叫他回家吃飯</td></tr>
+</table></div>
+
+<h3>3.12 暗牆與裂牆</h3>
+<ul>
+<li><b>暗牆</b> <code>Hw</code>：看起來是牆（磚縫有一點點不一樣，「查看」會說「好像不太一樣」），走得過去。2F、7F、11F、16F 各一面；不在主線上，自動玩家與評價門檻都不算</li>
+<li><b>裂牆</b> <code>Cw</code>：要鑿子，敲開人不動、鑿子少一把。全塔 7 面、鑿子 4 把，要挑（1F 那面通往 B1）</li>
+</ul>
+
+<!-- ───────────── 4 ───────────── -->
+<h2 id="s4">4. 數值表（3.0.1）</h2>
+<h3>4.1 怪物</h3>
+<div class="tw"><table>
+<tr><th>代號</th><th>名稱</th><th>生命</th><th>攻擊</th><th>防禦</th><th>金幣</th><th>經驗</th><th>出現樓層（數量）</th><th>特殊能力</th></tr>
+<tr><td>gs</td><td>綠史萊姆</td><td class="n">35</td><td class="n">18</td><td class="n">1</td><td class="n">1</td><td class="n">1</td><td>1F×5、2F×2、3F×1</td><td>—</td></tr>
+<tr><td>rs</td><td>紅史萊姆</td><td class="n">45</td><td class="n">21</td><td class="n">2</td><td class="n">2</td><td class="n">1</td><td>1F×3、2F×1</td><td>—</td></tr>
+<tr><td>bt</td><td>小蝙蝠</td><td class="n">30</td><td class="n">36</td><td class="n">3</td><td class="n">2</td><td class="n">2</td><td class="wrap">1F×2、2F×2、3F×1、5F×1</td><td>—</td></tr>
+<tr><td>sk</td><td>骷髏兵</td><td class="n">55</td><td class="n">40</td><td class="n">6</td><td class="n">4</td><td class="n">3</td><td class="wrap">2F×3、3F×5、4F×4、5F×2</td><td>—</td></tr>
+<tr><td>mg</td><td>見習巫師</td><td class="n">40</td><td class="n">14</td><td class="n">6</td><td class="n">4</td><td class="n">3</td><td class="wrap">2F×2、3F×1、4F×2、5F×1</td><td><span class="tag">魔法</span></td></tr>
+<tr><td>ab</td><td>盔甲蟲</td><td class="n">20</td><td class="n">26</td><td class="n">15</td><td class="n">6</td><td class="n">4</td><td>2F×2、3F×1、4F×2</td><td>—</td></tr>
+<tr><td>sw</td><td>骷髏戰士</td><td class="n">130</td><td class="n">46</td><td class="n">10</td><td class="n">6</td><td class="n">5</td><td>3F×2、4F×2、5F×3</td><td>—</td></tr>
+<tr><td>bb</td><td>大蝙蝠</td><td class="n">50</td><td class="n">66</td><td class="n">8</td><td class="n">8</td><td class="n">5</td><td>3F×1、4F×2、5F×3</td><td><span class="tag">先攻</span></td></tr>
+<tr><td>K1</td><td>骷髏館長</td><td class="n">420</td><td class="n">58</td><td class="n">14</td><td class="n">40</td><td class="n">30</td><td>3F×1</td><td><span class="tag boss">Boss</span> 2×2</td></tr>
+<tr><td>DG</td><td>鼓魔像</td><td class="n">900</td><td class="n">78</td><td class="n">20</td><td class="n">80</td><td class="n">60</td><td>5F×1</td><td class="wrap"><span class="tag boss">Boss</span> 3×3 死亡→<code>drumGet</code></td></tr>
+<tr><td>ks</td><td>黑史萊姆</td><td class="n">300</td><td class="n">75</td><td class="n">10</td><td class="n">8</td><td class="n">6</td><td>6F×3、8F×1</td><td>—</td></tr>
+<tr><td>gd</td><td>塔之衛兵</td><td class="n">90</td><td class="n">80</td><td class="n">45</td><td class="n">12</td><td class="n">8</td><td class="wrap">B1×1、6F×2、7F×1、8F×1、9F×3、10F×1</td><td>—</td></tr>
+<tr><td>oc</td><td>獸人</td><td class="n">200</td><td class="n">115</td><td class="n">20</td><td class="n">14</td><td class="n">9</td><td class="wrap">6F×1、7F×1、8F×1、9F×1、10F×1</td><td>—</td></tr>
+<tr><td>wz</td><td>紅袍巫師</td><td class="n">110</td><td class="n">50</td><td class="n">30</td><td class="n">12</td><td class="n">8</td><td class="wrap">B1×1、6F×2、7F×1、8F×2、9F×1</td><td><span class="tag">魔法</span></td></tr>
+<tr><td>gh</td><td>啞靈</td><td class="n">150</td><td class="n">100</td><td class="n">35</td><td class="n">15</td><td class="n">10</td><td class="wrap">B1×1、6F×1、7F×3、8F×2、9F×1、10F×3</td><td><span class="tag">先攻</span></td></tr>
+<tr><td>dw</td><td>雙刀劍客</td><td class="n">180</td><td class="n">80</td><td class="n">40</td><td class="n">16</td><td class="n">11</td><td class="wrap">6F×2、7F×2、8F×2、9F×3、10F×1</td><td><span class="tag">連擊</span></td></tr>
+<tr><td>pg</td><td>門衛石像</td><td class="n">130</td><td class="n">90</td><td class="n">45</td><td class="n">10</td><td class="n">8</td><td>7F×2、8F×4、10F×2</td><td><span class="tag">夾擊</span></td></tr>
+<tr><td>sc</td><td>骷髏隊長</td><td class="n">240</td><td class="n">110</td><td class="n">45</td><td class="n">20</td><td class="n">14</td><td class="wrap">B1×1、7F×2、8F×1、9F×3、10F×4</td><td>—</td></tr>
+<tr><td>rt</td><td>胖老鼠</td><td class="n">200</td><td class="n">95</td><td class="n">35</td><td class="n">25</td><td class="n">12</td><td>B1×4</td><td>—</td></tr>
+<tr><td>K2</td><td>獄卒長</td><td class="n">1800</td><td class="n">125</td><td class="n">50</td><td class="n">80</td><td class="n">60</td><td>8F×1</td><td><span class="tag boss">Boss</span> <span class="tag">連擊</span> 2×2</td></tr>
+<tr><td>SR</td><td>弦之魔女</td><td class="n">3200</td><td class="n">160</td><td class="n">65</td><td class="n">150</td><td class="n">120</td><td>10F×1</td><td class="wrap"><span class="tag boss">Boss</span> 3×3 死亡→<code>harpGet</code></td></tr>
+<tr><td>vb</td><td>吸血蝙蝠</td><td class="n">220</td><td class="n">160</td><td class="n">75</td><td class="n">25</td><td class="n">18</td><td class="wrap">11F×3、12F×3、13F×4、14F×1、15F×1</td><td><span class="tag">吸血 20%</span></td></tr>
+<tr><td>mi</td><td>碎鏡小鬼</td><td class="n">280</td><td class="n">180</td><td class="n">85</td><td class="n">26</td><td class="n">18</td><td class="wrap">11F×3、12F×3、14F×2、15F×1</td><td><span class="tag">破甲</span></td></tr>
+<tr><td>st</td><td>石像守衛</td><td class="n">80</td><td class="n">200</td><td class="n">125</td><td class="n">30</td><td class="n">20</td><td class="wrap">11F×1、12F×1、13F×3、14F×1、15F×2</td><td>—</td></tr>
+<tr><td>cm</td><td>無聲合唱團員</td><td class="n">200</td><td class="n">95</td><td class="n">90</td><td class="n">28</td><td class="n">20</td><td class="wrap">11F×4、12F×1、13F×2、14F×2、15F×1</td><td><span class="tag">魔法</span></td></tr>
+<tr><td>eh</td><td>回音幽靈</td><td class="n">260</td><td class="n">150</td><td class="n">95</td><td class="n">30</td><td class="n">22</td><td class="wrap">11F×2、12F×2、14F×2、15F×2</td><td><span class="tag">連擊</span></td></tr>
+<tr><td>kn</td><td>黑騎士</td><td class="n">500</td><td class="n">210</td><td class="n">100</td><td class="n">35</td><td class="n">25</td><td class="wrap">11F×1、12F×1、13F×3、14F×2、15F×2</td><td>—</td></tr>
+<tr><td>pm</td><td>鏡面守衛</td><td class="n">300</td><td class="n">190</td><td class="n">105</td><td class="n">30</td><td class="n">20</td><td>12F×2、15F×2</td><td><span class="tag">夾擊</span></td></tr>
+<tr><td>K3</td><td>鏡之騎士</td><td class="n">3500</td><td class="n">230</td><td class="n">115</td><td class="n">150</td><td class="n">100</td><td>13F×1</td><td><span class="tag boss">Boss</span> <span class="tag">破甲</span> 2×2</td></tr>
+<tr><td>EM</td><td>回音之鏡</td><td class="n">6500</td><td class="n">250</td><td class="n">125</td><td class="n">300</td><td class="n">200</td><td>15F×1</td><td class="wrap"><span class="tag boss">Boss</span> <span class="tag">連擊</span> 3×3 死亡→<code>fluteGet</code></td></tr>
+<tr><td>cv</td><td>水晶吸血鬼</td><td class="n">380</td><td class="n">290</td><td class="n">150</td><td class="n">45</td><td class="n">35</td><td class="wrap">16F×3、17F×3、18F×4、19F×1</td><td><span class="tag">吸血 25%</span> <span class="tag">先攻</span></td></tr>
+<tr><td>am</td><td>大巫師</td><td class="n">320</td><td class="n">160</td><td class="n">165</td><td class="n">45</td><td class="n">35</td><td class="wrap">16F×3、17F×3、18F×2、19F×2</td><td><span class="tag">魔法</span></td></tr>
+<tr><td>kd</td><td>水晶重騎士</td><td class="n">800</td><td class="n">300</td><td class="n">160</td><td class="n">50</td><td class="n">40</td><td class="wrap">16F×3、17F×2、18F×3、19F×2</td><td>—</td></tr>
+<tr><td>cg</td><td>水晶魔像</td><td class="n">120</td><td class="n">330</td><td class="n">205</td><td class="n">50</td><td class="n">40</td><td class="wrap">16F×1、17F×1、18F×3、19F×1</td><td>—</td></tr>
+<tr><td>nb</td><td>夜梟</td><td class="n">420</td><td class="n">260</td><td class="n">170</td><td class="n">45</td><td class="n">35</td><td class="wrap">16F×1、17F×2、19F×2</td><td><span class="tag">連擊</span></td></tr>
+<tr><td>dk</td><td>無聲刺客</td><td class="n">360</td><td class="n">320</td><td class="n">160</td><td class="n">50</td><td class="n">40</td><td class="wrap">16F×1、17F×2、19F×4</td><td><span class="tag">破甲</span> <span class="tag">先攻</span></td></tr>
+<tr><td>rg</td><td>休止符衛士</td><td class="n">900</td><td class="n">330</td><td class="n">190</td><td class="n">70</td><td class="n">50</td><td>20F×2</td><td>—</td></tr>
+<tr><td>K4</td><td>回音指揮</td><td class="n">6000</td><td class="n">340</td><td class="n">185</td><td class="n">200</td><td class="n">150</td><td>18F×1</td><td><span class="tag boss">Boss</span> <span class="tag">魔法</span> 2×2</td></tr>
+<tr><td>M1</td><td>靜默指揮家</td><td class="n">9999</td><td class="n">350</td><td class="n">200</td><td class="n">0</td><td class="n">0</td><td>20F×1</td><td class="wrap"><span class="tag boss">Boss</span> <span class="tag">無敵</span> 3×3 碰到→<code>maestroDrum</code></td></tr>
+<tr><td>M2</td><td>靜默指揮家</td><td class="n">9000</td><td class="n">380</td><td class="n">200</td><td class="n">0</td><td class="n">0</td><td>20F（劇情放置）</td><td class="wrap"><span class="tag boss">Boss</span> 3×3 死亡→<code>ending</code></td></tr>
+</table></div>
+<p class="muted">全塔怪物金幣合計約 6436、經驗值約 4721（不含劇情、祭壇、交易）。數量由 <code>MT.FLOORS</code> 統計；大型怪物一塊算一隻。</p>
+
+<h3>4.2 道具（依區域變化）</h3>
+<div class="tw"><table>
+<tr><th>代號</th><th>名稱</th><th>效果</th><th>1 區</th><th>2 區（含 B1）</th><th>3 區</th><th>4 區</th><th>全塔數量</th></tr>
+<tr><td>hp</td><td>紅藥水</td><td>生命</td><td>+50</td><td>+100</td><td>+150</td><td>+250</td><td class="n">58</td></tr>
+<tr><td>HP</td><td>藍藥水</td><td>生命</td><td>+200</td><td>+400</td><td>+600</td><td>+1000</td><td class="n">55</td></tr>
+<tr><td>at</td><td>紅寶石（紅色小劍）</td><td>攻擊</td><td>+2</td><td>+3</td><td>+3</td><td>+4</td><td class="n">64</td></tr>
+<tr><td>df</td><td>藍寶石（藍色小盾）</td><td>防禦</td><td>+2</td><td>+3</td><td>+3</td><td>+4</td><td class="n">53</td></tr>
+</table></div>
+
+<h3>4.3 裝備</h3>
+<div class="tw"><table>
+<tr><th>代號</th><th>名稱</th><th>效果</th><th>位置</th><th>取得方式</th></tr>
+<tr><td>s1</td><td>鐵劍</td><td>攻擊 +10</td><td>3F (2,6)</td><td>3F 骷髏館長（2×2）守著</td></tr>
+<tr><td>a1</td><td>鐵盾</td><td>防禦 +10</td><td>8F (2,2)</td><td>8F 獄卒長（2×2）守著</td></tr>
+<tr><td>s2</td><td>銀劍</td><td>攻擊 +20</td><td>9F (5,5)</td><td>9F 金門後</td></tr>
+<tr><td>a2</td><td>銀盾</td><td>防禦 +20</td><td>13F (10,8)</td><td>13F 鏡之騎士（2×2）守著</td></tr>
+<tr><td>s3</td><td>金劍</td><td>攻擊 +25</td><td>18F (10,8)</td><td>18F 回音指揮（2×2）守著</td></tr>
+<tr><td>a3</td><td>金盾</td><td>防禦 +25</td><td>19F (5,12)</td><td class="wrap">19F：用鑿子敲開中間裂牆，或從下面打兩隻無聲刺客</td></tr>
+</table></div>
+<p>數值直接加在攻擊／防禦上，裝備欄只決定勇者外形。</p>
+
+<h3 id="s4-4">4.4 商店、等級、交易</h3>
+<div class="tw"><table>
+<tr><th>祭壇</th><th>位置</th><th>價格</th><th>生命</th><th>攻擊</th><th>防禦</th></tr>
+<tr><td>音叉祭壇（<code>shop1</code>）</td><td>4F</td><td>20 + 10 × 已購次數</td><td>+300</td><td>+3</td><td>+3</td></tr>
+<tr><td>古老音叉（<code>shop2</code>）</td><td>11F</td><td>120 + 30 × 已購次數</td><td>+800</td><td>+5</td><td>+5</td></tr>
+<tr><td>水晶祭壇（<code>shop3</code>）</td><td>16F</td><td>300 + 60 × 已購次數</td><td>+2000</td><td>+8</td><td>+8</td></tr>
+</table></div>
+<div class="tw"><table>
+<tr><th>鑰匙商人</th><th>位置</th><th>銅</th><th>銀</th><th>金</th></tr>
+<tr><td>呱呱商人（keys）</td><td>6F</td><td class="n">10</td><td class="n">50</td><td class="n">100</td></tr>
+<tr><td>呱呱商人的表哥（keys2）</td><td>13F</td><td class="n">25</td><td class="n">90</td><td class="n">180</td></tr>
+</table></div>
+<div class="tw"><table>
+<tr><th>交易</th><th>NPC</th><th>價格（金幣）</th><th>得到</th></tr>
+<tr><td><code>d3</code></td><td>7F 老鐵匠</td><td class="n">100</td><td>攻擊 +6</td></tr>
+<tr><td><code>d4</code></td><td>8F 小偷</td><td class="n">30</td><td>銅鑰匙 ×3</td></tr>
+<tr><td><code>d6</code></td><td>14F 琴師學徒</td><td class="n">320</td><td>防禦 +14</td></tr>
+</table></div>
+
+<!-- ───────────── 5 ───────────── -->
+<h2 id="s5">5. 關卡結構（20 層＋B1）</h2>
+<div class="tw"><table>
+<tr><th>樓層</th><th>區域</th><th>主要怪物</th><th>設計意圖（data.js 地圖註解）</th></tr>
+<tr><td>1F</td><td class="n">1</td><td class="wrap">綠史萊姆×5、紅史萊姆×3、小蝙蝠×2</td><td class="wrap">入口大廳：撿圖鑑（要打一隻史萊姆）、第一次「鑰匙比門少」的取捨、右邊一條小連戰換寶石；左下的裂牆後面是通往隱藏層 B1 的下樓梯（要等拿到鑿子才敲得開）</td></tr>
+<tr><td>2F</td><td class="n">1</td><td class="wrap">骷髏兵×3、綠史萊姆×2、小蝙蝠×2、盔甲蟲×2、見習巫師×2</td><td class="wrap">衛兵營房：國王（送兩把銅鑰匙＋提示）、盔甲蟲（防禦 15，攻擊不到 16 打不動）守著最肥的房間；左上一面暗牆藏著一個小房間（國王會暗示）</td></tr>
+<tr><td>3F</td><td class="n">1</td><td class="wrap">骷髏兵×5、骷髏戰士×2、綠史萊姆、小蝙蝠、盔甲蟲</td><td class="wrap">書庫：節拍之神（經驗換等級）放在「只打少少幾隻就到得了」的地方；骷髏館長（2×2）守著鐵劍和日記第一頁；左邊是骷髏兵的連戰走廊</td></tr>
+<tr><td>4F</td><td class="n">1</td><td class="wrap">骷髏兵×4、盔甲蟲×2、見習巫師×2、骷髏戰士×2、大蝙蝠×2</td><td class="wrap">音叉祭壇：祭壇在中間；受傷的士兵（送防禦）；第一把鑿子；右下大蝙蝠（先攻）守的寶庫</td></tr>
+<tr><td>5F</td><td class="n">1</td><td class="wrap">骷髏戰士×3、大蝙蝠×3、骷髏兵×2、鼓魔像、小蝙蝠</td><td class="wrap">鼓魔像（3×3）：Boss 活著時不能飛走；左右各一條連戰走廊通往補給，要先算好再進 Boss 房</td></tr>
+<tr><td>6F</td><td class="n">2</td><td class="wrap">黑史萊姆×3、紅袍巫師×2、塔之衛兵×2、雙刀劍客×2、啞靈</td><td class="wrap">呱呱商人：雙刀劍客（連擊）登場，防禦變得很值錢；一面裂牆後面是銀鑰匙與藍藥水</td></tr>
+<tr><td>7F</td><td class="n">2</td><td class="wrap">啞靈×3、骷髏隊長×2、雙刀劍客×2、門衛石像×2、紅袍巫師</td><td class="wrap">幽靈畫廊：流浪鐵匠（交易：金幣換攻擊）；夾擊石像第一次出現（走廊中間那格不要踩）；暗牆後面是第二把鑿子</td></tr>
+<tr><td>8F</td><td class="n">2</td><td class="wrap">門衛石像×4、啞靈×2、紅袍巫師×2、雙刀劍客×2、骷髏隊長</td><td class="wrap">地牢：小偷（交易：便宜的銅鑰匙）、獄卒長（2×2）守著鐵盾與日記第二頁；下半是一整排的連戰（鐵柵欄＝夾擊石像兩兩一組）</td></tr>
+<tr><td>9F</td><td class="n">2</td><td class="wrap">骷髏隊長×3、塔之衛兵×3、雙刀劍客×3、啞靈、紅袍巫師</td><td class="wrap">兵器庫：銀劍、信差鴿子（給風之羽）、高攻獸人與高防衛兵交錯，決定先拿攻還是防；裂牆後面是一顆藍寶石＋紅寶石</td></tr>
+<tr><td>10F</td><td class="n">2</td><td class="wrap">骷髏隊長×4、啞靈×3、門衛石像×2、弦之魔女、塔之衛兵</td><td class="wrap">弦之魔女（3×3）：打倒後，豎琴之靈讓你三選一技能</td></tr>
+<tr><td>11F</td><td class="n">3</td><td class="wrap">無聲合唱團員×4、吸血蝙蝠×3、碎鏡小鬼×3、回音幽靈×2、石像守衛</td><td class="wrap">鏡之迴廊入口：古老音叉祭壇、鏡中少女（提示老琴師在 12F）、吸血蝙蝠登場（血少的時候再去打）</td></tr>
+<tr><td>12F</td><td class="n">3</td><td class="wrap">吸血蝙蝠×3、碎鏡小鬼×3、回音幽靈×2、鏡面守衛×2、無聲合唱團員</td><td class="wrap">老琴師：技能鑑定與升級；第三把鑿子；鏡像夾擊衛兵守著一條走廊</td></tr>
+<tr><td>13F</td><td class="n">3</td><td class="wrap">吸血蝙蝠×4、石像守衛×3、黑騎士×3、無聲合唱團員×2、鏡之騎士</td><td class="wrap">回音長廊：進階節拍之神、呱呱商人的表哥（自稱正牌，比較貴）、鏡之騎士（2×2）守著銀盾</td></tr>
+<tr><td>14F</td><td class="n">3</td><td class="wrap">碎鏡小鬼×2、無聲合唱團員×2、回音幽靈×2、黑騎士×2、吸血蝙蝠</td><td class="wrap">鏡宮：老琴師的學徒（交易：金幣換防禦）；破甲的鏡像士兵很多，防禦只算一半</td></tr>
+<tr><td>15F</td><td class="n">3</td><td class="wrap">石像守衛×2、回音幽靈×2、黑騎士×2、鏡面守衛×2、回音之鏡</td><td class="wrap">回音之鏡（3×3）：打倒後找回「笛」</td></tr>
+<tr><td>16F</td><td class="n">4</td><td class="wrap">水晶吸血鬼×3、水晶重騎士×3、大巫師×3、無聲刺客、夜梟</td><td class="wrap">水晶迴廊：水晶祭壇；占星師（提示暗牆與失落的音符）</td></tr>
+<tr><td>17F</td><td class="n">4</td><td class="wrap">水晶吸血鬼×3、大巫師×3、無聲刺客×2、水晶重騎士×2、夜梟×2</td><td class="wrap">觀星台：日記第三頁、迷路的小精靈（送銀鑰匙）；裂牆後面是金鑰匙</td></tr>
+<tr><td>18F</td><td class="n">4</td><td class="wrap">水晶吸血鬼×4、水晶重騎士×3、水晶魔像×3、大巫師×2、回音指揮</td><td class="wrap">回音長廊：指揮家的聲音；回音指揮（2×2）守著金劍</td></tr>
+<tr><td>19F</td><td class="n">4</td><td class="wrap">無聲刺客×4、水晶重騎士×2、夜梟×2、大巫師×2、水晶吸血鬼</td><td class="wrap">前廳：失落的音符在金門後面；金盾在最長的連戰走廊盡頭；最後的衛兵</td></tr>
+<tr><td>20F</td><td class="n">4</td><td>休止符衛士×2、靜默指揮家</td><td class="wrap">靜默舞台：指揮家（3×3）；兩隻休止符衛士打倒才開鐵門</td></tr>
+<tr><td>B1</td><td class="n">2</td><td class="wrap">胖老鼠×4、啞靈、骷髏隊長、紅袍巫師、塔之衛兵</td><td class="wrap">地下室（隱藏層）：小偷的老家，堆滿偷來的東西；胖老鼠（致敬胖老鼠工作室）</td></tr>
+</table></div>
+<p>設計規則（<code>tools/audit.js</code> 自動檢查）：沒有白開的房間、沒有多餘的門、NPC 不擋路、樓梯兩側直接互通、暗牆不在主線上、左右鏡射位置不放一樣的內容（Boss 層例外）、每層免費道具最多 3 個。</p>
+
+<h2 id="s6">6. 系統</h2>
+<h3>6.1 存檔（<code>sync.js</code>、<code>main.js</code>）</h3>
+<ul>
+<li><b>結構</b>：一條清單 <code>{ v: 2, list: [...] }</code>，存在 localStorage 的 <code>mt.saves2</code>。每格有 <code>id</code>、<code>kind</code>（auto／manual／best）、裝置 id 與名稱、時間、樓層、生命、<code>data</code>（<code>MT.pack</code> 後的狀態，地圖壓成字串）</li>
+<li><b>自動存檔</b>：每台裝置各一格（id <code>a:&lt;裝置 id&gt;</code>），最多保留 20 台裝置。時機：換樓層、劇本播完、戰鬥後、買東西、飛行、回標題、切到背景／關分頁（<code>visibilitychange</code>、<code>pagehide</code>、App 的 <code>appPause</code>）。劇本播到一半不存，避免「旗標已設、道具未給」的狀態</li>
+<li><b>手動存檔</b>：所有裝置共用，最多 99 格、新的在前，滿了再存擠掉最舊的；別台裝置存的只能讀不能覆蓋</li>
+<li><b>繼續遊戲</b>：接所有裝置裡最新的自動存檔</li>
+<li><b>最佳紀錄</b>：kind <code>best</code>，一台裝置一格，標題畫面顯示所有裝置裡最好的一次</li>
+<li><b>版本相容</b>：<code>MT.SAVE_V = 3</code>，3.0.0 起 20 層、地圖全部重畫，2.x 存檔（v2）列出但讀不了；<code>MT.migrate</code> 補新欄位</li>
+<li>裝置 id 第一次使用時隨機產生，存在 <code>mt.device</code></li>
+</ul>
+
+<h3>6.2 雲端同步</h3>
+<ul>
+<li>存在使用者自己的私有 GitHub repo，預設 <code>agan0617/CloudSave</code>，檔案 <b><code>saves/magictower/saves.json</code></b>（1.5.0 起）。舊位置 <code>saves/magictower.json</code>（1.4.2～1.4.4）與根目錄 <code>saves.json</code>（更早）會在拉取時併入並刪除</li>
+<li>每台裝置貼一次 GitHub fine-grained token（Repository access 只選該 repo、Contents: Read and write），只存在該裝置 localStorage（<code>mt.gh</code>）；瀏覽器直接打 GitHub Contents API，無中間伺服器。同一支 token 可與 K書吧等其他 App 共用</li>
+<li><b>合併規則</b>：兩邊格子聯集，同 id 取時間較新者；每台裝置只寫自己的格子，所以不互相覆蓋</li>
+<li><b>推送</b>：存檔後 2.5 秒內合併推送；遇 409／422 衝突重抓重試最多 4 次；切背景時以 keepalive 推送</li>
+<li><b>拉取</b>：標題畫面、回到前景時拉取；別台裝置有較新的自動存檔會詢問要不要讀取</li>
+<li>入口：存檔頁最下方「● 雲端同步」按鈕、標題畫面連結。狀態：未連線／同步中／已同步／離線／同步失敗（401、403、404 有專屬說明）</li>
+</ul>
+
+<h3>6.3 多語系（<code>i18n.js</code>）</h3>
+<ul>
+<li>中文（繁）、English、日本語三套，介面字串與劇情（<code>story</code>）分開；<code>MT.t</code> 取介面字、<code>MT.story</code> 取劇情，<code>{n}</code> 形式填值</li>
+<li>預設依 <code>navigator.language</code>：ja→日文、zh→中文、其他→英文；設定頁可切換，記在 <code>mt.lang</code></li>
+</ul>
+
+<h3>6.4 音樂音效設定</h3>
+<ul><li>設定頁有音樂、音效兩條音量滑桿（0～1，預設各 0.2），記在 <code>mt.settings</code>。切到背景時暫停 AudioContext</li></ul>
+
+<h3>6.5 離線快取（<code>sw.js</code>）</h3>
+<ul>
+<li>僅在 https 下註冊 service worker；快取名 <code>mt-3.0.1</code>，安裝時以 <code>cache: 'reload'</code> 預先快取全部檔案（繞過 GitHub Pages 的 10 分鐘 HTTP 快取，避免新頁配舊 js）</li>
+<li>讀取策略：先回快取秒開、背景抓新版更新快取，下次開啟生效；非同源（GitHub API）不快取；啟用時刪掉舊版快取</li>
+<li>Android App 外殼也是開線上網址，一樣靠這個離線</li>
+</ul>
+
+
+
+<!-- ───────────── 7 ───────────── -->
+<h2 id="s7">7. 美術與音效</h2>
+<h3 id="s7-1">7.1 像素美術（<code>sprites.js</code>）</h3>
+<ul>
+<li>全部是程式裡的字元圖：一般 16×16，大型 Boss <code>size: 24</code>；每個字元對一個顏色，<code>sym: true</code> 只畫左半、右半鏡射；1／2／3 是可替換色（PALS），同一張圖換色當不同的怪</li>
+<li>大型怪物：中 Boss 用 16×16 的圖畫成 2×2 格、Boss 用 24×24 的圖畫成 3×3 格（皆 6 倍放大）；戰鬥時整塊一起演出，血條橫跨整塊</li>
+<li>3.0 新增 30 張：8 種怪物、4 隻中 Boss、4 隻大型 Boss、11 位 NPC、鑿子、笛；12 組新配色；金劍金盾的勇者疊圖；勇者外形門檻 70／170／300</li>
+<li>地形四套：石磚、紅磚、新的鏡面（銀色鏡板＋青色框＋斜光）、水晶；另有裂牆（明顯的黑色裂痕）與暗牆（幾乎看不出的細縫）</li>
+<li>序章、標題、結局動畫沿用 2.x</li>
+</ul>
+<h3 id="s7-2">7.2 音樂與音效（<code>audio.js</code>）</h3>
+<ul>
+<li>全部 Web Audio 即時合成，沒有任何音檔</li>
+<li>分層配樂：一開始只有 base；打倒鼓魔像加 drums、弦之魔女加 strings、<b>回音之鏡加 winds（3.0 新增的笛聲部：三角波＋慢慢加深的顫音）</b>、結局加 lead。title、tower、boss 三首都有笛的副旋律</li>
+</ul>
+
+<h2 id="s8">8. 技術架構</h2>
+<h3>8.1 檔案分工</h3>
+<div class="tw"><table>
+<tr><th>檔案</th><th class="wrap">職責</th></tr>
+<tr><td><code>index.html</code></td><td class="wrap">DOM 骨架（狀態列、地圖 canvas、功能鍵列、標題、過場、視窗），定義 <code>MT.VERSION</code>，依序載入下列 js</td></tr>
+<tr><td><code>js/data.js</code></td><td class="wrap">純資料：區域、怪物、道具、門、NPC、商店、評價基準、起始狀態、20 層＋B1 地圖、劇情觸發點、鐵門條件、劇本。瀏覽器與 node 解題器共用</td></tr>
+<tr><td><code>js/core.js</code></td><td class="wrap">規則：狀態建立、存檔打包、移動 <code>MT.step</code>（回傳事件）、戰鬥試算、撿道具、樓梯與飛行、觸發、鐵門、購買、劇本的狀態指令、真結局判定、評價。不碰畫面，node 也能跑</td></tr>
+<tr><td><code>js/sprites.js</code></td><td class="wrap">像素圖、色盤、勇者組圖與外形階段、地板牆壁</td></tr>
+<tr><td><code>js/audio.js</code></td><td class="wrap">音樂排程（25ms 計時器預排 0.15 秒）、分層開關、合成樂器與音效</td></tr>
+<tr><td><code>js/i18n.js</code></td><td class="wrap">三語文字、語言偵測、<code>MT.t</code>／<code>MT.story</code></td></tr>
+<tr><td><code>js/sync.js</code></td><td class="wrap">localStorage 包裝、存檔清單、裝置 id、GitHub 同步（拉、推、合併、舊格式遷移）</td></tr>
+<tr><td><code>js/main.js</code></td><td class="wrap">畫面繪製、點擊／長按／鍵盤、自動尋路、戰鬥與劇本演出、選單（圖鑑、飛行、存讀、商店、設定、雲端）、序章／結局動畫、標題畫面、自動存檔時機、App 介面（<code>MT.onBack</code>、<code>appPause</code>、<code>appResume</code>）</td></tr>
+<tr><td><code>style.css</code></td><td class="wrap">版面（直向／橫向以 5:4 長寬比切換）、元件樣式</td></tr>
+<tr><td><code>sw.js</code>、<code>manifest.webmanifest</code></td><td class="wrap">離線快取與 PWA 安裝資訊（standalone、任意方向）</td></tr>
+<tr><td><code>tools/</code></td><td class="wrap"><code>solve.js</code> 自動玩家（確認打得通並算評價基準）、<code>count.js</code> 每層資源統計、<code>check_reach.js</code> 連通檢查、<code>test_sync.js</code> 同步測試、<code>make_icons.py</code> 圖示</td></tr>
+</table></div>
+
+<h3>8.2 資料流</h3>
+<pre><code>輸入（點擊／長按／鍵盤／App 返回鍵）
+  → main.js：tapTile → findPath（BFS）→ walkRoute → stepOnce(dir)
+    → core.js：MT.step(st, dir) 改狀態，回傳事件
+        move／bump／secret／break／noChisel／fight／cantFight／pickup／door／noKey／stairs／talk／shop／deal／level／sage／choose／script（move、pickup 可能帶 pincer）
+  → main.js 依事件演出（動畫、音效、提示、HUD）
+    → 有 script 時 runScript：演出指令自己處理，狀態指令（give／stat／key／flag／set／swap／leave／layer／ending）呼叫 MT.applyCmd
+  → autosave → MT.Sync.saveAuto(MT.pack(st)) → localStorage → 2.5 秒後 push 到 GitHub</code></pre>
+<p>全域命名空間只有 <code>window.MT</code>；data／core 在 node 下掛在 <code>globalThis.MT</code>，讓解題器直接重用規則與劇本的狀態效果。</p>
+
+<h3>8.3 版本號與 service worker 規則</h3>
+<ul>
+<li>版本號在兩處：<code>index.html</code> 的 <code>MT.VERSION</code>（設定頁顯示「網頁版 vX」）與 <code>sw.js</code> 的 <code>VERSION = 'mt-X'</code></li>
+<li><b>改版必須把 <code>sw.js</code> 的 VERSION 加一</b>，否則已開過的瀏覽器會繼續用快取裡的舊檔</li>
+<li>App 外殼版號由 User-Agent 的 <code>MagicTowerApp/x.y.z</code> 讀出，網頁更新不需重包 App</li>
+<li>改關卡或數值後依序跑 <code>node tools/check_reach.js</code>、<code>node tools/audit.js</code>、<code>node tools/solve.js</code>（新手／一般／高手三種自動玩家），細節見 <code>DESIGN.md</code></li>
+</ul>
+
+
+
+<h2 id="s9">9. 附錄：版本演進摘要</h2>
+<div class="tw"><table>
+<tr><th>版本</th><th>日期</th><th class="wrap">里程碑</th></tr>
+<tr><td>1.0.0</td><td>2026-09-30</td><td class="wrap">首版：15 層原創關卡、三語劇情、分層合成配樂、GitHub 存檔同步</td></tr>
+<tr><td>1.0.1～1.2.2</td><td>2026-09-30</td><td class="wrap">App 返回鍵與背景存檔；手機方向鍵 → 懸浮搖桿 → 固定十字鍵的反覆調整</td></tr>
+<tr><td>1.3.0～1.3.1</td><td>2026-09-30</td><td class="wrap">新增真結局（三頁日記＋失落的音符）；修 2F NPC 擋路，新增連通檢查工具</td></tr>
+<tr><td>1.4.0</td><td>2026-10-02</td><td class="wrap">劇情改版為青春期篇：主角改為 15 歲變聲期王子阿爾特，2F 改為國王巴索，指揮家是他自己的一面，日記改為國王 15 歲的日記</td></tr>
+<tr><td>1.4.2～1.4.4</td><td>2026-10-02</td><td class="wrap">雲端存檔改用共用 repo CloudSave；修 service worker 拿到舊 js（<code>cache: 'reload'</code>）</td></tr>
+<tr><td>1.5.0</td><td>2026-10-02</td><td class="wrap">存檔改成 K書吧進度格做法（每裝置一格自動＋99 格手動）；序章加「破音被笑」</td></tr>
+<tr><td>2.0.0</td><td>2026-10-02</td><td class="wrap">手機改為只靠點地圖移動、地圖加高成 11×15（存檔格式 v2，1.x 存檔不相容）</td></tr>
+<tr><td>2.0.1～2.0.17</td><td>2026-10-02</td><td class="wrap">操作與回饋打磨：路線光標、戰鬥逐回合演出與血條、點怪物一下就出發、查看模式、鑰匙改銅銀金三級、說明卡移到地圖外、各種提示</td></tr>
+<tr><td>2.0.18～2.0.23</td><td>2026-10-02</td><td class="wrap">序章演出重做（老鐵匠、國王轉場、暴怒）、樓梯不擋路、多蕾與高塔動畫</td></tr>
+<tr><td>2.0.24～2.0.25</td><td>2026-10-02</td><td class="wrap">雲端同步入口移入存檔頁；通關評價 S／A／B／C＋最佳紀錄</td></tr>
+<tr><td>2.0.27～2.0.28</td><td>2026-10-02</td><td class="wrap">勇者外形隨強度四階變化、手持實際武器；序章加「閉嘴」到黑衣人出現之間的過場（心跳、回音、影子站起）</td></tr>
+<tr><td>3.0.0～3.0.1</td><td>2026-10-02</td><td class="wrap">關卡全面改版：20 層＋隱藏層 B1、四區四隻 3×3 Boss（新 15F 回音之鏡＋笛聲部）、2×2 中 Boss、經驗值與等級、三選一技能、路上 NPC（提示／贈送／交易）、暗牆與裂牆、破甲／吸血／夾擊、圖鑑改成撿的、風之羽延到 9F、Boss 層禁飛；新的平衡與稽核工具（三種自動玩家、tools/audit.js）；存檔格式 v3。3.0.1：回音的反彈比例調成 35／60／85%（三種技能分數拉近），新增通關攻略產生器 tools/guide.js</td></tr>
+</table></div>
+<p class="muted">2026-09-30 首版至 2026-10-02 的 3.0.1。</p>
+
+</main>
+</body>
+</html>

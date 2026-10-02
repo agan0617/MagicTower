@@ -25,8 +25,16 @@ function clone(st) {
   o.layers = st.layers.slice();
   o.visited = st.visited.slice();
   o.maps = st.maps.map(m => (m ? m.map(r => r.slice()) : null));
+  if (st.skill) o.skill = Object.assign({}, st.skill);   // 老琴師升級會直接改 skill.lv，不能共用
   if (st.talkAt) o.talkAt = st.talkAt.slice();
-  return o;
+  return o;   // st.log 是串列（{p: 上一筆, e: 這一筆}），共用前面的部分，複製只要拷參考
+}
+// 路線紀錄（產生攻略用）：opt.log 時每個局面帶著自己走過的每一步
+const note = (st, e) => { if (st.log !== undefined) st.log = { p: st.log, e }; };
+function logList(st) {
+  const out = [];
+  for (let n = st.log; n; n = n.p) out.push(n.e);
+  return out.reverse();
 }
 const maxFloor = st => Math.max(...st.visited);
 const isTalker = t => MT.isNpc(t) && !MT.NPCS[t].shop && !MT.NPCS[t].deal && !MT.NPCS[t].level && !MT.NPCS[t].choose && !MT.NPCS[t].sage;
@@ -72,9 +80,11 @@ function collect(st, opt) {
           const sf = st.floor; st.floor = f;
           const got = MT.pickup(st, t); MT.setTile(st, f, nx, ny, '..');
           st.floor = sf; changed = true;
+          note(st, { type: 'pick', f, x: nx, y: ny, t });
           if (got.script) MT.runScriptState(st, got.script);
         } else if (t === 'Sg' && ['activate', 'up'].includes(MT.sagePreview(st))) {
           MT.sage(st); changed = true;   // 老琴師：鑑定、升級都不花錢，到得了就做
+          note(st, { type: 'sage', f, x: nx, y: ny, lv: st.skill.lv });
         } else if (isTalker(t)) {
           const id = MT.npcScript(st, t);
           if (id && !MT.npcTalked(st, t)) {
@@ -82,6 +92,7 @@ function collect(st, opt) {
             MT.runScriptState(st, id);
             if (!MT.npcTalked(st, t)) st.flags[MT.NPCS[t].flag || 'npc:' + t] = 1;   // 劇本沒設旗標也算說過
             st.floor = sf; changed = true;
+            note(st, { type: 'talk', f, x: nx, y: ny, t });
           }
         }
       }
@@ -91,6 +102,7 @@ function collect(st, opt) {
         if (id && !st.flags['trig:' + f + ':' + id]) {
           const sf = st.floor; st.floor = f;
           st.flags['trig:' + f + ':' + id] = 1; MT.runScriptState(st, id); changed = true;
+          note(st, { type: 'trig', f, id });
           st.floor = sf;
         }
       }
@@ -132,6 +144,11 @@ function act(st, c) {
 
 /* 一個「動作」：fight／door／buy（商店）／deal（交易）。回傳 false＝做不了 */
 function doAction(st, a) {
+  const hp0 = st.hp, ok = doAction0(st, a);
+  if (ok) note(st, { type: 'act', a: { kind: a.kind, c: a.c, shop: a.shop, what: a.what, id: a.id, skill: a.skill }, hp0, hp: st.hp, gold: st.gold, exp: st.exp });
+  return ok;
+}
+function doAction0(st, a) {
   // 跟 NPC 交易：人站到 NPC 旁邊（換樓層也要換位置，不然會被「瞬移」到別層的同一個座標）
   const goNpc = () => { st.floor = a.c.f; st.x = a.c.from[0]; st.y = a.c.from[1]; st.talkAt = [a.c.x, a.c.y]; };
   if (a.kind === 'buy') { goNpc(); return MT.buy(st, a.shop, a.what); }
@@ -242,8 +259,9 @@ function potential(st) {
   return st.hp - dmg - short * 4000 + st.keys.y * kv('y', 150) + st.keys.b * kv('b', 450) + st.keys.r * kv('r', 900) + st.gold * 6 + st.exp * 8 + (st.items.chisel || 0) * 300 * z;
 }
 
-function newRun() {
+function newRun(opt) {
   const st = MT.newGame();
+  if (opt && opt.log) st.log = null;
   const id = MT.stepTrigger(st);
   if (id) MT.runScriptState(st, id);
   return st;
@@ -304,7 +322,7 @@ function sig(st) {
 }
 function solveStrong(opt = {}) {
   const width = opt.width || 12;
-  let beam = [newRun()];
+  let beam = [newRun(opt)];
   collect(beam[0], opt);
   let best = null, depth = 0, last = beam;
   while (beam.length && depth++ < 3000) {
@@ -340,4 +358,4 @@ function solveStrong(opt = {}) {
 }
 
 function setSkills(list) { skillChoices = list; }
-module.exports = { setSkills, MT, clone, collect, frontier, actions, doAction, potential, solveWeak, solveMid, solveStrong, maxFloor };
+module.exports = { setSkills, logList, newRun, MT, clone, collect, frontier, actions, doAction, potential, solveWeak, solveMid, solveStrong, maxFloor };
