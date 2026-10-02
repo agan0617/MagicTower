@@ -495,24 +495,38 @@
     const boss = (m.sp || []).includes('boss');
     const [dx, dy] = DIR_V[dir];
     view.dying = { code: ev.tile, x: ev.x, y: ev.y, t0: now(), dur: 1e9, phase: 'fight', flash: 0 };
-    const hpBefore = st.hp + c.damage;
-    let shown = hpBefore;
-    const rounds = Math.min(c.turns, boss ? 8 : 4);
-    const perHit = c.turns > 1 ? Math.round(c.damage / Math.max(1, c.turns - 1 + ((m.sp || []).includes('first') ? 1 : 0))) : 0;
-    const gap = boss ? 170 : 95;
-    for (let i = 0; i < rounds; i++) {
-      view.lunge = { dx, dy, t0: now() };
-      sfx('hit');
-      view.dying.flash = now() + 120;
-      floatText(ev.x, ev.y, '-' + Math.min(m.hp, c.heroHit), '#ffffff', 14);
-      if (boss) shake(120, 5);
-      await sleep(gap);
-      if (i < rounds - 1 && c.monHit > 0) {
-        sfx('hurt'); view.hurt = now() + 120;
-        shown = Math.max(st.hp, shown - perHit);
+    /* 每一回合照實演：勇者先打（怪物剩多少血就扣多少），怪物還活著就回擊（先攻＝開打前先打一次、連擊＝一次打兩下）。
+       照正常速度演會超過上限（一般 4 回合、Boss 8 回合的長度）時，才把每一下的間隔等比例縮短，整場塞進上限 */
+    const sp = m.sp || [];
+    const strikes = sp.includes('double') ? 2 : 1;
+    const monActs = c.monHit > 0 ? c.turns - 1 + (sp.includes('first') ? 1 : 0) : 0;
+    const heroGap0 = boss ? 170 : 95, monGap0 = heroGap0 * 0.7;
+    const cap = (boss ? 8 : 4) * (heroGap0 + monGap0);
+    const full = c.turns * heroGap0 + monActs * monGap0;
+    const k = full > cap ? cap / full : 1;
+    const heroGap = Math.max(28, heroGap0 * k), monGap = Math.max(20, monGap0 * k);
+    let lastSfx = 0;
+    const sfxT = n => { const t = now(); if (k === 1 || t - lastSfx >= 70) { sfx(n); lastSfx = t; } };   // 加速時音效不要疊成一團
+    let shown = st.hp + c.damage, monHp = m.hp;
+    const monAct = async () => {
+      for (let s = 0; s < strikes; s++) {
+        sfxT('hurt'); view.hurt = now() + 120;
+        shown = Math.max(st.hp, shown - c.monHit);
         $('#hHp').textContent = shown;
-        await sleep(gap * 0.7);
+        await sleep(monGap / strikes);
       }
+    };
+    if (sp.includes('first') && c.monHit > 0) await monAct();
+    for (let i = 0; i < c.turns; i++) {
+      const hit = Math.min(monHp, c.heroHit);
+      monHp -= hit;
+      view.lunge = { dx, dy, t0: now() };
+      sfxT('hit');
+      view.dying.flash = now() + 120;
+      floatText(ev.x + (i % 2 ? 0.14 : -0.14), ev.y, '-' + hit, '#ffffff', 14);
+      if (boss) shake(120, 5);
+      await sleep(heroGap);
+      if (monHp > 0 && c.monHit > 0) await monAct();
     }
     // 結算
     $('#hHp').textContent = st.hp;
