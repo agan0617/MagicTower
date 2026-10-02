@@ -26,7 +26,7 @@
   g.imageSmoothingEnabled = false;
 
   /* ───────── 設定 ───────── */
-  const settings = Object.assign({ music: 0.7, sfx: 0.8 }, MT.LS.get('settings', {}));
+  const settings = Object.assign({ music: 0.2, sfx: 0.2 }, MT.LS.get('settings', {}));
   MT.setLang(MT.LS.get('lang', MT.detectLang()));
   MT.Audio.setVolume('music', settings.music);
   MT.Audio.setVolume('sfx', settings.sfx);
@@ -1094,17 +1094,64 @@
     tg.fillStyle = '#c07cf5';
     for (let i = 0; i < 7; i++) { tg.globalAlpha = 0.5 + 0.5 * Math.sin(t / 700 + i); tg.fillRect(cx - 7, 190 + i * 48, 14, 20); }
     tg.globalAlpha = 1;
-    tg.font = 'bold 26px serif'; tg.textAlign = 'center';
-    for (let i = 0; i < 14; i++) {
-      const p = ((t / (9000 + (i % 4) * 1200) + i / 14) % 1);   // 一趟 9～12.6 秒，速度略有差別才不會整排齊飄
-      tg.globalAlpha = Math.sin(p * Math.PI) * 0.8; tg.fillStyle = ['#ffe066', '#aef4ff', '#ff9ccc'][i % 3];
-      tg.fillText('♪♫♬♩'[i % 4], cx + Math.sin(i * 2.1 + t / 4000) * 200, SIZE - p * SIZE * 0.9);
-    }
-    tg.globalAlpha = 1;
     tg.drawImage(MT.sprite('heroUp', null, 4), cx - 32, SIZE - 80);
     tg.drawImage(MT.sprite('fairy', null, 3), cx + 30, SIZE - 120 + Math.sin(t / 300) * 6);
+    drawNotes(t);
   }
   requestAnimationFrame(titleRender);
+
+  /* 標題音符：畫在另一張全解析度 canvas 上。背景那張只有 528px、被放大 3 倍多，
+     音符畫在那上面每動一格就跳 3～4 個螢幕像素，放慢了反而一頓一頓的，漂不起來 */
+  const noteCanvas = $('#titleNotes');
+  const ng = noteCanvas.getContext('2d');
+  const NOTE_COLORS = ['#ffe066', '#aef4ff', '#ff9ccc', '#d9b8ff'];
+  const floatNotes = [];
+  let noteW = 0, noteH = 0;
+  function newNote(t, prefill) {
+    const r = Math.random, life = 26000 + r() * 14000;          // 一趟 26～40 秒
+    return {
+      born: prefill ? t - r() * life : t, life,
+      x: 0.04 + r() * 0.92,                                    // 起點（畫面寬的比例）
+      sw1: 40 + r() * 70, sp1: 9000 + r() * 7000,              // 兩層不同週期的左右擺盪疊起來，軌跡才不會像鐘擺
+      sw2: 12 + r() * 22, sp2: 3500 + r() * 2500,
+      ph: r() * 6.3, breath: 1 + Math.floor(r() * 2),          // 上升速度一趟裡快慢起伏 1～2 次
+      size: 22 + r() * 20, rot: 0.15 + r() * 0.2,
+      glyph: '♪♫♬♩'[Math.floor(r() * 4)], color: NOTE_COLORS[Math.floor(r() * NOTE_COLORS.length)],
+      alpha: 0.45 + r() * 0.35,
+    };
+  }
+  function drawNotes(t) {
+    const w = noteCanvas.clientWidth, h = noteCanvas.clientHeight, dpr = window.devicePixelRatio || 1;
+    if (w !== noteW || h !== noteH) {
+      noteW = w; noteH = h;
+      noteCanvas.width = w * dpr; noteCanvas.height = h * dpr;
+    }
+    ng.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ng.clearRect(0, 0, w, h);
+    const want = Math.round(Math.min(16, Math.max(8, w / 110)));
+    while (floatNotes.length < want) floatNotes.push(newNote(t, true));
+    ng.textAlign = 'center'; ng.textBaseline = 'middle';
+    for (let i = 0; i < floatNotes.length; i++) {
+      let n = floatNotes[i];
+      if (t - n.born > n.life) n = floatNotes[i] = newNote(t, false);
+      const age = t - n.born, p = age / n.life;
+      // 上升不等速：p 疊一個正弦，速度在 0.6～1.4 倍之間緩慢起伏，像被氣流托著
+      const k = n.breath * 2 * Math.PI, rise = p - Math.sin(p * k) * 0.4 / k;
+      const y = h + 40 - rise * (h + 100);
+      const x = n.x * w + Math.sin(age / n.sp1 + n.ph) * n.sw1 + Math.sin(age / n.sp2 + n.ph * 2) * n.sw2;
+      const fade = Math.pow(Math.sin(p * Math.PI), 1.4);       // 淡入淡出比線性柔
+      const s = n.size * (1.1 - 0.35 * p);                      // 越飄越小，像往遠處去
+      ng.save();
+      ng.translate(x, y);
+      ng.rotate(Math.sin(age / (n.sp1 * 0.7) + n.ph) * n.rot);
+      ng.globalAlpha = fade * n.alpha;
+      ng.shadowColor = n.color; ng.shadowBlur = s * 0.6;
+      ng.fillStyle = n.color;
+      ng.font = `bold ${s.toFixed(1)}px serif`;
+      ng.fillText(n.glyph, 0, 0);
+      ng.restore();
+    }
+  }
 
   function renderTitle() {
     $('#tTitle').textContent = MT.t('title');
