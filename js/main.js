@@ -169,11 +169,12 @@
     }
   }
 
-  /* 戰鬥中怪物腳下的血條（頭上是跳扣血數字的地方）：跟著每一下扣血滑順地縮短，剩一半變黃、剩四分之一變紅 */
+  /* 戰鬥中怪物頭上的血條：跟著每一下扣血滑順地縮短，剩一半變黃、剩四分之一變紅。
+     最上面一列的怪畫在格子裡面；扣血數字從血條再上面跳出來，不會蓋住血條（見 battle） */
   function drawHpBar(d, alpha) {
     const r = Math.max(0, d.hp / d.hpMax);
     d.shown = d.shown == null ? r : d.shown + (r - d.shown) * 0.3;
-    const bw = TILE - 10, bh = 6, bx = d.x * TILE + 5, by = d.y * TILE + TILE - 7;
+    const bw = TILE - 10, bh = 6, bx = d.x * TILE + 5, by = d.y > 0 ? d.y * TILE - 8 : d.y * TILE + 1;
     g.save(); g.globalAlpha = alpha;
     g.fillStyle = 'rgba(0,0,0,0.75)'; g.fillRect(bx - 1, by - 1, bw + 2, bh + 2);
     g.fillStyle = r > 0.5 ? '#6ee06e' : r > 0.25 ? '#ffd84a' : '#ff5a5a';
@@ -538,7 +539,7 @@
       view.lunge = { dx, dy, t0: now() };
       sfxT('hit');
       view.dying.flash = now() + 120;
-      floatText(ev.x + (i % 2 ? 0.14 : -0.14), ev.y, '-' + hit, '#ffffff', 14);
+      floatText(ev.x + (i % 2 ? 0.14 : -0.14), ev.y > 0 ? ev.y - 0.45 : ev.y + 0.25, '-' + hit, '#ffffff', 14);   // 從血條上面跳（最上面一列改從血條下面）
       if (boss) shake(120, 5);
       await sleep(heroGap);
       if (monHp > 0 && c.monHit > 0) await monAct();
