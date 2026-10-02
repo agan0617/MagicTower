@@ -711,7 +711,7 @@
         <button class="btn primary" data-load="${esc(sl.id)}">${esc(MT.t('loadThis'))}</button></div></div>`;
     const autos = S.autos(), manuals = S.manuals();
     const html = `<label class="lab">${esc(MT.t('slotAuto'))}</label>`
-      + (autos.length ? autos.map(sl => row(sl, MT.t('slotAuto'))).join('') : `<p class="muted">${esc(MT.t('empty'))}</p>`)
+      + (autos.length ? autos.map(sl => row(sl, sl.device || MT.t('slotAuto'))).join('') : `<p class="muted">${esc(MT.t('empty'))}</p>`)
       + `<label class="lab">${esc(MT.t('slotManual'))}（${manuals.length}／${S.MANUAL_MAX}）</label>`
       + (canSave ? `<div class="row"><button class="btn" data-new="1">${esc(MT.t('saveNew'))}</button></div>` : '')
       + (manuals.length ? manuals.map((sl, i) => row(sl, MT.t('slotN', { n: manuals.length - i }))).join('') : `<p class="muted">${esc(MT.t('empty'))}</p>`)
@@ -1055,11 +1055,11 @@
       // 光圈外的黑暗裡還有零星的笑聲，越來越小、越來越淡
       drawLaughs(t * 0.6, 7, 0.35 * e * Math.max(0.25, 1 - st / 9000), 0.8);
       // 眼淚：從閉著的眼角慢慢滑落
-      for (const [ex, ph] of [[-15, 0], [15, 0.5]]) {
+      for (const [ex, ph] of [[-9, 0], [9, 0.5]]) {
         const p = ((st / 1700 + ph) % 1);
         if (st < 1200) continue;
         cg.globalAlpha = (1 - p) * 0.9; cg.fillStyle = '#aef4ff';
-        cg.fillRect(cx + ex - 2, SIZE - 210 + p * 34, 4, 6);
+        cg.fillRect(cx + ex - 2, SIZE - 204 + p * 34, 4, 6);
       }
       cg.globalAlpha = 1;
     },

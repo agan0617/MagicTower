@@ -75,16 +75,16 @@
       '....kNNk.kNNk...',
       '....kkkk.kkkk...',
     ] },
-    // 序章被笑之後：閉眼、掛著淚、嘴角往下
+    // 序章被笑之後：八字眉、眼睛往下看、掛著淚、嘴抿成一小撇
     heroSad: { rows: [
       '.....y.yy.y.....',
       '....kyyyyyyk....',
       '....knnnnnnk....',
       '...knnNnnNnnk...',
-      '...knnnnnnnnk...',
-      '...kskksskksk...',
-      '...kscsssscsk...',
-      '....ksskkssk....',
+      '...knssssssnk...',
+      '...kssNssNssk...',
+      '...ksNksskNsk...',
+      '....kscSScsk....',
       '...kkkkkkkkkk...',
       '..ksbbnnnnbbsk..',
       '..ksbbnnnnbbsk..',
