@@ -4,7 +4,7 @@ const path = require('path');
 require(path.join(__dirname, '../js/data.js'));
 const MT = globalThis.MT;
 let tot = { Yk: 0, Yd: 0, Bk: 0, Bd: 0, Rk: 0, Rd: 0 };
-for (let f = 1; f <= MT.TOP; f++) {
+for (let f = MT.BOTTOM; f <= MT.TOP; f++) {
   const c = {};
   let gold = 0;
   for (const r of MT.FLOORS[f]) for (const t of r.split(' ')) {

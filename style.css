@@ -55,6 +55,12 @@ button { font: inherit; color: inherit; }
 .hk span { display: inline-flex; align-items: center; gap: 3px; }
 .hk img { width: 20px; height: 20px; }
 .hk b { font-size: 15px; font-variant-numeric: tabular-nums; }
+.hk { flex-wrap: wrap; row-gap: 2px; }
+.hlv { gap: 4px !important; }
+.hlv b { color: #c8f0a0; }
+.hlv small { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+#hSk { font-size: 11px; padding: 1px 6px; border-radius: 8px; background: #2a2450; color: #e8d8ff; border: 1px solid #5a4a9a; }
+#hSk.off { opacity: 0.55; border-style: dashed; }
 
 /* 地圖在狀態列與功能鍵列之間置中，功能鍵貼著螢幕下緣（拇指好按） */
 #mapWrap { position: relative; width: var(--mw); height: var(--mh); flex: none; margin: auto 0; }

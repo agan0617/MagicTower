@@ -58,6 +58,9 @@
   const PORTRAIT = {
     tink: ['heroDown'], doremi: ['fairy'], bard: ['bard'], golem: ['drumgolem'], siren: ['siren'],
     maestro: ['maestro'], harpghost: ['harp'], frog: ['frog'], shadow: ['maestroBare'],
+    porter: ['porter'], soldier: ['soldier'], guard: ['soldier', 'lastGuard'], pigeon: ['pigeon'], mirrorgirl: ['mirrorGirl'],
+    echo: ['echoMirror'], astrologer: ['astrologer'], lost: ['fairy'], granny: ['granny'], thief: ['thief'],
+    harpist: ['harpist'], metronome: ['metronome', 'metroA'], cousin: ['frogCousin'], apprentice: ['apprentice'], smith: ['smith'],
   };
 
   /* ───────── 地圖繪製 ───────── */
@@ -77,26 +80,39 @@
   }
   const fmt = n => (n >= 100000 ? Math.round(n / 1000) + 'k' : String(n));
 
+  // 一張圖畫成 n×n 格大（大型怪物：16×16 的圖畫成 2×2、24×24 的畫成 3×3）
+  const spriteAt = (name, pal, n, flip) => { const d = MT.SPRITES[name]; return MT.sprite(name, pal, TILE * n / ((d && d.size) || 16), flip); };
+  const BOSS_GLOW = { DG: '#ffd84a', SR: '#5ab0ff', EM: '#7affff' };
   function drawTile(code, x, y, t) {
-    const px = x * TILE, py = y * TILE;
     const sp = spriteFor(code);
     if (!sp) return;
     const isMon = !!MT.MONSTERS[code];
+    const n = isMon ? MT.monSize(code) : 1;
+    if (n > 1) {   // 大型怪物：只在左上角那格畫一次
+      const [ox, oy0] = MT.blockOrigin(st, st.floor, x, y);
+      if (ox !== x || oy0 !== y) return;
+      if (view.dying && view.dying.code === code && view.dying.x === x && view.dying.y === y) return;
+    }
+    const px = x * TILE, py = y * TILE, w = TILE * n;
     let oy = 0;
-    if (isMon || MT.NPCS[code]) oy = (Math.floor(t / 420 + x * 0.7 + y * 1.3) % 2) ? -SC : 0;
+    if (isMon || MT.NPCS[code]) oy = (Math.floor(t / (n > 1 ? 700 : 420) + x * 0.7 + y * 1.3) % 2) ? -SC : 0;
     if (MT.ITEMS[code]) oy = Math.round(Math.sin(t / 380 + x + y) * 1.5);
     if (view.doorFade && view.doorFade.x === x && view.doorFade.y === y) return;
-    const im = MT.sprite(sp[0], sp[1], SC);
     if (isMon && (MT.MONSTERS[code].sp || []).includes('boss')) {
       g.save(); g.globalAlpha = 0.35 + 0.15 * Math.sin(t / 200);
-      g.fillStyle = code === 'SR' ? '#5ab0ff' : code === 'DG' ? '#ffd84a' : '#c07cf5';
-      g.beginPath(); g.ellipse(px + TILE / 2, py + TILE - 6, 20, 6, 0, 0, Math.PI * 2); g.fill(); g.restore();
+      g.fillStyle = BOSS_GLOW[code] || '#c07cf5';
+      g.beginPath(); g.ellipse(px + w / 2, py + w - 6, w * 0.42, 6 * n, 0, 0, Math.PI * 2); g.fill(); g.restore();
     }
-    g.drawImage(im, px, py + oy);
+    g.drawImage(n > 1 ? spriteAt(sp[0], sp[1], n) : MT.sprite(sp[0], sp[1], SC), px, py + oy);
     if (isMon && st.items.book) {
       const c = MT.calc(st, code);
       const txt = c.damage == null ? '???' : fmt(c.damage);
-      label(txt, px + TILE / 2, py + TILE - 1, dmgColor(c), 15);
+      label(txt, px + w / 2, py + w - 1, dmgColor(c), n > 1 ? 18 : 15);
+    }
+    // 夾擊怪：腳下一道紅色虛線，提醒「兩隻中間那格不要走」
+    if (isMon && (MT.MONSTERS[code].sp || []).includes('pincer')) {
+      g.save(); g.strokeStyle = 'rgba(255,90,90,0.55)'; g.setLineDash([4, 4]); g.lineWidth = 2;
+      g.strokeRect(px + 3, py + 3, TILE - 6, TILE - 6); g.restore();
     }
   }
 
@@ -205,7 +221,7 @@
   function drawHpBar(d, alpha) {
     const r = Math.max(0, d.hp / d.hpMax);
     d.shown = d.shown == null ? r : d.shown + (r - d.shown) * 0.3;
-    const bw = TILE - 10, bh = 6, bx = d.x * TILE + 5, by = d.y > 0 ? d.y * TILE - 8 : d.y * TILE + 1;
+    const dn = d.n || 1, bw = TILE * dn - 10, bh = dn > 1 ? 8 : 6, bx = d.x * TILE + 5, by = d.y > 0 ? d.y * TILE - bh - 2 : d.y * TILE + 1;
     g.save(); g.globalAlpha = alpha;
     g.fillStyle = 'rgba(0,0,0,0.75)'; g.fillRect(bx - 1, by - 1, bw + 2, bh + 2);
     g.fillStyle = r > 0.5 ? '#6ee06e' : r > 0.25 ? '#ffd84a' : '#ff5a5a';
@@ -223,13 +239,13 @@
     const m = st.maps[f];
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
       const code = m[y][x];
-      const wall = code === '##';
-      g.drawImage(MT.terrain(wall ? 'wall' : 'floor', zone, TILE, (x * 7 + y * 13) % 10), x * TILE, y * TILE);
+      const kind = code === '##' ? 'wall' : code === 'Hw' ? 'hidden' : code === 'Cw' ? 'cracked' : 'floor';
+      g.drawImage(MT.terrain(kind, zone, TILE, (x * 7 + y * 13) % 10), x * TILE, y * TILE);
     }
     drawRoute(t);
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
       const code = m[y][x];
-      if (code !== '##' && code !== '..') drawTile(code, x, y, t);
+      if (code !== '##' && code !== '..' && code !== 'Hw' && code !== 'Cw') drawTile(code, x, y, t);
     }
     // 開門：門往上淡出
     if (view.doorFade) {
@@ -245,7 +261,7 @@
         g.save();
         if (d.phase === 'die') { g.globalAlpha = Math.max(0, 1 - k); }
         else if (Math.floor(t / 60) % 2 && d.flash > t) g.globalAlpha = 0.3;
-        const sp = spriteFor(d.code), img = MT.sprite(sp[0], sp[1], SC);
+        const sp = spriteFor(d.code), dn = d.n || 1, img = dn > 1 ? spriteAt(sp[0], sp[1], dn) : MT.sprite(sp[0], sp[1], SC);
         let ox = d.phase === 'die' ? 0 : (Math.random() - 0.5) * (d.flash > t ? 4 : 0), oy = 0, lean = 0;
         // 戰鬥中面對勇者：平常就往勇者那邊靠一點、上半身傾過去；輪到它出手時整隻撲過去
         if (d.face && d.phase === 'fight') {
@@ -259,7 +275,7 @@
           lean = d.face[0] * (0.12 + (a - 2) / 12 * 0.15);
         }
         const px = d.x * TILE + ox, py = d.y * TILE + oy;
-        if (lean) { g.translate(px + TILE / 2, py + TILE); g.transform(1, 0, -lean, 1, 0, 0); g.drawImage(img, -TILE / 2, -TILE); }   // 以腳底為軸往勇者那邊斜
+        if (lean) { g.translate(px + TILE * dn / 2, py + TILE * dn); g.transform(1, 0, -lean / dn, 1, 0, 0); g.drawImage(img, -TILE * dn / 2, -TILE * dn); }   // 以腳底為軸往勇者那邊斜
         else g.drawImage(img, px, py);
         g.restore();
         if (d.hpMax) drawHpBar(d, d.phase === 'die' ? Math.max(0, 1 - k) : 1);
@@ -324,8 +340,10 @@
   const statOf = k => (k.length === 2 && k[0] === 'k' ? st.keys[k[1]] : st[k]);
   const hudVal = k => statOf(k) - hudHold[k];
   const snapStats = () => Object.fromEntries(HUD_KEYS.map(k => [k, statOf(k)]));
+  let hudGen = 0;   // 每開一局加一：上一局還在飛的數字落地時不要動到這一局的資訊列
   function flyGain(key, n, x, y, delay) {
     if (!(n > 0)) return;
+    const gen = hudGen;
     hudHold[key] += n;
     const r = canvas.getBoundingClientRect(), s = r.width / canvas.width;
     const sx = r.left + (x * TILE + TILE / 2) * s, sy = r.top + (y * TILE + TILE / 2) * s;
@@ -353,6 +371,7 @@
       ], { duration: 950, fill: 'forwards' });
       a.onfinish = () => {
         el.remove();
+        if (gen !== hudGen) return;
         hudHold[key] -= n;
         if (st) target.textContent = hudVal(key);
         target.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.45)', filter: 'brightness(1.8)' }, { transform: 'scale(1)' }], { duration: 320 });
@@ -366,13 +385,20 @@
   }
   function renderHud() {
     if (!st) return;
-    $('#hFloor').textContent = MT.t('floorN', { n: st.floor });
+    $('#hFloor').textContent = MT.floorName(st.floor);
     for (const k of HUD_KEYS) $(HUD_EL[k]).textContent = hudVal(k);
     const inst = [];
     if (st.items.drum) inst.push(img('drum', null, 'inst'));
     if (st.items.harp) inst.push(img('harp', null, 'inst'));
+    if (st.items.flute) inst.push(img('flute', null, 'inst'));
     if (st.items.note) inst.push(img('goldnote', null, 'inst'));
     $('#hInst').innerHTML = inst.join('');
+    $('#hLv').textContent = 'Lv' + st.lv;
+    $('#hExp').textContent = 'EXP ' + st.exp;
+    $('#hChW').hidden = !st.items.chisel; $('#hCh').textContent = st.items.chisel;
+    const sk = st.skill;
+    $('#hSk').hidden = !sk;
+    if (sk) { $('#hSk').textContent = MT.t('skill_' + sk.type) + (sk.lv ? ' Lv' + sk.lv : ''); $('#hSk').classList.toggle('off', !sk.lv); $('#hSk').title = sk.lv ? '' : MT.t('skillNotYet'); }
     $('#bFly').disabled = !st.items.fly;
     $('#bBook').disabled = !st.items.book;
   }
@@ -391,6 +417,7 @@
     $('#iHp').src = icon('heart'); $('#iGold').src = icon('coin');
     $('#iAtk').src = icon('gemSword', 'gemRed'); $('#iDef').src = icon('gemShield', 'gemBlue');
     [['#iKy', 'Yk'], ['#iKb', 'Bk'], ['#iKr', 'Rk']].forEach(([id, c]) => { $(id).src = icon(MT.ITEMS[c].sprite, MT.ITEMS[c].pal); });
+    $('#iCh').src = icon('chisel');
     $('#bLook img').src = icon('lens'); $('#bBook img').src = icon('book'); $('#bFly img').src = icon('feather');
     $('#bSave img').src = icon('page'); $('#bMenu img').src = icon('altar', 'stone');
   }
@@ -469,7 +496,8 @@
     const bossAlive = code => MT.findTile(st, f, code);
     if (f === 5 && st.flags['trig:5:golemIntro'] && bossAlive('DG')) return 'boss';
     if (f === 10 && st.flags['trig:10:sirenIntro'] && bossAlive('SR')) return 'boss';
-    if (f === 15 && st.flags['trig:15:f15Intro'] && !st.done) return 'boss';
+    if (f === 15 && st.flags['trig:15:echoIntro'] && bossAlive('EM')) return 'boss';
+    if (f === 20 && st.flags['trig:20:f20Intro'] && !st.done) return 'boss';
     return 'tower';
   }
   const playMusic = name => MT.Audio.play(name, st ? st.layers : ['base']);
@@ -506,11 +534,15 @@
             break;
           case 'give':
             MT.applyCmd(st, c);
-            if (c[1] === 'book' || c[1] === 'fly' || c[1] === 'drum' || c[1] === 'harp') floatText(st.x, st.y, MT.itemName(c[1]), '#ffe9a8', 15);
+            if (['book', 'fly', 'drum', 'harp', 'flute', 'chisel'].includes(c[1])) floatText(st.x, st.y, MT.itemName(c[1]), '#ffe9a8', 15);
             renderHud(); break;
           case 'set':
             MT.applyCmd(st, c);
-            if (c[3] === 'M2') { flash('#ffd84a', 600); sparkle(c[1], c[2], 30); }
+            if (c[3] === 'Hs') { flash('#aef4ff', 500); sparkle(c[1], c[2], 30); }
+            break;
+          case 'swap':
+            MT.applyCmd(st, c);
+            if (c[2] === 'M2') { flash('#ffd84a', 600); sparkle(5, 1, 30); }
             break;
           case 'branch':
             if (c[1] === 'trueEnd' && MT.isTrueEnding(st)) await runScript(c[2]);
@@ -541,10 +573,27 @@
       case 'bump': sfx('bump'); return false;
       case 'move':
         view.move = { fx, fy, t0: now(), dur: 95 }; sfx('step');
+        if (ev.pincer) await pincerHit(ev);
         if (ev.script) { await sleep(110); await runScript(ev.script); autosave(); }
-        return !ev.script;
+        return !ev.script && !ev.pincer;
+      case 'secret':
+        view.move = { fx, fy, t0: now(), dur: 95 };
+        sfx('gate'); sparkle(ev.x, ev.y, 24, ['#ffe066', '#ffffff', '#aef4ff', '#ffe066']); toast(MT.t('secretFound'));
+        if (ev.script) { await sleep(110); await runScript(ev.script); }
+        autosave();
+        return false;
+      case 'break':
+        sfx('boom'); shake(250, 6); sparkle(ev.x, ev.y, 26, ['#c8c8d8', '#8a8f9e', '#ffffff', '#ffe066']);
+        toast(MT.t('wallBroken', { n: st.items.chisel })); renderHud(); autosave();
+        return false;
+      case 'noChisel': sfx('error'); toast(MT.t('needChisel')); return false;
+      case 'deal': await openDeal(ev.deal); return false;
+      case 'level': openLevel(ev.level); return false;
+      case 'sage': await runSage(); return false;
+      case 'choose': await openChoose(); return false;
       case 'pickup': {
         view.move = { fx, fy, t0: now(), dur: 95 };
+        if (ev.pincer) await pincerHit(ev);
         const it = MT.ITEMS[ev.item];
         const g2 = ev.got;
         if (it.kind === 'key') { sfx('key'); toast(MT.t('got_key_' + it.key)); }
@@ -575,11 +624,88 @@
       }
       case 'fight': await battle(ev, fx, fy, dir); return false;
       case 'stairs': await changeFloor(ev.tile === 'UU'); if (ev.script) await runScript(ev.script); autosave(); return false;
-      case 'talk': await runScript(ev.script); autosave(); return false;
+      case 'talk': if (ev.script) { await runScript(ev.script); autosave(); } else toast(MT.t('npcBusy')); return false;
       case 'shop': openShop(ev.shop); return false;
       case 'script': await runScript(ev.script); autosave(); return false;
     }
     return false;
+  }
+
+  // 走進兩隻夾擊怪中間：紅閃＋扣血
+  async function pincerHit(ev) {
+    busy++;
+    sfx('hurt'); flash('#ff3a3a', 300); shake(250, 6); view.hurt = now() + 300;
+    floatText(st.x, st.y, '-' + ev.pincer, '#ff6a6a', 18);
+    toast(MT.t('pincerHit', { n: ev.pincer }));
+    renderHud();
+    await sleep(320);
+    busy--;
+  }
+
+  // 路上的一次性交易：說明＋要不要
+  async function openDeal(id) {
+    const D = MT.DEALS[id], n = MT.NPCS[st.maps[st.floor][st.talkAt[1]][st.talkAt[0]]];
+    busy++;
+    await say(n && n.speaker || null, MT.story('deal_' + id));
+    busy--;
+    const ok = st.gold >= D.price;
+    const k = await ask(MT.t('dealAsk', { p: D.price, g: st.gold }), ok ? [{ key: 'n', label: MT.t('dealNo') }, { key: 'y', label: MT.t('dealYes') }] : [{ key: 'n', label: MT.t('dealPoor') }]);
+    if (k !== 'y') { busy++; await say(n && n.speaker || null, MT.story('deal_' + id + '_no')); busy--; return; }
+    const before = snapStats();
+    const x = st.talkAt[0], y = st.talkAt[1];
+    if (!MT.acceptDeal(st, id)) { sfx('error'); toast(MT.t('noGold')); return; }
+    sfx('buy'); sparkle(x, y, 20); flyGains(before, x, y); renderHud();
+    busy++; await say(n && n.speaker || null, MT.story('deal_' + id + '_yes')); busy--;
+    autosave();
+  }
+
+  // 節拍之神：經驗值換等級
+  function openLevel(id) {
+    const G = MT.LEVEL[id], cost = MT.levelCost(st), poor = st.exp < cost;
+    openModal(MT.t('level_' + id), `<div class="shopTop">${img('metronome', id === 'L2' ? 'metroB' : 'metroA', 'big')}<p>${esc(MT.t('levelText', { lv: st.lv, cost }))}</p></div>
+      <div class="opts"><button class="btn opt" data-up ${poor ? 'disabled' : ''}>${esc(MT.t('levelUp', { hp: G.hp, atk: G.atk, def: G.def }))}</button></div>
+      <p class="muted small">EXP：${st.exp}　Lv ${st.lv}</p><button class="btn" data-x>${esc(MT.t('leave'))}</button>`, body => {
+      body.querySelector('[data-up]').addEventListener('click', () => {
+        const before = snapStats();
+        if (MT.buyLevel(st, id)) { sfx('fanfare'); notes(st.x, st.y, 6); flyGains(before, st.x, st.y); renderHud(); closeModal(); openLevel(id); autosave(); } else { sfx('error'); toast(MT.t('noExp')); }
+      });
+      body.querySelector('[data-x]').addEventListener('click', closeModal);
+    });
+  }
+
+  // 老琴師：技能鑑定與升級（台詞跟著目前的狀態變）
+  async function runSage() {
+    busy++;
+    const r = MT.sage(st);
+    const sk = st.skill;
+    const lines = { none: ['sage_none'], activate: ['sage_act1', 'sage_act2_' + (sk && sk.type)], up: ['sage_up', 'sage_up_' + (sk && sk.type)], notyet: ['sage_notyet'], max: ['sage_max'] }[r.r];
+    for (const k of lines) await say('harpist', MT.story(k).replace('{lv}', r.need || (sk && sk.lv)).replace('{skill}', sk ? MT.t('skill_' + sk.type) : ''));
+    if (r.r === 'activate' || r.r === 'up') { sfx('fanfare'); flash('#d9b8ff', 400); sparkle(st.x, st.y, 30); notes(st.x, st.y, 8); toast(MT.t('skillUp', { s: MT.t('skill_' + sk.type), lv: sk.lv })); }
+    busy--;
+    renderHud(); autosave();
+  }
+
+  // 豎琴之靈：三種唱法選一種（之後不能換）
+  async function openChoose() {
+    busy++;
+    await say('harpghost', MT.story('choose_1'));
+    busy--;
+    const opts = ['absorb', 'reflect', 'double'].map(k => `<button class="btn opt skillOpt" data-s="${k}"><b>${esc(MT.t('skill_' + k))}</b><br><span class="small">${esc(MT.t('skillDesc_' + k))}</span></button>`).join('');
+    openModal(MT.t('chooseTitle'), `<p class="small">${esc(MT.t('chooseHint'))}</p><div class="opts">${opts}</div>`, body => {
+      body.querySelectorAll('[data-s]').forEach(b => b.addEventListener('click', async () => {
+        const k = b.dataset.s;
+        if (await ask(MT.t('chooseConfirm', { s: MT.t('skill_' + k) }), [{ key: 'n', label: MT.t('no') }, { key: 'y', label: MT.t('yes') }]) !== 'y') return;
+        closeModal();
+        const [x, y] = st.talkAt;
+        MT.chooseSkill(st, k);
+        sfx('harp'); flash('#aef4ff', 500); sparkle(x, y, 40);
+        busy++;
+        await say('harpghost', MT.story('choose_' + k));
+        await say('doremi', MT.story('choose_after'));
+        busy--;
+        renderHud(); autosave();
+      }));
+    });
   }
 
   async function changeFloor(up) {
@@ -591,7 +717,7 @@
     playMusic(musicFor());
     await sleep(60);
     await fade(0, 260);
-    view.banner = { text: MT.t('arrive', { n: st.floor }), t0: now() };
+    view.banner = { text: MT.floorName(st.floor), t0: now() };
     busy--;
   }
 
@@ -600,61 +726,80 @@
     clearRoute();   // 開打了，終點光標不用再留在怪物身上
     const c = ev.calc, m = c.m;
     const boss = (m.sp || []).includes('boss');
+    const n = MT.monSize(ev.tile), [bx, by] = ev.at || [ev.x, ev.y];
+    const cx = bx + (n - 1) / 2, cy = by + (n - 1) / 2;   // 怪物（整塊）的中心格
     const [dx, dy] = DIR_V[dir];
-    view.dying = { code: ev.tile, x: ev.x, y: ev.y, t0: now(), dur: 1e9, phase: 'fight', flash: 0, hpMax: m.hp, hp: m.hp, face: [-dx, -dy] };
+    view.dying = { code: ev.tile, x: bx, y: by, n, t0: now(), dur: 1e9, phase: 'fight', flash: 0, hpMax: m.hp, hp: m.hp, face: [-dx, -dy] };
     const center = (x, y) => [x * TILE + TILE / 2, y * TILE + TILE / 2];
     const fxAt = (kind, [x, y], flip, life) => view.fx.push({ kind, x, y, flip, t0: now(), life });
-    /* 每一回合照實演：勇者先打（怪物剩多少血就扣多少），怪物還活著就回擊（先攻＝開打前先打一次、連擊＝一次打兩下）。
-       照正常速度演會超過上限（一般 4 回合、Boss 8 回合的長度）時，才把每一下的間隔等比例縮短，整場塞進上限 */
-    const sp = m.sp || [];
-    const strikes = sp.includes('double') ? 2 : 1;
-    const monActs = c.monHit > 0 ? c.turns - 1 + (sp.includes('first') ? 1 : 0) : 0;
-    const heroGap0 = boss ? 200 : 130, monGap0 = heroGap0 * 0.85;   // 雙方一來一往要看得出來，比以前慢一點（原本 95／170、怪物 0.7 倍）
-    const cap = (boss ? 8 : 4) * (heroGap0 + monGap0);
-    const full = c.turns * heroGap0 + monActs * monGap0;
-    const k = full > cap ? cap / full : 1;
-    const heroGap = Math.max(28, heroGap0 * k), monGap = Math.max(20, monGap0 * k);
-    let lastSfx = 0;
-    const sfxT = n => { const t = now(); if (k === 1 || t - lastSfx >= 70) { sfx(n); lastSfx = t; } };   // 加速時音效不要疊成一團
-    let shown = st.hp + c.damage, monHp = m.hp, heroHits = 0;
-    const monAct = async () => {
-      for (let s = 0; s < strikes; s++) {
-        sfxT('hurt'); view.hurt = now() + 120;
-        // 怪物撲向勇者、勇者被打得往後退，身上留三道爪痕
-        view.dying.lunge = { t0: now(), dur: Math.max(90, Math.min(160, monGap / strikes + 40)) };
-        view.knock = { dx: -dx, dy: -dy, t0: now() };
-        fxAt('claw', center(st.x, st.y), s % 2, 260);
-        // 每被打一下，勇者頭上也跳紅色扣血數字（Ken 指定，增加戰鬥張力）
-        heroHits++;
-        floatText(st.x + (heroHits % 2 ? 0.14 : -0.14), st.y > 0 ? st.y - 0.3 : st.y + 0.25, '-' + c.monHit, '#ff6a6a', 14);
-        shown = Math.max(st.hp, shown - c.monHit);
-        $('#hHp').textContent = shown;
-        await sleep(monGap / strikes);
-      }
+    /* 照 MT.calc 的規則排出每一下：勇者每回合打 c.strikes 這幾下（技能「連音」會多一下），
+       怪物還活著就回擊 c.monStrikes 下（連擊兩下），反彈技能每被打一下就把 c.reflect 彈回去。
+       吸血先演（開打前先吸）。整場照正常速度演會超過上限（一般 4 回合、Boss 8 回合）時，等比例加速 */
+    const seq = [];
+    let mhp = m.hp;
+    const monTurn = () => {
+      for (let s2 = 0; s2 < c.monStrikes; s2++) { seq.push({ who: 'mon', hit: c.monHit, refl: c.reflect }); mhp -= c.reflect; if (mhp <= 0) return true; }
+      return false;
     };
-    if (sp.includes('first') && c.monHit > 0) await monAct();
-    for (let i = 0; i < c.turns; i++) {
-      const hit = Math.min(monHp, c.heroHit);
-      monHp -= hit;
-      view.dying.hp = monHp;
-      view.lunge = { dx, dy, t0: now(), dur: Math.min(140, heroGap) };   // 衝回來了怪物才出手，兩邊不疊在一起
-      fxAt('slash', center(ev.x, ev.y), i % 2, 220);
-      sfxT('hit');
-      view.dying.flash = now() + 120;
-      floatText(ev.x + (i % 2 ? 0.14 : -0.14), ev.y > 0 ? ev.y - 0.45 : ev.y + 0.25, '-' + hit, '#ffffff', 14);   // 從血條上面跳（最上面一列改從血條下面）
-      if (boss) shake(120, 5);
-      await sleep(heroGap);
-      if (monHp > 0 && c.monHit > 0) await monAct();
+    const sp = m.sp || [];
+    let dead = sp.includes('first') && (c.monHit > 0 || c.reflect > 0) ? monTurn() : false;
+    while (!dead) {
+      for (const h of c.strikes) { const hit = Math.min(mhp, h); seq.push({ who: 'hero', hit }); mhp -= hit; if (mhp <= 0) break; }
+      if (mhp <= 0) break;
+      if (c.monHit > 0 || c.reflect > 0) dead = monTurn(); else seq.push({ who: 'idle' });
+      if (seq.length > 4000) break;
+    }
+    const heroGap0 = boss ? 200 : 130, monGap0 = heroGap0 * 0.85;   // 雙方一來一往要看得出來
+    const cap = (boss ? 8 : 4) * (heroGap0 + monGap0);
+    const full = seq.reduce((a, e) => a + (e.who === 'hero' ? heroGap0 : e.who === 'mon' ? monGap0 : 0), 0);
+    const k = full > cap ? cap / full : 1;
+    const heroGap = Math.max(18, heroGap0 * k), monGap = Math.max(14, monGap0 * k);
+    let lastSfx = 0;
+    const sfxT = nm => { const t = now(); if (k === 1 || t - lastSfx >= 70) { sfx(nm); lastSfx = t; } };   // 加速時音效不要疊成一團
+    let shown = st.hp + c.damage, monHp = m.hp, heroHits = 0, i = 0;
+    const setHp = v => { shown = Math.max(st.hp, v); $('#hHp').textContent = shown; };
+    if (c.drain) {   // 吸血：開打前先吸走一截
+      sfx('hurt'); flash('#b0103a', 300);
+      floatText(st.x, st.y > 0 ? st.y - 0.3 : st.y + 0.25, MT.t('drainText', { n: c.drain }), '#ff4a8a', 15);
+      setHp(shown - c.drain);
+      await sleep(420);
+    }
+    for (const e of seq) {
+      if (e.who === 'hero') {
+        monHp -= e.hit; view.dying.hp = monHp;
+        view.lunge = { dx, dy, t0: now(), dur: Math.min(140, heroGap) };
+        fxAt('slash', center(cx, cy), i++ % 2, 220);
+        sfxT('hit');
+        view.dying.flash = now() + 120;
+        floatText(cx + (i % 2 ? 0.14 : -0.14), by > 0 ? by - 0.45 : by + 0.25, '-' + e.hit, '#ffffff', 14);
+        if (boss) shake(120, 5);
+        await sleep(heroGap);
+      } else if (e.who === 'mon') {
+        if (e.hit > 0) {
+          sfxT('hurt'); view.hurt = now() + 120;
+          view.dying.lunge = { t0: now(), dur: Math.max(90, Math.min(160, monGap + 40)) };
+          view.knock = { dx: -dx, dy: -dy, t0: now() };
+          fxAt('claw', center(st.x, st.y), heroHits % 2, 260);
+          heroHits++;
+          floatText(st.x + (heroHits % 2 ? 0.14 : -0.14), st.y > 0 ? st.y - 0.3 : st.y + 0.25, '-' + e.hit, '#ff6a6a', 14);
+          setHp(shown - e.hit);
+        }
+        if (e.refl) {   // 反彈：同一下彈回去，紫色數字
+          monHp -= e.refl; view.dying.hp = Math.max(0, monHp); view.dying.flash = now() + 120;
+          floatText(cx, by > 0 ? by - 0.2 : by + 0.4, '↺' + e.refl, '#d9b8ff', 13);
+        }
+        await sleep(monGap);
+      }
     }
     // 結算
     $('#hHp').textContent = hudVal('hp');
     if (c.damage > 0) floatText(st.x, st.y, '-' + c.damage, '#ff6a6a', 18);
     sfx('kill');
-    toast(MT.t(ev.gold ? 'killed' : 'killed0', { name: MT.monName(ev.tile), g: ev.gold }));   // 打倒怪物也跳提示（Ken 指定）；接著開鐵門的話會被「鐵門打開了」蓋過
-    view.dying = { code: ev.tile, x: ev.x, y: ev.y, t0: now(), dur: boss ? 900 : 300, phase: 'die', done: true, hpMax: m.hp, hp: 0, shown: view.dying.shown };
-    sparkle(ev.x, ev.y, boss ? 60 : 14, boss ? null : ['#ffffff', '#ffe066', '#c8c8d8', '#ffffff']);
+    toast(MT.t(ev.gold ? 'killed' : 'killed0', { name: MT.monName(ev.tile), g: ev.gold, e: ev.exp }));   // 打倒怪物也跳提示（Ken 指定）；接著開鐵門的話會被「鐵門打開了」蓋過
+    view.dying = { code: ev.tile, x: bx, y: by, n, t0: now(), dur: boss ? 900 : 300, phase: 'die', done: true, hpMax: m.hp, hp: 0, shown: view.dying.shown };
+    sparkle(cx, cy, boss ? 60 : 14, boss ? null : ['#ffffff', '#ffe066', '#c8c8d8', '#ffffff']);
     if (boss) { shake(600, 12); flash('#ffffff', 700); sfx('boom'); }
-    if (ev.gold) flyGain('gold', ev.gold, ev.x, ev.y, 180);   // 放大、G 緊貼數字，飛進資訊列才加上去（Ken 指定）
+    if (ev.gold) flyGain('gold', ev.gold, cx, cy, 180);   // 放大、G 緊貼數字，飛進資訊列才加上去（Ken 指定）
     renderHud();
     await sleep(boss ? 800 : 160);
     busy--;
@@ -677,7 +822,7 @@
   function clearRoute() { route = null; }
 
   // BFS：只穿過 pass(代碼) 為真的格子，終點可以是任何東西（碰到就觸發）。回傳不含起點、含終點的格子
-  function bfs(tx, ty, pass) {
+  function bfs(tx, ty, pass) {   // pass(代碼, x, y)
     const m = st.maps[st.floor];
     const key = (x, y) => y * W + x;
     const prev = new Map([[key(st.x, st.y), null]]);
@@ -688,7 +833,7 @@
       for (const [dx, dy] of Object.values(DIR_V)) {
         const nx = x + dx, ny = y + dy;
         if (nx < 0 || ny < 0 || nx >= W || ny >= H || prev.has(key(nx, ny))) continue;
-        if ((nx !== tx || ny !== ty) && !pass(m[ny][nx])) continue;
+        if ((nx !== tx || ny !== ty) && !pass(m[ny][nx], nx, ny)) continue;
         prev.set(key(nx, ny), [x, y]);
         q.push([nx, ny]);
       }
@@ -699,7 +844,10 @@
     return cells;
   }
   // 優先只走空地；走不到才允許順路撿道具（撿道具只有好處，劇情道具撿到會停下來播劇情）
-  const findPath = (tx, ty) => bfs(tx, ty, c => c === '..') || bfs(tx, ty, c => c === '..' || MT.isItem(c));
+  // 夾擊的格子盡量繞開（真的只能走那裡才走）
+  const safe = (x, y) => !MT.pincerAt(st, st.floor, x, y);
+  const findPath = (tx, ty) => bfs(tx, ty, (c, x, y) => c === '..' && safe(x, y)) || bfs(tx, ty, (c, x, y) => (c === '..' || MT.isItem(c)) && safe(x, y))
+    || bfs(tx, ty, c => c === '..' || MT.isItem(c));
 
   async function walkRoute(cells) {
     const id = {};
@@ -724,6 +872,7 @@
     if (!cells) { refuse(); return; }
     let kind = 'walk';
     const m = MT.MONSTERS[code];
+    if (code === 'Cw' && !st.items.chisel) { refuse(MT.t('needChisel')); return; }
     if (m && !(m.onBump && !st.flags['bump:' + code])) {   // 有劇情的 Boss 第一次碰是播劇情，不算開打
       const c = MT.calc(st, code);
       if (c.damage == null) { refuse(MT.t('cantHurtMsg', { name: MT.monName(code) })); return; }
@@ -785,6 +934,8 @@
   // 一格東西的說明：怪物用圖鑑那一列，其他是圖＋名稱＋一行說明；空地、牆回傳空字串
   function infoRow(code) {
     if (MT.MONSTERS[code]) return monRow(code);
+    if (code === 'Hw') return `<div class="mon"><div class="mi"><div class="mn">${esc(MT.t('name_wall'))}</div><div class="md">${esc(MT.t('info_hidden'))}</div></div></div>`;
+    if (code === 'Cw') return `<div class="mon"><div class="mi"><div class="mn">${esc(MT.t('name_Cw'))}</div><div class="md">${esc(MT.t('info_cracked', { n: st.items.chisel }))}</div></div></div>`;
     const sp = spriteFor(code), it = MT.ITEMS[code], n = MT.NPCS[code];
     if (!sp) return '';
     let name = '', desc = '';
@@ -799,10 +950,15 @@
       else if (it.equip) { name = MT.itemName(code); desc = MT.t('info_equip', { stat: MT.t(it.kind), n: v }); }
       else if (it.kind === 'page') { name = MT.t('name_page'); desc = MT.t('info_page'); }
       else if (it.kind === 'note') { name = MT.itemName('note'); desc = MT.t('info_note'); }
+      else if (it.kind === 'tool') { name = MT.itemName(it.tool); desc = MT.t('info_' + it.tool); }
       else { name = MT.t('name_' + code); desc = MT.t('info_' + it.kind, { n: v }); }
-    } else if (n && n.shop === 'keys') { name = MT.t('frog'); desc = MT.t('info_frog', MT.SHOPS.keys); }
+    } else if (n && (n.shop === 'keys' || n.shop === 'keys2')) { name = MT.t(n.shop === 'keys' ? 'frog' : 'frog2'); desc = MT.t('info_frog', MT.SHOPS[n.shop]); }
+    else if (n && n.level) { name = MT.t('level_' + n.level); desc = MT.t('info_level', { cost: MT.levelCost(st), hp: MT.LEVEL[n.level].hp, atk: MT.LEVEL[n.level].atk, def: MT.LEVEL[n.level].def }); }
+    else if (n && n.sage) { name = MT.t('speaker_harpist'); desc = MT.t('info_sage_' + MT.sagePreview(st)); }
+    else if (n && n.choose) { name = MT.t('speaker_harpghost'); desc = MT.t('info_choose'); }
+    else if (n && n.deal) { name = MT.t('npc_' + code); desc = MT.t('info_deal', { p: MT.DEALS[n.deal].price }); }
     else if (n && n.shop) { const S = MT.SHOPS[n.shop]; name = MT.t(n.shop); desc = MT.t('info_shop', { price: MT.shopPrice(st, n.shop), hp: S.hp, atk: S.atk, def: S.def }); }
-    else if (n && n.talk) { name = MT.t('speaker_' + n.talk); desc = MT.t('info_talk'); }
+    else if (n && n.talk) { name = MT.t('npc_' + code); desc = MT.t(MT.npcTalked(st, code) ? 'info_talked' : 'info_talk'); }
     else return '';
     return `<div class="mon">${img(sp[0], sp[1], 'big')}<div class="mi"><div class="mn">${esc(name)}</div><div class="md">${esc(desc)}</div></div></div>`;
   }
@@ -974,12 +1130,14 @@
   // 一隻怪物的能力與這場的代價（圖鑑和說明卡共用）
   function monRow(code) {
     const m = MT.MONSTERS[code], c = MT.calc(st, code);
-    const sp = (m.sp || []).map(s => `<span class="tag">${esc(MT.t('sp_' + s))}</span>`).join('');
+    // 還沒拿到怪物圖鑑：只看得到名字
+    if (!st.items.book) return `<div class="mon">${img(m.sprite, m.pal, 'big')}<div class="mi"><div class="mn">${esc(MT.monName(code))}</div><div class="md">${esc(MT.t('needBook'))}</div></div></div>`;
+    const sp = (m.sp || []).map(s => `<span class="tag">${esc(MT.t('sp_' + s, { p: Math.round((m.drain || 0) * 100) }))}</span>`).join('');
     const dmg = c.damage == null ? `<b class="bad">${esc(MT.t('cantHurt'))}</b>` : c.damage >= st.hp ? `<b class="bad">${c.damage}（${esc(MT.t('willLose'))}）</b>` : `<b style="color:${dmgColor(c)}">${c.damage}</b>`;
     const inv = (m.sp || []).includes('invincible');
     return `<div class="mon">${img(m.sprite, m.pal, 'big')}<div class="mi"><div class="mn">${esc(MT.monName(code))} ${sp}</div>
       <div class="ms">${esc(MT.t('hp'))} ${inv ? '???' : m.hp}　${esc(MT.t('atk'))} ${inv ? '???' : m.atk}　${esc(MT.t('def'))} ${inv ? '???' : m.def}　${esc(MT.t('gold'))} ${m.gold}</div>
-      <div class="md">${esc(MT.t('dmg'))}：${dmg}</div></div></div>`;
+      <div class="md">${esc(MT.t('dmg'))}：${dmg}${m.exp ? `　<span class="muted">EXP ${m.exp}</span>` : ''}</div></div></div>`;
   }
   function openBook() {
     if (!st || mode !== 'game' || busy) return;
@@ -993,10 +1151,12 @@
   function openFly() {
     if (!st || mode !== 'game' || busy) return;
     if (!st.items.fly) { toast(MT.t('flyNeed')); return; }
+    if (!MT.canFly(st)) { sfx('error'); toast(MT.t('flyBlocked')); return; }
     let html = '<div class="floors">';
-    for (let f = 1; f <= MT.TOP; f++) {
+    for (let f = MT.BOTTOM; f <= MT.TOP; f++) {
       const ok = st.visited.includes(f);
-      html += `<button class="fl ${f === st.floor ? 'cur' : ''}" data-f="${f}" ${ok ? '' : 'disabled'} title="${ok ? '' : esc(MT.t('notVisited'))}">${f}F</button>`;
+      if (f === 0 && !ok) continue;   // 隱藏層沒去過就不列出來
+      html += `<button class="fl ${f === st.floor ? 'cur' : ''}" data-f="${f}" ${ok ? '' : 'disabled'} title="${ok ? '' : esc(MT.t('notVisited'))}">${MT.floorName(f)}</button>`;
     }
     html += '</div>';
     openModal(MT.t('flyTitle'), html, body => body.querySelectorAll('[data-f]').forEach(b => b.addEventListener('click', async () => {
@@ -1021,7 +1181,7 @@
     if (!sl) return `<span class="muted">${esc(MT.t('empty'))}</span>`;
     if (!loadable(sl)) return `<span class="muted">${esc(MT.t('oldSave'))} · ${esc(sl.device || '')} · ${esc(timeAgo(sl.at))}</span>`;
     const dev = (sl.device || '') + (MT.Sync.isMine(sl) ? `（${MT.t('thisDevice')}）` : '');
-    return `${MT.t('floorN', { n: sl.floor })} · ${esc(MT.t('hp'))} ${sl.hp} · ${esc(dev)} · ${esc(timeAgo(sl.at))}`;
+    return `${MT.floorName(sl.floor)} · ${esc(MT.t('hp'))} ${sl.hp} · ${esc(dev)} · ${esc(timeAgo(sl.at))}`;
   }
   /* 存檔／讀檔：上面是每台裝置各一格的自動存檔，下面是所有裝置共用、最多 99 格的手動存檔（新的在前）。
      別台裝置存的格子只能讀，不能覆蓋（跟K書吧一樣，每台裝置只寫自己的格子） */
@@ -1064,15 +1224,15 @@
   }
 
   function openShop(id) {
-    if (id === 'keys') {
-      const K = MT.SHOPS.keys;
+    if (id === 'keys' || id === 'keys2') {
+      const K = MT.SHOPS[id], two = id === 'keys2';
       const opts = [['y', 'buyY'], ['b', 'buyB'], ['r', 'buyR']].map(([k, lab]) =>
         `<button class="btn opt" data-k="${k}" ${st.gold < K[k] ? 'disabled' : ''}>${img(...spriteFor(KEY_OF[k]))} ${esc(MT.t(lab, { p: K[k] }))}</button>`).join('');
-      openModal(MT.t('frog'), `<div class="shopTop">${img('frog', null, 'big')}<p>${esc(MT.t('frogText'))}</p></div><div class="opts">${opts}</div>
+      openModal(MT.t(two ? 'frog2' : 'frog'), `<div class="shopTop">${img(two ? 'frogCousin' : 'frog', null, 'big')}<p>${esc(MT.t(two ? 'frog2Text' : 'frogText'))}</p></div><div class="opts">${opts}</div>
         <p class="muted small">${esc(MT.t('gold'))}：${st.gold}</p><button class="btn" data-x>${esc(MT.t('leave'))}</button>`, body => {
         body.querySelectorAll('[data-k]').forEach(b => b.addEventListener('click', () => {
           const before = snapStats();
-          if (MT.buy(st, 'keys', b.dataset.k)) { sfx('buy'); flyGains(before, st.x, st.y); renderHud(); closeModal(); openShop('keys'); autosave(); } else { sfx('error'); toast(MT.t('noGold')); }
+          if (MT.buy(st, id, b.dataset.k)) { sfx('buy'); flyGains(before, st.x, st.y); renderHud(); closeModal(); openShop(id); autosave(); } else { sfx('error'); toast(MT.t('noGold')); }
         }));
         body.querySelector('[data-x]').addEventListener('click', closeModal);
       });
@@ -1081,7 +1241,7 @@
     const S = MT.SHOPS[id], price = MT.shopPrice(st, id), poor = st.gold < price;
     const opts = [['hp', 'buyHp', S.hp, 'potion', 'red'], ['atk', 'buyAtk', S.atk, 'gemSword', 'gemRed'], ['def', 'buyDef', S.def, 'gemShield', 'gemBlue']].map(([k, lab, n, sp, pal]) =>
       `<button class="btn opt" data-k="${k}" ${poor ? 'disabled' : ''}>${img(sp, pal)} ${esc(MT.t(lab, { n }))}</button>`).join('');
-    openModal(MT.t(id), `<div class="shopTop">${img('altar', MT.NPCS[id === 'shop1' ? 'Sh' : 'S2'].pal, 'big')}<p>${esc(MT.t('shopText', { price }))}</p></div>
+    openModal(MT.t(id), `<div class="shopTop">${img('altar', MT.NPCS[{ shop1: 'Sh', shop2: 'S2', shop3: 'S3' }[id]].pal, 'big')}<p>${esc(MT.t('shopText', { price }))}</p></div>
       <div class="opts">${opts}</div><p class="muted small">${esc(MT.t('gold'))}：${st.gold}</p><button class="btn" data-x>${esc(MT.t('leave'))}</button>`, body => {
       body.querySelectorAll('[data-k]').forEach(b => b.addEventListener('click', () => {
         const before = snapStats();
@@ -1997,7 +2157,7 @@
     $('#title').hidden = false; $('#stage').classList.add('under');
     $('#dialog').hidden = true;
     renderTitle();
-    MT.Audio.play('title', ['base', 'drums', 'strings', 'lead']);
+    MT.Audio.play('title', ['base', 'drums', 'strings', 'winds', 'lead']);
     MT.Sync.pull().then(() => { if (mode === 'title') renderTitle(); });
   }
   $('#tContinue').addEventListener('click', () => { MT.Audio.init(); const a = latestAuto(); if (a) startGame(MT.unpack(a.data)); });
@@ -2015,6 +2175,7 @@
 
   function startGame(s, fresh) {
     st = MT.migrate(s);
+    hudGen++; for (const k of HUD_KEYS) hudHold[k] = 0;   // 上一局還在飛的數字不要帶過來
     mode = 'game'; busy = 0;
     $('#title').hidden = true; $('#cine').hidden = true; $('#stage').classList.remove('under');
     view.fairy = false; view.move = null; view.dying = null; view.fx = []; view.fade = 0; view.fadeTo = 0; view.fadeCur = 0;
@@ -2023,7 +2184,7 @@
     playClock = Date.now();
     renderHud();
     playMusic(musicFor());
-    view.banner = { text: MT.t('arrive', { n: st.floor }), t0: now() };
+    view.banner = { text: MT.floorName(st.floor), t0: now() };
     if (fresh) {
       const id = MT.stepTrigger(st);
       if (!id) autosave();

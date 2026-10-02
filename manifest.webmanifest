@@ -1,7 +1,7 @@
 {
   "name": "魔塔：失落的旋律",
   "short_name": "魔塔",
-  "description": "經典魔塔的網頁版：15 層原創關卡，找回被偷走的音樂。",
+  "description": "經典魔塔的網頁版：20 層原創關卡＋隱藏層，找回被偷走的音樂。",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

@@ -7,8 +7,8 @@
   const parseFloor = rows => rows.map(r => r.split(' '));
 
   MT.W = W; MT.H = H;
-  // 存檔格式版本：2.0.0 地圖由 11×11 加高成 11×15，1.x 的存檔（v1）存的是舊地圖，讀不了
-  MT.SAVE_V = 2;
+  // 存檔格式版本：2.0.0 地圖由 11×11 加高成 11×15（v2）；3.0.0 改成 20 層、地圖全部重畫（v3），舊存檔讀不了
+  MT.SAVE_V = 3;
   MT.canLoad = data => !!data && data.v === MT.SAVE_V;
 
   MT.newGame = function () {
@@ -16,16 +16,18 @@
     return {
       v: MT.SAVE_V,
       floor: s.floor, x: s.x, y: s.y, dir: 'up',
-      hp: s.hp, atk: s.atk, def: s.def, gold: s.gold,
+      hp: s.hp, atk: s.atk, def: s.def, gold: s.gold, exp: 0, lv: 1,
+      skill: null,           // { type: absorb／reflect／double, lv: 0～3 }；0＝選了還沒鑑定（不生效）
       keys: clone(s.keys),
-      items: { book: 0, fly: 0, drum: 0, harp: 0, note: 0 },
+      items: { book: 0, fly: 0, drum: 0, harp: 0, flute: 0, note: 0, chisel: 0 },
       pages: [],
       equip: { sword: '', shield: '' },
       layers: [],            // 已經找回的樂器：drums／strings／lead
       maps: MT.FLOORS.map(f => (f ? parseFloor(f) : null)),
       visited: [s.floor],
       flags: {},             // 劇情旗標、觸發過的劇本
-      shops: { shop1: 0, shop2: 0 },
+      shops: { shop1: 0, shop2: 0, shop3: 0 },
+      secrets: 0,            // 找到的暗牆數
       steps: 0, kills: 0, playMs: 0,
       done: false,
     };
@@ -53,22 +55,123 @@
   };
 
   MT.isMonster = t => !!MT.MONSTERS[t];
+  MT.monSize = t => (MT.MONSTERS[t] && MT.MONSTERS[t].size) || 1;
+  /* 大型怪物（size 2／3）在地圖上佔 size×size 格，每格都寫同一個代碼，共用一條血。
+     回傳 (x, y) 所在那一塊的左上角 */
+  MT.blockOrigin = function (st, f, x, y) {
+    const t = MT.tile(st, f, x, y), n = MT.monSize(t);
+    if (n === 1) return [x, y];
+    while (x > 0 && MT.tile(st, f, x - 1, y) === t) x--;
+    while (y > 0 && MT.tile(st, f, x, y - 1) === t) y--;
+    // 同一代碼兩塊緊貼時，照 size 對齊（不會發生，保險）
+    return [x, y];
+  };
+  // 清掉 (x, y) 所在的那一整塊
+  MT.clearBlock = function (st, f, x, y) {
+    const t = MT.tile(st, f, x, y), [ox, oy] = MT.blockOrigin(st, f, x, y), n = MT.monSize(t);
+    for (let dy = 0; dy < n; dy++) for (let dx = 0; dx < n; dx++) if (MT.tile(st, f, ox + dx, oy + dy) === t) MT.setTile(st, f, ox + dx, oy + dy, '..');
+  };
   MT.isItem = t => !!MT.ITEMS[t];
   MT.isNpc = t => !!MT.NPCS[t];
 
-  /* 戰鬥試算。勇者先攻；damage＝勇者這場會損失的血量，null＝打不動 */
+  /* 戰鬥試算。勇者先攻，雙方輪流；damage＝勇者這場會損失的生命，null＝打不動。
+     怪物特技：first 先攻、double 一回合打兩下、magic 無視防禦、pierce 無視一半防禦、
+     drain 開打前吸走勇者目前生命的 m.drain 比例（所以血少的時候去打比較划算）。
+     勇者技能（鑑定後生效）：absorb 每下少受一定比例、reflect 每被打一下就把一定比例彈回去（無視防禦）、
+     double 每回合多打一下。 */
+  MT.SKILL = {
+    absorb: [0, 0.2, 0.35, 0.5],               // 少受的比例
+    reflect: [0, 0.4, 0.7, 1.0],               // 彈回去的比例（以怪物原本那一下算）
+    double: [[], [0.6], [1], [1, 0.5]],        // 每回合額外的攻擊（勇者攻擊力減怪物防禦的倍數）
+    lvNeed: [0, 0, 12, 22],                    // 升到第 n 級要的勇者等級（第 1 級＝鑑定就有）
+  };
+  const skillOf = st => (st.skill && st.skill.lv > 0 ? st.skill : null);
+  MT.monHitRaw = function (st, m) {
+    const sp = m.sp || [];
+    if (sp.includes('magic')) return m.atk;
+    if (sp.includes('pierce')) return Math.max(0, m.atk - Math.floor(st.def / 2));
+    return Math.max(0, m.atk - st.def);
+  };
   MT.calc = function (st, code) {
     const m = MT.MONSTERS[code];
     const sp = m.sp || [];
-    if (sp.includes('invincible')) return { damage: null, turns: 0, heroHit: 0, monHit: 0, m };
+    const none = { damage: null, turns: 0, monActs: 0, heroHit: 0, monHit: 0, drain: 0, reflect: 0, strikes: [], monStrikes: 1, m };
+    if (sp.includes('invincible')) return none;
     const heroHit = st.atk - m.def;
-    if (heroHit <= 0) return { damage: null, turns: 0, heroHit: 0, monHit: 0, m };
-    const monHit = sp.includes('magic') ? m.atk : Math.max(0, m.atk - st.def);
-    const turns = Math.ceil(m.hp / heroHit);
-    let hits = turns - 1 + (sp.includes('first') ? 1 : 0);
-    if (sp.includes('double')) hits *= 2;
-    return { damage: hits * monHit, turns, heroHit, monHit, m };
+    if (heroHit <= 0) return none;
+    const sk = skillOf(st);
+    const raw = MT.monHitRaw(st, m);
+    const monHit = sk && sk.type === 'absorb' ? Math.floor(raw * (1 - MT.SKILL.absorb[sk.lv])) : raw;
+    const reflect = sk && sk.type === 'reflect' && raw > 0 ? Math.ceil(raw * MT.SKILL.reflect[sk.lv]) : 0;
+    const strikes = [heroHit].concat(sk && sk.type === 'double' ? MT.SKILL.double[sk.lv].map(k => Math.max(1, Math.floor(heroHit * k))) : []);
+    const monStrikes = sp.includes('double') ? 2 : 1;
+    const drain = sp.includes('drain') ? Math.floor(st.hp * m.drain) : 0;
+    const per = strikes.reduce((a, b) => a + b, 0);
+    let turns, monActs;
+    if (!reflect) {
+      // 沒有反彈：最後一回合一定是勇者打死牠（還沒輪到牠出手）
+      turns = Math.floor((m.hp - 1) / per) + 1;
+      monActs = turns - 1 + (sp.includes('first') ? 1 : 0);
+    } else {
+      // 有反彈：怪物出手也會扣自己的血，照回合慢慢算
+      let hp = m.hp; turns = 0; monActs = 0;
+      const monTurn = () => { monActs++; hp -= reflect * monStrikes; return hp <= 0; };
+      if (!(sp.includes('first') && monTurn())) {
+        for (;;) {
+          turns++;
+          for (const h of strikes) { hp -= h; if (hp <= 0) break; }
+          if (hp <= 0 || monTurn()) break;
+        }
+      }
+    }
+    return { damage: drain + monActs * monStrikes * monHit, turns, monActs, heroHit, monHit, drain, reflect, strikes, monStrikes, m };
   };
+
+  /* 經驗值換等級（節拍之神）：等級共用，越後面越貴；進階版（L2）每級給得比較多 */
+  MT.levelCost = st => MT.LEVEL.base + MT.LEVEL.step * (st.lv - 1);
+  MT.buyLevel = function (st, id) {
+    const cost = MT.levelCost(st);
+    if (st.exp < cost) return false;
+    const G = MT.LEVEL[id];
+    st.exp -= cost; st.lv++;
+    st.hp += G.hp; st.atk += G.atk; st.def += G.def;
+    return true;
+  };
+
+  /* 技能：琴之精靈那裡三選一（lv 0，還不生效），老琴師鑑定後 lv 1，勇者等級夠了再找他升級 */
+  MT.chooseSkill = function (st, type) {
+    st.skill = { type, lv: 0 }; st.flags.skillChosen = 1;
+    if (st.talkAt && MT.tile(st, st.floor, st.talkAt[0], st.talkAt[1]) === 'Hs') MT.setTile(st, st.floor, st.talkAt[0], st.talkAt[1], '..');   // 豎琴之靈選完就消失
+  };
+  // 老琴師：回傳這次發生的事（none／activate／up／notyet／max），並照做
+  MT.sage = function (st) {
+    const sk = st.skill;
+    if (!sk) return { r: 'none' };
+    if (sk.lv === 0) { sk.lv = 1; return { r: 'activate' }; }
+    if (sk.lv >= 3) return { r: 'max' };
+    const need = MT.SKILL.lvNeed[sk.lv + 1];
+    if (st.lv < need) return { r: 'notyet', need };
+    sk.lv++;
+    return { r: 'up', lv: sk.lv };
+  };
+  MT.sagePreview = function (st) {
+    const sk = st.skill;
+    if (!sk) return 'none';
+    if (sk.lv === 0) return 'activate';
+    if (sk.lv >= 3) return 'max';
+    return st.lv >= MT.SKILL.lvNeed[sk.lv + 1] ? 'up' : 'notyet';
+  };
+
+  /* 夾擊：走進兩隻夾擊怪（左右或上下）中間，立刻失去目前生命的三分之一 */
+  MT.pincerAt = function (st, f, x, y) {
+    const isP = t => MT.isMonster(t) && (MT.MONSTERS[t].sp || []).includes('pincer');
+    return (isP(MT.tile(st, f, x - 1, y)) && isP(MT.tile(st, f, x + 1, y))) || (isP(MT.tile(st, f, x, y - 1)) && isP(MT.tile(st, f, x, y + 1)));
+  };
+  MT.pincerLoss = st => Math.floor(st.hp / 3);
+
+  // Boss 還活著的樓層不能用風之羽飛走
+  MT.canFly = st => !MT.NOFLY[st.floor] || !MT.findTile(st, st.floor, MT.NOFLY[st.floor]);
+  MT.floorName = f => (f === 0 ? 'B1' : f + 'F');
 
   MT.shopPrice = (st, id) => MT.SHOPS[id].base + MT.SHOPS[id].step * st.shops[id];
 
@@ -82,6 +185,19 @@
     const ev = { x: nx, y: ny, tile: t };
 
     if (t === '##' || t === 'Gt') return Object.assign(ev, { type: 'bump' });
+    // 裂牆：有鑿子就敲開（人不動），沒有就撞牆
+    if (t === 'Cw') {
+      if (!st.items.chisel) return Object.assign(ev, { type: 'noChisel' });
+      st.items.chisel--;
+      MT.setTile(st, st.floor, nx, ny, '..');
+      return Object.assign(ev, { type: 'break' });
+    }
+    // 暗牆：看起來是牆，其實走得過去；走進去就變成空地
+    if (t === 'Hw') {
+      MT.setTile(st, st.floor, nx, ny, '..');
+      st.x = nx; st.y = ny; st.steps++; st.secrets = (st.secrets || 0) + 1;
+      return Object.assign(ev, { type: 'secret', script: MT.stepTrigger(st) });
+    }
 
     if (MT.isMonster(t)) {
       const m = MT.MONSTERS[t];
@@ -93,10 +209,13 @@
       if (c.damage == null || c.damage >= st.hp) return Object.assign(ev, { type: 'cantFight', calc: c });
       st.hp -= c.damage;
       st.gold += m.gold;
+      st.exp += m.exp || 0;
       st.kills++;
-      MT.setTile(st, st.floor, nx, ny, '..');
+      const at = MT.blockOrigin(st, st.floor, nx, ny);
+      MT.clearBlock(st, st.floor, nx, ny);
+      ev.at = at;
       const opened = MT.checkGates(st);
-      return Object.assign(ev, { type: 'fight', calc: c, gold: m.gold, opened, script: m.onDeath || null });
+      return Object.assign(ev, { type: 'fight', calc: c, gold: m.gold, exp: m.exp || 0, opened, script: m.onDeath || null });
     }
 
     if (MT.DOORS[t]) {
@@ -109,9 +228,13 @@
 
     if (MT.isNpc(t)) {
       const n = MT.NPCS[t];
+      st.talkAt = [nx, ny];
       if (n.shop) return Object.assign(ev, { type: 'shop', shop: n.shop });
-      const script = n.talk === 'bard' && st.flags.bardTalked ? 'bardAgain' : n.talk;
-      return Object.assign(ev, { type: 'talk', script });
+      if (n.deal) return Object.assign(ev, { type: 'deal', deal: n.deal });
+      if (n.level) return Object.assign(ev, { type: 'level', level: n.level });
+      if (n.sage) return Object.assign(ev, { type: 'sage' });
+      if (n.choose) return Object.assign(ev, { type: 'choose' });
+      return Object.assign(ev, { type: 'talk', script: MT.npcScript(st, t) });
     }
 
     if (t === 'UU' || t === 'DD') {
@@ -122,6 +245,7 @@
 
     // 走得過去
     st.x = nx; st.y = ny; st.steps++;
+    if (MT.pincerAt(st, st.floor, nx, ny)) { ev.pincer = MT.pincerLoss(st); st.hp -= ev.pincer; }
     if (MT.isItem(t)) {
       const got = MT.pickup(st, t);
       MT.setTile(st, st.floor, nx, ny, '..');
@@ -130,9 +254,30 @@
     return Object.assign(ev, { type: 'move', script: MT.stepTrigger(st) });
   };
 
+  /* 路上的 NPC：第一次說 talk，說過（旗標 npc:代碼，或 n.flag）之後說 again；沒有 again 的說過就不再觸發劇本 */
+  MT.npcTalked = (st, t) => !!st.flags[MT.NPCS[t].flag || 'npc:' + t];
+  MT.npcScript = (st, t) => {
+    const n = MT.NPCS[t];
+    return MT.npcTalked(st, t) ? n.again || null : n.talk;
+  };
+  /* 一次性交易：付金幣換能力或鑰匙，成交後 NPC 離開。回傳 true＝成交 */
+  MT.dealOk = (st, id) => st.gold >= MT.DEALS[id].price && !st.flags['deal:' + id];
+  MT.acceptDeal = function (st, id) {
+    const D = MT.DEALS[id];
+    if (!MT.dealOk(st, id)) return false;
+    st.gold -= D.price;
+    for (const k in D.gain) {
+      if (k === 'keys') for (const c in D.gain.keys) st.keys[c] += D.gain.keys[c];
+      else st[k] += D.gain[k];
+    }
+    st.flags['deal:' + id] = 1;
+    if (st.talkAt) MT.setTile(st, st.floor, st.talkAt[0], st.talkAt[1], '..');
+    return true;
+  };
+
   MT.pickup = function (st, t) {
     const it = MT.ITEMS[t];
-    const v = it.kind === 'key' || it.kind === 'page' || it.kind === 'note' ? 1 : MT.itemValue(t, st.floor);
+    const v = it.kind === 'key' || it.kind === 'page' || it.kind === 'note' || it.kind === 'tool' ? 1 : MT.itemValue(t, st.floor);
     const got = { kind: it.kind, value: v };
     if (it.kind === 'key') st.keys[it.key]++;
     else if (it.kind === 'hp') st.hp += v;
@@ -140,6 +285,7 @@
     else if (it.kind === 'def') st.def += v;
     else if (it.kind === 'page') { st.pages.push(it.page); got.script = MT.PAGE_SCRIPTS[it.page]; }
     else if (it.kind === 'note') { st.items.note = 1; got.script = 'noteGet'; }
+    else if (it.kind === 'tool') { st.items[it.tool] = (st.items[it.tool] || 0) + (it.n || 1); got.script = it.script || null; }
     if (it.equip) st.equip[it.equip] = t;
     return got;
   };
@@ -160,7 +306,7 @@
 
   // 飛到去過的樓層：落在下樓梯（1F 落在起點）
   MT.flyTo = function (st, f) {
-    if (!st.items.fly || !st.visited.includes(f)) return false;
+    if (!st.items.fly || !st.visited.includes(f) || !MT.canFly(st)) return false;
     if (f === 1) { st.floor = 1; st.x = MT.START.x; st.y = MT.START.y; }
     else MT.goFloor(st, f, 'DD');
     return true;
@@ -192,8 +338,8 @@
 
   /* 買東西。回傳 true＝成交 */
   MT.buy = function (st, shop, what) {
-    if (shop === 'keys') {
-      const price = MT.SHOPS.keys[what];
+    if (shop === 'keys' || shop === 'keys2') {
+      const price = MT.SHOPS[shop][what];
       if (st.gold < price) return false;
       st.gold -= price; st.keys[what]++;
       return true;
@@ -215,6 +361,11 @@
       case 'stat': st[c[1]] += c[2]; break;
       case 'flag': st.flags[c[1]] = 1; break;
       case 'set': MT.setTile(st, st.floor, c[1], c[2], c[3]); break;
+      case 'key': st.keys[c[1]] += c[2]; break;
+      // 說話的 NPC 離開（剛剛碰到的那格變空地）
+      case 'leave': if (st.talkAt) MT.setTile(st, st.floor, st.talkAt[0], st.talkAt[1], '..'); break;
+      // 這層所有 c[1] 換成 c[2]（大型怪物整塊換）
+      case 'swap': for (const row of st.maps[st.floor]) for (let x = 0; x < W; x++) if (row[x] === c[1]) row[x] = c[2]; break;
       case 'layer': if (!st.layers.includes(c[1])) st.layers.push(c[1]); break;
       case 'ending': st.done = true; break;
     }
@@ -222,23 +373,31 @@
   // 真結局：三頁日記全撿齊，並帶著失落的音符打倒指揮家
   MT.isTrueEnding = st => st.pages.length >= 3 && !!st.items.note;
 
-  /* 通關評價：剩餘生命＋剩下的金幣與鑰匙折算成生命。
-     金幣照 11F 祭壇當下的價格換生命，鑰匙先照呱呱商人的價格換金幣，等於幫玩家把錢花完，不用最後跑回去買血。
-     門檻是自動玩家（tools/solve.js）通關分數的倍數；S 還要真結局，否則跳過支線反而剩比較多血 */
+  /* 通關評價：剩餘生命＋剩下的金幣、鑰匙、經驗值折算成生命。
+     金幣照 16F 水晶祭壇當下的價格換生命，鑰匙先照呱呱商人的價格換金幣，經驗值照節拍之神換等級的生命，
+     等於幫玩家把資源花完，不用最後跑回去買血。
+     門檻（MT.RATING）用 tools/solve.js 的新手／一般／高手三種自動玩家的成績定；S 還要真結局 */
   MT.rating = function (st) {
-    const K = MT.SHOPS.keys, S2 = MT.SHOPS.shop2, R = MT.RATING;
-    const gold = st.gold + st.keys.y * K.y + st.keys.b * K.b + st.keys.r * K.r;
-    const bonus = Math.floor(gold * S2.hp / MT.shopPrice(st, 'shop2'));
+    const R = MT.RATING, K = MT.SHOPS.keys, S3 = MT.SHOPS.shop3;
+    // 照真的去買來算：鑰匙換回金幣，金幣在水晶祭壇一次一次買生命（每買一次漲價），經驗值一級一級升（只算生命）
+    let gold = st.gold + st.keys.y * K.y + st.keys.b * K.b + st.keys.r * K.r, n = st.shops.shop3 || 0, bonus = 0;
+    for (let p = S3.base + S3.step * n; gold >= p; p += S3.step) { gold -= p; bonus += S3.hp; }
+    let exp = st.exp, lv = st.lv;
+    for (let c = MT.LEVEL.base + MT.LEVEL.step * (lv - 1); exp >= c; c += MT.LEVEL.step) { exp -= c; bonus += MT.LEVEL.L2.hp; }
     const score = st.hp + bonus;
     const trueEnd = MT.isTrueEnding(st);
-    const sOk = score >= R.base * R.S;
-    const grade = sOk && trueEnd ? 'S' : score >= R.base * R.A ? 'A' : score >= R.base * R.B ? 'B' : 'C';
-    return { hp: st.hp, bonus, score, grade, trueEnd, needTrue: sOk && !trueEnd };
+    const grade = score >= R.S && trueEnd ? 'S' : score >= R.A ? 'A' : score >= R.B ? 'B' : 'C';
+    return { hp: st.hp, bonus, score, grade, trueEnd, needTrue: score >= R.S && !trueEnd };
   };
 
   /* 存檔補上新版加的欄位（2.0.0 起只讀得了 v2 存檔，1.x 的地圖修補都用不到了） */
   MT.migrate = function (st) {
     if (st.items.note == null) st.items.note = 0;
+    if (st.items.flute == null) st.items.flute = 0;
+    if (st.secrets == null) st.secrets = 0;
+    if (st.items.chisel == null) st.items.chisel = 0;
+    if (st.exp == null) { st.exp = 0; st.lv = 1; }
+    if (st.shops.shop3 == null) st.shops.shop3 = 0;
     return st;
   };
 

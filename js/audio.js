@@ -1,6 +1,6 @@
 /* 音樂與音效：全部用 Web Audio 即時合成，沒有外部音檔。
    塔裡的背景音樂分層：一開始只剩低音和零星的鐘聲（聲音被偷走了），
-   打倒鼓魔像找回「鼓」、打倒弦之魔女找回「弦」，對應的聲部才會回來。 */
+   打倒鼓魔像找回「鼓」、打倒弦之魔女找回「弦」、打倒回音之鏡找回「笛」，對應的聲部才會回來。 */
 (function (MT) {
   'use strict';
 
@@ -31,6 +31,9 @@
         { layer: 'drums', inst: 'drums', vol: 0.5, notes:
           'k h s h k k s h  k h s h k k s h  k h s h k k s h  k h s h k k s h ' +
           'k h s h k k s h  k h s h k k s h  k h s h k k s h  k k s k s k s s' },
+        { layer: 'winds', inst: 'flute', vol: 0.11, notes:
+          'g5 - - - e5 - - -  d5 - - - g5 - - -  e5 - - - c5 - - -  f5 - - - a5 - - - ' +
+          'g5 - - - e5 - - -  d5 - - - b4 - - -  a4 - - - b4 - - -  c5 - - - - - - -' },
       ],
     },
     tower: {
@@ -51,6 +54,9 @@
         { layer: 'lead', inst: 'lead', vol: 0.13, notes:
           'a4 - c5 - e5 - - -  f5 - e5 - c5 - - -  d5 - b4 - g4 - b4 -  g#4 - - - e4 - - - ' +
           'a4 - c5 - e5 - a5 -  c6 - b5 - a5 - e5 -  f5 - a5 - g#5 - b5 -  a5 - - - - - . .' },
+        { layer: 'winds', inst: 'flute', vol: 0.10, notes:
+          'e5 - - - c5 - - -  c5 - - - a4 - - -  b4 - - - d5 - - -  b4 - - - g#4 - - - ' +
+          'c5 - - - e5 - - -  f5 - - - e5 - - -  f5 - - - e5 - - -  e5 - - - - - - -' },
       ],
     },
     boss: {
@@ -68,6 +74,9 @@
         { layer: 'drums', inst: 'drums', vol: 0.5, notes:
           'k h s h k k s h  k h s h k k s h  k h s h k k s h  k h s h k s s s ' +
           'k h s h k k s h  k h s h k k s h  k h s h k k s h  s s s s k k s s' },
+        { layer: 'winds', inst: 'flute', vol: 0.09, notes:
+          'a5 - - - f5 - - -  f5 - - - d5 - - -  g5 - - - e5 - - -  e5 - - - a5 - - - ' +
+          'a5 - - - d6 - - -  bb5 - - - f5 - - -  g5 - - - c6 - - -  a5 - - - c#6 - - -' },
       ],
     },
   };
@@ -184,6 +193,14 @@
     } else if (inst === 'pulse') {
       o.type = 'square'; o.frequency.value = f;
       env(g, t, 0.005, 1, 0.06, 0.4, 0.04, dur * 0.8);
+    } else if (inst === 'flute') {
+      // 笛：柔和的起音＋慢慢加深的顫音（15F 打倒回音之鏡後才出現的聲部）
+      o.type = 'triangle'; o.frequency.value = f;
+      const lfo = ctx.createOscillator(), lg = ctx.createGain();
+      lfo.frequency.value = 4.8; lg.gain.setValueAtTime(0, t); lg.gain.linearRampToValueAtTime(f * 0.008, t + 0.25);
+      lfo.connect(lg); lg.connect(o.frequency);
+      lfo.start(t); lfo.stop(t + dur + 0.3);
+      env(g, t, 0.06, 1, 0.12, 0.75, 0.12, dur * 0.95);
     } else if (inst === 'bass') {
       o.type = 'triangle'; o.frequency.value = f;
       env(g, t, 0.01, 1, 0.1, 0.8, 0.05, dur * 0.9);

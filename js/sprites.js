@@ -9,6 +9,7 @@
     l: '#8be05a', L: '#3a9a3a', b: '#5ab0ff', B: '#2d5fc0', c: '#aef4ff',
     p: '#c07cf5', P: '#6a34a8', s: '#f7cfa6', S: '#d09468', n: '#9a6634', N: '#5a3a1e', m: '#ff9ccc',
     v: '#0c0914', V: '#7a52c0', x: '#ff3a6a',   // 指揮家：純黑的影子、紫色輪廓光、面具底下發光的眼
+    t: '#4fd8cc', T: '#1d6e72', i: '#e4eef6',   // 鏡之迴廊：青綠的光、深青的鏡面、亮銀
   };
 
   const PALS = {
@@ -47,6 +48,22 @@
   PALS.vD = { 1: '#c07cf5', 2: '#6a34a8', 3: '#9a6634' };
   PALS.vE = { 1: '#ff9ccc', 2: '#c04a7a', 3: '#3a2418' };
   PALS.vF = { 1: '#efeadc', 2: '#9a9484', 3: '#b8bcc8' };
+  // 3.0 新增的怪物與 NPC 配色
+  PALS.ghostW = { 1: '#ffffff', 2: '#aef4ff' };                       // 幽靈預設（白＋淡青）
+  PALS.echo = { 1: '#c8fff6', 2: '#2fa8a8' };                         // 回音幽靈：青銀
+  PALS.golemS = { 1: '#b8bcc8', 2: '#6b7080', 3: '#ffd84a' };         // 石像魔像預設
+  PALS.crystalG = { 1: '#cdb4ff', 2: '#6a4ac0', 3: '#7affff' };       // 水晶魔像
+  PALS.crystalBat = { 1: '#e88ad8', 2: '#7a3aa8', 3: '#aef4ff' };     // 水晶蝙蝠：粉紫
+  PALS.crystalK = { 1: '#bfe6ff', 2: '#7a4ad0', 3: '#ff6ad8' };       // 水晶騎士
+  PALS.beetle = { 1: '#4a8ad0', 2: '#22407a', 3: '#bfe4ff' };         // 鎧甲蟲：鋼藍硬殼
+  PALS.stoneP = { 1: '#9a9eaa', 2: '#585c6a', 3: '#ff6a3a' };         // 石像鬼（夾擊）
+  PALS.mirrorP = { 1: '#d4eef2', 2: '#4f9aa6', 3: '#ff4ad0' };        // 鏡像守衛（夾擊）
+  PALS.goldEq = { 1: '#ffe066', 2: '#c08a10', 3: '#e8453c' };         // 金劍／金盾：金、暗金、紅寶石
+  PALS.mirrorA = { 1: '#d8eaf2', 2: '#5f8496', 3: '#5ff0e0' };        // 鏡之祭壇
+  PALS.metroA = { 1: '#b07a48', 2: '#6a4424', 3: '#ffd84a' };         // 節拍之神：石／木
+  PALS.metroB = { 1: '#c8f4ff', 2: '#8a5ad8', 3: '#ffd23a' };         // 節拍之神（進階）：水晶＋金
+  PALS.soldierP = { 1: '#a8b0c0', 2: '#5a6274', 3: '#3d6fe0' };       // 受傷的士兵：鐵甲、藍罩袍
+  PALS.lastGuard = { 1: '#e6c66a', 2: '#8a6a2a', 3: '#c83a3a' };      // 最後的守衛：金甲、紅罩袍
 
   const S = {
     // ── 王子阿爾特（綽號小鐵）：頭上小王冠 ──
@@ -236,15 +253,16 @@
       '..klwkll', '...kLlll', '..kknnnn', '.kllknnn', 'kllk.nNn', 'kllknnnn',
       'kkk.kNNN', '....knnk', '....kLLk', '....kkkk',
     ] },
-    ghost: { sym: true, rows: [
-      '........', '.....kkk', '....kwww', '...kwwww', '..kwwwww', '..kwwkkw',
-      '..kwwkkw', '..kwwwww', '.kwwwwwk', '.kwwwwkk', '.kcwwwww', '.kccwwww',
-      '.kcccwww', '..kccckc', '...kkk.k', '........',
+    // 幽靈與魔像用 1／2／3 上色（預設 pal ghostW／golemS 跟原本一樣），回音幽靈 echo、水晶魔像 crystalG 換色
+    ghost: { sym: true, pal: 'ghostW', rows: [
+      '........', '.....kkk', '....k111', '...k1111', '..k11111', '..k11kk1',
+      '..k11kk1', '..k11111', '.k11111k', '.k1111kk', '.k211111', '.k221111',
+      '.k222111', '..k222k2', '...kkk.k', '........',
     ] },
-    golem: { sym: true, rows: [
-      '........', '...kkkkk', '..kgggGg', '..kggGgg', '..kgyyGg', '..kgggGg',
-      '.kkGGGGG', 'kggkgggg', 'kgGkgGgg', 'kggkgggG', 'kGGkGggg', 'kkkkgggg',
-      '....kGGk', '...kggGk', '...kGGGk', '...kkkkk',
+    golem: { sym: true, pal: 'golemS', rows: [
+      '........', '...kkkkk', '..k11121', '..k11211', '..k13321', '..k11121',
+      '.kk22222', 'k11k1111', 'k12k1211', 'k11k1112', 'k22k2111', 'kkkk1111',
+      '....k22k', '...k112k', '...k222k', '...kkkkk',
     ] },
     rest: { sym: true, rows: [
       '......kk', '....kkPP', '...kPPPP', '..kPPPPP', '..kPPkkk', '..kPkkrk',
@@ -636,6 +654,424 @@
       '.....kkkkkkkkk..',
       '................',
     ] },
+
+    // ══ 3.0 新增 ══
+    // ── 怪物 ──
+    // 鎧甲蟲：鋼藍硬殼、中縫、頭上一根角（pal beetle）
+    beetle: { sym: true, pal: 'beetle', rows: [
+      '........', '..d....k', '...d..kg', '....kkkg', '...kdddd', '...kdrdd',
+      '..kkkkkk', '.k33111k', 'dk31111k', '.k31111k', 'dk11111k', '.k11112k',
+      'dk11122k', '..k1222k', '...kkkkk', '........',
+    ] },
+    // 雙刀劍士：紅頭巾、藍道服，兩手各握一把直立的刀
+    swordsman: { sym: true, rows: [
+      '.k......', 'kwk.....', 'kwg..kkk', 'kwg.kRRR', 'kwg.ksks', 'kwg.ksss',
+      'kwg..kss', 'kwg.kBBb', 'kyyykbbb', '.kssskbb', '..Nk.kbb', '..k..kyy',
+      '....kBBB', '....kBBk', '....kNNk', '....kkkk',
+    ] },
+    // 石像鬼：成對出現夾擊（pal stoneP／mirrorP）
+    statue: { sym: true, pal: 'stoneP', rows: [
+      '........', '.k......', '.k1k..kk', '..k1kk11', '..kk1111', 'k..k1311',
+      'kk.k1111', 'k1k.k222', 'k11kk111', 'k121k111', 'k1221k11', 'k2221k11',
+      '.kkk2k11', '...kk1k1', '.k222222', '.kkkkkkk',
+    ] },
+    // 胖老鼠：圓滾滾、大門牙、眨一隻眼，尾巴從右下角捲出來
+    rat: { rows: [
+      '................',
+      '.kkk........kkk.',
+      'kmmGk......kGmmk',
+      'kmmGkkkkkkkkGmmk',
+      '.kkggggggggggkk.',
+      '..kggggggggggk..',
+      '.kggkwggggggggk.',
+      '.kggkkggggkkggk.',
+      'kggggggmmggggggk',
+      'kgmgggkkkkgggmgk',
+      'kgggggkwwkgggggk',
+      'kgGgwwwwwwwwgGgk',
+      'kgGwwwwwwwwwwGgk',
+      '.kGgwwwwwwwwgGkm',
+      '..kGGggggggGGk.m',
+      '..kmmkkkkkkmmkm.',
+    ] },
+    // 鏡片小惡魔：銀色的頭、青綠的碎鏡翅膀
+    mirrorImp: { sym: true, rows: [
+      '........', '.k......', '.kik....', '..kik.kk', '...kkiii', '...kiggg',
+      'kk.kgxgg', 'kik.kgkw', 'kitk.kkk', 'kittkTtc', 'kitTkTct', '.kTkkTtc',
+      '..k.kTtt', '....kTtk', '....kTk.', '....kk..',
+    ] },
+    // 詩班歌者：紫色兜帽、白色披肩，張嘴唱出魔法
+    chorister: { sym: true, rows: [
+      '.....kkk', '....kppp', '...kpppp', '..kppPPP', '..kpPsss', '..kpPsks',
+      '..kpPsss', '..kpPssk', '.kppPssR', '.kpppPsk', '.kppppkw', 'kpppkwww',
+      'kpppkwww', 'kppPkwww', 'kpPPkwgw', 'kkkkkkkk',
+    ] },
+    // 夜梟：大黃眼、耳羽、胸前羽紋
+    owl: { sym: true, rows: [
+      '........', '..k.....', '..kk....', '..knkkkk', '.knnnnnn', '.knkkkkn',
+      '.kkyyyyk', '.kkykkyo', '.kkyyyyo', '.knkkkko', '.kNnSSSS', 'kNNnSnSS',
+      'kNNnSSSS', '.kNNnSnS', '..kNNnnn', '...koko.',
+    ] },
+    // 暗影刺客：深色兜帽、紫水晶飾邊、紅眼，右手一把水晶短刀
+    assassin: { rows: [
+      '................',
+      '.......kk.......',
+      '......kppk......',
+      '.....kdppdk.....',
+      '....kddddddk.kk.',
+      '...kddkkkkddkwck',
+      '...kdkxkkxkdkwck',
+      '...kddkkkkddkwck',
+      '....keeeeeekkwck',
+      '...kkdeeeedkkwck',
+      '..kdddkppkddkppk',
+      '.kdddpkppkpdkssk',
+      '.kddppkddkppddk.',
+      '.kdppkddddkppdk.',
+      '.kddkddddddkddk.',
+      '.kkkkkkkkkkkkkk.',
+    ] },
+
+    // ── 中頭目（2×2 格，16×16 放大畫）──
+    // 骷髏館長：金冠、紅眼窩、紫袍金領，骨頭手捧著一本攤開的書
+    skelking: { sym: true, rows: [
+      '....y..y', '...kyyyy', '...kyryy', '..kwwwww', '..kwwwww', '..kwkkww',
+      '..kwkrww', '..kwwwwk', '...kwwww', '...kwkwk', '.kPykkkk', 'kPpPykkk',
+      'kPpRwggk', 'kPwRwwgk', 'kPwRkkkk', 'kkkkkkkk',
+    ] },
+    // 獄卒長：鐵盔、皮背心、右手舉狼牙棒、腰上一串鑰匙
+    jailer: { rows: [
+      '...........kkk..',
+      '....kkkkk.knnnk.',
+      '...kGgggGkknnnk.',
+      '...kGGGGGkknNnk.',
+      '...kskkskk.knNk.',
+      '...ksssssk.knNk.',
+      '...kSRRRSk.knk..',
+      '..kkkSSSkkk.knk.',
+      '.kNnnkkknnNkkssk',
+      'kNnnnnnnnnnNkssk',
+      'ksnnnnnnnnnnkkk.',
+      'kssknnyyynnk....',
+      'kkkgyknnnnnk....',
+      '.kgkgknNNnnk....',
+      '..kgk.kNkNNk....',
+      '......kkkkkk....',
+    ] },
+    // 鏡之騎士：銀甲、青綠盔纓與目光，胸前一面鏡盾
+    mirrorKnight: { sym: true, rows: [
+      '......kt', '.....ktt', '....kkii', '...kiiii', '...kigii', '...kikkk',
+      '...kgkck', '...kgggg', '.kkkkkkk', 'kiigkcwt', 'kgGgkctt', 'kgkgkttt',
+      'kk.gkttT', '...kkttT', '....kkTT', '.....kkk',
+    ] },
+    // 回音指揮：影子般的高帽禮服、紫色輪廓光與眼睛，右手高舉指揮棒
+    conductor: { rows: [
+      '................',
+      '.....VVVVV....w.',
+      '.....VvvvV...wV.',
+      '.....VvvvV..wV..',
+      '...VVkkkkkVwV...',
+      '....VvvvvvkV....',
+      '....VvpvpvV.....',
+      '....VvvvvvV.VwV.',
+      '..VVkVvvvVkVkwV.',
+      '.VvvvVwwVvvvvV..',
+      'VwkvvVwwVvvkV...',
+      'VwVvvvVVvvvV....',
+      '.V.VvvvvvvvV....',
+      '...VvvvVvvvV....',
+      '...VvvV.VvvV....',
+      '...VVV...VVV....',
+    ] },
+
+    // ── 大頭目（3×3 格，24×24）──
+    // 鼓之魔像：太鼓身體、金邊鉚釘、鼓面上的臉，兩手高舉鼓棒
+    drumgolemBig: { sym: true, size: 24, rows: [
+      '............', '.kk.........', 'kwnk........', 'knnk...kkkkk', '.kNk.kkyyyyy', '.kNkkyywwwww',
+      '.kNkywwwwwww', 'kgggkywwwwww', 'kgGgkkyyyyyy', 'kgggkyYkYYkY', '.kgGkrrrrrrr', '.kgGkrrkkkrr',
+      '.kgGkrkyyykr', '.kGGkrrkkkrr', 'kggGkrrrrrrr', 'kgGGkrRrkwkw', 'kkkkkrRrrkkk', '....krRrrrrr',
+      '....kyykyyky', '....kYYYYYYY', '.....kkkkkkk', '......kgggGk', '.....kggGGGk', '.....kkkkkkk',
+    ] },
+    // 弦之魔女：藍色長髮、蒼白的臉與紅眼、金色豎琴冠，背後一副金色豎琴，琴弦往下化成鎖鏈
+    sirenBig: { sym: true, size: 24, rows: [
+      'kk..........', 'kyk.........', 'kyk......y.y', '.kyk.....yyy', '.kyk...kkbbb', '.kyk..kbbbbb',
+      '.kykc.kbbBBB', '.kykckbbBiii', '.kykckbbBixi', '.kykckbbBiii', '..kyckbbBiir', '..kyckbbbBii',
+      '..kyckbbbbki', '...kgkbbbkBB', '...kGkbbkBbB', '...kgkbkBbii', '...kGkkBbBBB', '...kgk.kBbBB',
+      '...kGk.kBBbB', '...kgk.kbBBb', '..kgGgkkBbBB', '..kGkGkcBBbB', '..kkkkkccccc', '......kkkkkk',
+    ] },
+    // 回音之鏡：銀色雕花鏡框、青綠的光，鏡子裡是小時候戴著小王冠在唱歌的阿爾特剪影，兩旁飄著音符
+    echoMirror: { sym: true, size: 24, rows: [
+      '..........kk', '.........ktt', '.......kkgti', '.....kkgiiii', '....kgiikkkk', '...kgikkTTTT',
+      '...kgkTTcTTT', '..kgikTcTTTT', '..kgkTTTTTTT', '..kgkTTTTyTy', '..ktkTTTTyyy', '..kgkTcTTvvv',
+      '..kgkTcTTvvv', '..kgkccTTvvt', '..ktkccTTvvv', '..kgkTTTTTvv', '..kgkTTTvvvv', '..kgkTTvvvvv',
+      '..kgkTTvvvvv', '..kgikkkkkkk', '...kgiiiiiii', '....kkGGkkkk', '....kGGk....', '...kkkkk....',
+    ] },
+    // 靜默指揮家（大）：純黑影子、紫色輪廓光、王冠尖角的剪影、白色微笑面具＋紅色眼洞，
+    // 右手高舉指揮棒、左手垂下，下半身散成煙
+    maestroBig: { size: 24, rows: [
+      '.......V.V.VV.V.V......w',
+      '......VvVvVvvVvVvV.....w',
+      '......VvvvvvvvvvvV....w.',
+      '.....VvvvvvvvvvvvvV...w.',
+      '.....VvvwwwwwwwwvvV.VVw.',
+      '.....VvwwwwwwwwwwvV.VvV.',
+      '.....VvwkxwwwwxkwvV.VvV.',
+      '.....VvwkkwwwwkkwvV.VvV.',
+      '.....VvwwwwwwwwwwvV.VvV.',
+      '.....VvwkwwwwwwkwvV.VvV.',
+      '.....VvvwkkkkkkwvvV.VvV.',
+      '......VvvwwwwwwvvV..VvV.',
+      '.....VVvvvvvvvvvvVvvvvV.',
+      '...VVvvvvvvvvvvvvvvvvvV.',
+      '.VVvvvvvvvvvvvvvvvvvvvV.',
+      'VvvvvvvPvvvvvvvvPvvvvV..',
+      'VvvVvvvvPvvvvvvPvvvvV...',
+      'Vvv.VvvvvPvvvvPvvvvvV...',
+      'VvV.VvvvvvPvvPvvvvvV....',
+      'V.V..VvvvvvvvvvvvvvV....',
+      '.....VvvPvvvvvvPvvV.....',
+      '......VvvVvvvvVvvV......',
+      '.......V.vvVVvv.V.......',
+      '........V..vv..V........',
+    ] },
+
+    // ── NPC ──
+    // 節拍之神：會動的節拍器，凹槽裡一根擺錘＋砝碼，下面一張笑臉（pal metroA 石木／metroB 水晶金）
+    metronome: { sym: true, pal: 'metroA', rows: [
+      '.......k', '......k1', '......k1', '.....k1g', '.....keg', '....k133',
+      '....ke33', '...k1eeg', '...k1eeg', '..k111kk', '..k1wk11', '..k1kk11',
+      '.k1111k1', '.k22222k', 'k2222222', 'kkkkkkkk',
+    ] },
+    // 豎琴賢者：白色長鬚、藍袍，抱著一把小豎琴
+    harpist: { rows: [
+      '................',
+      '.....kkkkkk.....',
+      '....kssssssk....',
+      '...kwsssssswkkk.',
+      '...kwwwsswwwkyk.',
+      '...kwksssskwkyyk',
+      '...kwssssssw.kyk',
+      '...kwwwwwwwwkcyk',
+      '..kBwwwwwwwwkcyk',
+      '.kBBwwwwwwwkcsyk',
+      '.kbBwwwwwwwkcsyk',
+      'kbbBkwwwwkbkcyyk',
+      'kbbBkwwwwkbkyyk.',
+      'kbbBBkwwkBbbkk..',
+      'kbbbBBkwkBBbbk..',
+      'kkkkkkkkkkkkkk..',
+    ] },
+    // 青蛙商人的表哥：高禮帽、單片眼鏡＋金鍊、紅領結，半瞇著眼一臉得意
+    frogCousin: { rows: [
+      '....kkkkkkkk....',
+      '....keeeeeek....',
+      '....kRRRRRRk....',
+      '..kkkkkkkkkkkk..',
+      '..klllllllyyyk..',
+      '.klLLLlllyLLLyk.',
+      '.klkwklllykwkyk.',
+      '.kllklllllyyylk.',
+      '.klllkkkkkkkkyk.',
+      '..klllRkkRlllk..',
+      '.knnlyyllyylnnk.',
+      'knnnkyyllyyknnnk',
+      'knnnkllllllknnnk',
+      '.kkklLllllLlkkk.',
+      '...kLLkLLkLLk...',
+      '...kkkkkkkkkk...',
+    ] },
+    // 老守門人：藍帽、灰鬍渣、棕外套，右手提一盞燈
+    porter: { rows: [
+      '................',
+      '.....kkkkkk.....',
+      '....kBBBBBBk....',
+      '...kkkkkkkkkk...',
+      '....kSssssSk....',
+      '....kskssksk....',
+      '....kgssssgk....',
+      '....kggSSggk....',
+      '...kkkggggkkk...',
+      '..knnnkggknnnk..',
+      '..knnnnkknnnnk..',
+      '..ksnnnnnnnnsk..',
+      '..kkNnnnnnnNkkk.',
+      '....kNnnnnNkyyk.',
+      '....kNNkkNNkwyk.',
+      '....kkkk.kkkkkk.',
+    ] },
+    // 受傷的士兵：頭上纏著繃帶（1／2 盔甲、3 罩袍；pal lastGuard 是最後的守衛）
+    soldier: { pal: 'soldierP', rows: [
+      '................',
+      '.....kkkkkk.....',
+      '....k111111k....',
+      '...k11111111k...',
+      '...kk222222kk...',
+      '....kwwwwwrk....',
+      '....kskssksk....',
+      '....ksssssSk....',
+      '.....kskksk.....',
+      '...kk111111kk...',
+      '..k11k3333k11k..',
+      '..k1k333333k1k..',
+      '..ksk3w3333ksk..',
+      '...kk3333w3kk...',
+      '....k22kk22k....',
+      '....kkkk.kkkk...',
+    ] },
+    // 喜劇小偷：黑面罩、條紋衫，肩上扛著一大袋
+    thief: { rows: [
+      '................',
+      '..kkk....kkkk...',
+      '.kSSSk..keeeek..',
+      'kSSSSSk.kssssk..',
+      'kSSSSSSkeweewek.',
+      'kSSSSSSSkssssk..',
+      'kSNSSSSsksRRsk..',
+      'kSNSSSSkkwewewk.',
+      '.kSNNSkkewewewek',
+      '..kkkk.kwewewewk',
+      '.......kewewewek',
+      '.......kswewewsk',
+      '........kNNNNNk.',
+      '........kNkkNk..',
+      '.......kNk..kNk.',
+      '.......kkk..kkk.',
+    ] },
+    // 鏡中少女：銀色長髮、青綠洋裝，右手拿著一面小手鏡
+    mirrorGirl: { rows: [
+      '................',
+      '.....kkkkkk.....',
+      '....kiiiiiik....',
+      '...kiiiiiiiik...',
+      '...kiissssiik...',
+      '..kiissssssiik..',
+      '..kiskssssksik..',
+      '..kissssssssikkk',
+      '..kiissmmssiikwc',
+      '..kiiksssskiikcc',
+      '.kiiktTTTTtkiikk',
+      '.kikttttttttksN.',
+      '.kikTttttttTkik.',
+      '..ktTttttttTtk..',
+      '.kTTTTTTTTTTTTk.',
+      '.kkkkkkkkkkkkkk.',
+    ] },
+    // 豎琴學徒：橘頭巾、圍裙，手上一把調音扳手
+    apprentice: { rows: [
+      '................',
+      '.....kkkkkk.....',
+      '....kNNNNNNk....',
+      '...kooooooook...',
+      '...kNssssssNk...',
+      '...ksksssksk.kk.',
+      '...ksssssssk.kgk',
+      '....ksmmmsk..kgk',
+      '...kbkkkkkbk.kgk',
+      '..kbbkbbbbkbkskk',
+      '.kbbknnnnnnkbsk.',
+      '.kbknnnnnnnnkk..',
+      '.ksknnnyynnnk...',
+      '..kknnnnnnnnk...',
+      '...kNNk..kNNk...',
+      '...kkkk..kkkk...',
+    ] },
+    // 占星師：星星尖帽、星袍，右手舉著望遠鏡
+    astrologer: { rows: [
+      '.......kk.......',
+      '......kBBk......',
+      '......kBBk....kk',
+      '.....kByBBk..kyk',
+      '.....kBBBBk.kYyk',
+      '....kBBBByBkYyk.',
+      '..kkkkkkkkkkyk..',
+      '....kSssssSkk...',
+      '....ksksskssk...',
+      '....kwwwwwwk....',
+      '...kBwwwwwwkk...',
+      '..kBBkwwwwkskk..',
+      '.kBBBBkwwkBBBk..',
+      '.kByBBBkkBBByBk.',
+      '.kBBBBBByBBBBBk.',
+      '.kkkkkkkkkkkkkk.',
+    ] },
+    // 小偷的奶奶：灰髮髻、紅撲撲的臉頰、紫披肩，拄著拐杖笑咪咪
+    granny: { rows: [
+      '................',
+      '................',
+      '.......kk.......',
+      '......kggk......',
+      '.....kkkkkk.....',
+      '....kggggggk....',
+      '....kgssssgk....',
+      '....kskssksk....',
+      '....kmssssmk....',
+      '....ksSkkSsk....',
+      '...kppkkkkppk...',
+      '..kppppppppppknn',
+      '..kPpppppppPPksn',
+      '...kPPPPPPPPk.n.',
+      '....kRRRRRRk..n.',
+      '....kkkkkkkk.kk.',
+    ] },
+    // 信鴿：戴藍色郵差帽，腳上綁著紅色信筒
+    pigeon: { rows: [
+      '................',
+      '.....kkkk.......',
+      '....kBBBBk......',
+      '...kkkkkkkk.....',
+      '...kgggggk......',
+      '..kgokgggk......',
+      'kyyggggggk......',
+      '.kkggtpttgk.....',
+      '...ktpttgggkk...',
+      '...kgggGGgggGkk.',
+      '...kgggggGGGGGGk',
+      '....kggggggGGkkk',
+      '.....kgggggkkk..',
+      '......kkrrk.....',
+      '......koko......',
+      '.....kk.kk......',
+    ] },
+
+    // ── 道具 ──
+    // 老鐵匠的鑿子：鐵刃、銅箍、木柄
+    chisel: { rows: [
+      '................',
+      '.............kk.',
+      '............kwgk',
+      '...........kwggk',
+      '..........kwggk.',
+      '.........kwggk..',
+      '........kwggk...',
+      '.......kkYYk....',
+      '......knnkk.....',
+      '.....knnNk......',
+      '....knnNk.......',
+      '...knnNk........',
+      '..knnNk.........',
+      '..kNNk..........',
+      '...kk...........',
+      '................',
+    ] },
+    // 回音之笛（狀態列的樂器列，跟鼓、豎琴放一起）：銀色橫笛斜放，青綠的笛頭與笛尾、按鍵，深青的吹口與指孔
+    flute: { rows: [
+      '................',
+      '.............kk.',
+      '............kttk',
+      '...........kttGk',
+      '..........kTigk.',
+      '.........kiigk..',
+      '........kiigk...',
+      '.......kitgk....',
+      '......kiTgk.....',
+      '.....kitgk......',
+      '....kiTgk.......',
+      '...kitgk........',
+      '..kiTgk.........',
+      '.kttGk..........',
+      'kttGk...........',
+      '.kkk............',
+    ] },
   };
 
   // 樂譜符號（加圖示用）
@@ -671,21 +1107,26 @@
       hammer: { 6: '.............gGG', 7: '.............GGG', 8: '..............h.', 9: '..............h.', 10: '..............h.', 11: '............kssk', 12: '..............h.' },
       s1: { 2: '..............g.', 3: '..............gG', 4: '..............gG', 5: '..............gG', 6: '..............gG', 7: '..............gG', 8: '..............gG', 9: '..............gG', 10: '.............YYY', 11: '............kssk', 12: '..............Y.' },
       s2: { 1: '..............w.', 2: '..............wc', 3: '..............wc', 4: '..............wc', 5: '..............wc', 6: '..............wc', 7: '..............wc', 8: '..............wc', 9: '..............wc', 10: '.............yyy', 11: '............kssk', 12: '..............r.' },
+      // 金劍：金色劍身＋發光的劍尖、護手鑲紅寶石
+      s3: { 1: '..............w.', 2: '..............yw', 3: '..............yw', 4: '..............yw', 5: '..............yw', 6: '..............yw', 7: '..............yw', 8: '..............yw', 9: '..............Yw', 10: '............YrYr', 11: '............kssk', 12: '..............Y.' },
     },
     side: {
       hammer: { 9: '..............gg', 10: '..............GG', 11: '...........shhGG', 12: '..............GG' },
       s1: { 10: '............Ygg.', 11: '...........sYGGg', 12: '............Y...' },
       s2: { 10: '............ywww', 11: '...........syccw', 12: '............y...' },
+      s3: { 9: '............r..w', 10: '............Yyyy', 11: '...........sYYYw', 12: '............r...' },
     },
   };
   const HERO_SHIELD = {
     down: {
       a1: { 9: 'kkkk', 10: 'kgGk', 11: 'kGGk', 12: 'kGGk', 13: '.kk.' },
       a2: { 9: 'kyyk', 10: 'ywcy', 11: 'ycyy', 12: 'yccy', 13: '.yy.' },
+      a3: { 9: 'kYYk', 10: 'Ywyy', 11: 'Yyry', 12: 'Yyyy', 13: '.YY.' },   // 金盾：暗金邊、紅寶石
     },
     side: {
       a1: { 9: '....kkkk', 10: '....kgGk', 11: '....kGGk', 12: '.....kk.' },
       a2: { 9: '....kyyk', 10: '....ywcy', 11: '....ycyy', 12: '.....yy.' },
+      a3: { 9: '....kYYk', 10: '....Ywyy', 11: '....Yyry', 12: '.....YY.' },
     },
   };
   // 披風：down／side 墊在身體後面（只填空白處），up 是背影、直接蓋在背上
@@ -721,8 +1162,8 @@
     S[name] = { rows, pal: 'hero' + tier };
     return name;
   };
-  // 外形的四個階段看攻擊＋防禦：一開始 20，5F 的 Boss 前後約 70、10F 約 170、通關約 300
-  MT.heroTier = st => { const p = st.atk + st.def; return p >= 200 ? 3 : p >= 110 ? 2 : p >= 50 ? 1 : 0; };
+  // 外形的四個階段看攻擊＋防禦：一開始 20，5F 的 Boss 前後約 70、10F 約 170、15F 約 300、通關約 350～450
+  MT.heroTier = st => { const p = st.atk + st.def; return p >= 300 ? 3 : p >= 170 ? 2 : p >= 70 ? 1 : 0; };
   // 序章與標題畫面用的：一開始的樣子、拿鐵鎚、站好
   for (const dir of ['down', 'up', 'side']) S['hero' + dir[0].toUpperCase() + dir.slice(1)] = S[MT.heroSprite(dir, '', 0, '', '')];
 
@@ -742,14 +1183,16 @@
     const def = S[name];
     if (!def) return null;
     const colors = Object.assign({}, BASE, pal ? PALS[pal] : def.pal ? PALS[def.pal] : null);   // def.pal：組出來的王子自帶裝備配色
+    // 大部分是 16×16；大型怪物用 def.size（例如 24×24），每列一樣補滿 size 格
+    const n = def.size || 16, pad = '.'.repeat(n);
     c = document.createElement('canvas');
-    c.width = c.height = 16 * scale;
+    c.width = c.height = n * scale;
     const g = c.getContext('2d');
     def.rows.forEach((row, y) => {
       let r = def.sym ? row + row.split('').reverse().join('') : row;
-      r = (r + '................').slice(0, 16);
+      r = (r + pad).slice(0, n);
       if (flip) r = r.split('').reverse().join('');
-      for (let x = 0; x < 16; x++) {
+      for (let x = 0; x < n; x++) {
         const ch = r[x];
         if (ch === '.' || ch === ' ') continue;
         const col = colors[ch];
@@ -764,22 +1207,30 @@
   MT.SPRITES = S;
   MT.PALS = PALS;
 
-  /* 地板與牆：依區域畫（每格一張，快取） */
+  /* 地板與牆：依區域畫（每格一張，快取）
+     1＝石磚、2＝紅磚、3＝鏡之迴廊（銀青色的鏡面板＋斜向反光）、4＝水晶（斜切面）
+     kind：floor 地板、wall 牆、cracked 裂牆（用鑿子敲得開，裂痕要一眼看得出來）、hidden 暗道（幾乎跟牆一樣，只有一道髮絲般的細紋） */
   const ZONE_STYLE = {
     1: { floor: '#2b2f3e', floor2: '#303548', wall: '#5d6680', wallHi: '#7d88a6', wallLo: '#3a4054', mortar: '#252a38' },
     2: { floor: '#34262b', floor2: '#3c2b31', wall: '#8a4a3e', wallHi: '#a86454', wallLo: '#5a2e28', mortar: '#2a1a1c' },
-    3: { floor: '#231e3a', floor2: '#2a2446', wall: '#5a4a9a', wallHi: '#8e7ad8', wallLo: '#362a66', mortar: '#1a1530' },
+    3: { floor: '#1f2a31', floor2: '#24313a', wall: '#7f9cab', wallHi: '#d4ecf2', wallLo: '#3e5866', mortar: '#162027', glow: '#4fd8cc' },
+    4: { floor: '#231e3a', floor2: '#2a2446', wall: '#5a4a9a', wallHi: '#8e7ad8', wallLo: '#362a66', mortar: '#1a1530' },
   };
   MT.ZONE_STYLE = ZONE_STYLE;
+  // 裂牆的裂痕（16 格座標）：一道由上到下的主裂縫＋四條分岔，中間裂得最開
+  const CRACK = [[8, 0], [8, 1], [7, 2], [7, 3], [8, 4], [9, 5], [9, 6], [8, 7], [9, 7], [7, 8], [8, 8], [6, 9], [6, 10], [7, 11], [8, 12], [8, 13], [7, 14], [7, 15],
+    [10, 5], [11, 4], [12, 4], [13, 3], [6, 8], [5, 7], [4, 7], [3, 6], [5, 11], [4, 12], [3, 12], [9, 12], [10, 13], [11, 13]];
+  const HAIRLINE = [[11, 8], [11, 9], [12, 10], [12, 11], [11, 12]];   // 暗道：只有這幾格淡淡的細紋
   MT.terrain = function (kind, zone, size, variant) {
     const key = 'T|' + kind + '|' + zone + '|' + size + '|' + (variant || 0);
     let c = cache.get(key);
     if (c) return c;
-    const st = ZONE_STYLE[zone];
+    const st = ZONE_STYLE[zone] || ZONE_STYLE[1];
     c = document.createElement('canvas');
     c.width = c.height = size;
     const g = c.getContext('2d');
     const u = size / 16;
+    const cell = (x, y) => g.fillRect(x * u, y * u, u, u);
     if (kind === 'floor') {
       g.fillStyle = (variant & 1) ? st.floor2 : st.floor;
       g.fillRect(0, 0, size, size);
@@ -790,10 +1241,22 @@
       g.fillRect(0, size - u, size, u);
       g.fillRect(size - u, 0, u, size);
       if (variant % 5 === 0) { g.fillStyle = 'rgba(255,255,255,0.05)'; g.fillRect(5 * u, 7 * u, 2 * u, u); }
+      if (zone === 3 && variant % 3 === 0) { g.fillStyle = 'rgba(79,216,204,0.07)'; g.fillRect(9 * u, 3 * u, u, u); g.fillRect(3 * u, 11 * u, u, u); }
     } else {
       g.fillStyle = st.mortar;
       g.fillRect(0, 0, size, size);
       if (zone === 3) {
+        // 鏡面板：銀色板面、上左亮邊、下右暗邊、青綠的內框，加一道斜斜的反光
+        g.fillStyle = st.wallLo; g.fillRect(u, u, 14 * u, 14 * u);
+        g.fillStyle = st.wall; g.fillRect(u, u, 13 * u, 13 * u);
+        g.fillStyle = st.wallHi; g.fillRect(u, u, 13 * u, u); g.fillRect(u, u, u, 13 * u);
+        g.fillStyle = 'rgba(79,216,204,0.35)'; g.fillRect(2 * u, 13 * u, 12 * u, u); g.fillRect(13 * u, 2 * u, u, 12 * u);
+        g.fillStyle = 'rgba(255,255,255,0.55)';
+        for (let i = 0; i < 8; i++) { cell(3 + i, 11 - i); cell(4 + i, 11 - i); }
+        g.fillStyle = 'rgba(255,255,255,0.28)';
+        for (let i = 0; i < 4; i++) cell(8 + i, 12 - i);
+        if (variant & 1) { g.fillStyle = 'rgba(255,255,255,0.8)'; cell(4, 3); }
+      } else if (zone === 4) {
         // 水晶牆：斜切面
         g.fillStyle = st.wall; g.fillRect(u, u, 14 * u, 14 * u);
         g.fillStyle = st.wallHi;
@@ -814,6 +1277,20 @@
             g.fillStyle = st.wallLo; g.fillRect(x, (y0 + 6) * u, w, u);
           }
         });
+      }
+      if (kind === 'cracked') {
+        // 裂痕右下側一道亮邊（翹起來的碎片），本體近乎全黑，再掉幾顆碎屑
+        g.fillStyle = 'rgba(255,255,255,0.28)';
+        for (const [x, y] of CRACK) cell(x + 1, y);
+        g.fillStyle = '#0c0a12';
+        for (const [x, y] of CRACK) cell(x, y);
+        g.fillStyle = 'rgba(0,0,0,0.45)';
+        cell(2, 14); cell(12, 14); cell(13, 15); cell(3, 15);
+      } else if (kind === 'hidden') {
+        g.fillStyle = 'rgba(0,0,0,0.24)';
+        for (const [x, y] of HAIRLINE) cell(x, y);
+        g.fillStyle = 'rgba(255,255,255,0.07)';
+        cell(12, 9);
       }
     }
     cache.set(key, c);
