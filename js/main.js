@@ -718,25 +718,28 @@
     try { if (navigator.vibrate) navigator.vibrate(15); } catch (e) { /* 不支援就算了 */ }
   }
   /* 說明卡的位置：依序找地圖外放得下的空白，不蓋地圖。
-     直向一律放在地圖上方（Ken 指定，不放下方）：狀態列與地圖之間 → 放不下就蓋住狀態列；
+     直向一律放在地圖上方，卡片下緣貼齊地圖上緣（Ken 指定）：空白不夠高就往上蓋住狀態列；
      橫向：左欄功能鍵下面 → 蓋住左欄的功能鍵 */
   function placeCard() {
     const R = el => el.getBoundingClientRect();
     const s = R($('#stage')), m = R($('#mapWrap')), hud = R($('#hud')), bar = R($('#bar'));
-    const wide = matchMedia('(min-aspect-ratio: 5/4)').matches, gap = 6;
+    const wide = matchMedia('(min-aspect-ratio: 5/4)').matches;
+    if (!wide) {
+      monCard.style.left = (m.left - s.left) + 'px'; monCard.style.width = m.width + 'px';
+      monCard.style.top = Math.max(4, m.top - s.top - 4 - monCard.offsetHeight) + 'px';
+      return;
+    }
     // 區域：[top, bottom, left, width, below]（座標相對 #stage；below＝在地圖下方，放不下時貼底、往上長）
     const area = (top, bottom, x, below) => [top - s.top, bottom - s.top, x.left - s.left, x.width, below];
-    const areas = wide
-      ? [area(bar.bottom + 10, m.bottom, bar, true), area(hud.bottom + 10, m.bottom, bar, true)]
-      : [area(hud.bottom + gap, m.top - gap, m, false), area(s.top + 4, m.top - gap, m, false)];
+    const areas = [area(bar.bottom + 10, m.bottom, bar, true), area(hud.bottom + 10, m.bottom, bar, true)];
     const [, , x0, w0] = areas[0];
     monCard.style.left = x0 + 'px'; monCard.style.width = w0 + 'px';
     const h = monCard.offsetHeight;
     const fit = areas.find(a => a[1] - a[0] >= h) || areas.reduce((p, a) => (a[1] - a[0] > p[1] - p[0] ? a : p));
     const [top, bottom, left, width, below] = fit;
     monCard.style.left = left + 'px'; monCard.style.width = width + 'px';
-    // 放得下：直向置中在空白裡、橫向緊貼功能鍵下面；放不下：在地圖下方的貼底、上方的貼頂
-    monCard.style.top = (bottom - top >= h ? (wide ? top : top + (bottom - top - h) / 2) : below ? bottom - h : top) + 'px';
+    // 放得下：緊貼功能鍵下面；放不下：貼底、往上長
+    monCard.style.top = (bottom - top >= h ? top : below ? bottom - h : top) + 'px';
   }
   window.addEventListener('resize', () => { if (!monCard.hidden) placeCard(); });
   function hideMonCard() { if (monCard.hidden) return false; monCard.hidden = true; inspect = null; return true; }
