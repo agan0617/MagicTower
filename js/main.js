@@ -387,17 +387,15 @@
 
   /* ───────── 訊息 ───────── */
   let toastTimer = null;
-  /* 遊戲中提示（撿到道具等）放在畫面中上方（Ken 指定）：直向放在狀態列和地圖之間的空白，
-     空白不夠（或橫向）就貼著地圖上緣、疊在地圖最上面；左右都對齊地圖中線。標題畫面照舊在最上面 */
+  /* 提示（撿到道具等）放在畫面正中間（Ken 指定）：遊戲中對齊地圖中心、寬度不超出地圖，
+     其他畫面（標題等）用 CSS 預設的視窗正中間 */
   function placeToast(el) {
     el.style.top = el.style.left = el.style.maxWidth = '';
     if (mode !== 'game') return;
-    const m = $('#mapWrap').getBoundingClientRect(), hud = $('#hud').getBoundingClientRect();
+    const m = $('#mapWrap').getBoundingClientRect();
     el.style.left = (m.left + m.width / 2) + 'px';
+    el.style.top = (m.top + m.height / 2) + 'px';
     el.style.maxWidth = (m.width - 16) + 'px';
-    const h = el.offsetHeight, gap = m.top - hud.bottom;
-    const wide = matchMedia('(min-aspect-ratio: 5/4)').matches;
-    el.style.top = (!wide && gap >= h + 8 ? hud.bottom + (gap - h) / 2 : m.top + 10) + 'px';
   }
   function toast(msg) {
     const el = $('#toast');
