@@ -8,6 +8,7 @@
     r: '#e8453c', R: '#9a2228', o: '#f39a2e', y: '#ffd84a', Y: '#c9921a',
     l: '#8be05a', L: '#3a9a3a', b: '#5ab0ff', B: '#2d5fc0', c: '#aef4ff',
     p: '#c07cf5', P: '#6a34a8', s: '#f7cfa6', S: '#d09468', n: '#9a6634', N: '#5a3a1e', m: '#ff9ccc',
+    v: '#0c0914', V: '#7a52c0', x: '#ff3a6a',   // 指揮家：純黑的影子、紫色輪廓光、面具底下發光的眼
   };
 
   const PALS = {
@@ -35,6 +36,13 @@
   };
   PALS.gemRed = { 1: '#f0584c', 2: '#9a2228', 3: '#ffd0c8' };
   PALS.gemBlue = { 1: '#4aa0ff', 2: '#1f4fa8', 3: '#d8f0ff' };
+  // 鎮民：衣服亮／暗、頭髮
+  PALS.vA = { 1: '#5ab0ff', 2: '#2d5fc0', 3: '#5a3a1e' };
+  PALS.vB = { 1: '#f39a2e', 2: '#a85a10', 3: '#1b1a26' };
+  PALS.vC = { 1: '#8be05a', 2: '#3a9a3a', 3: '#c9921a' };
+  PALS.vD = { 1: '#c07cf5', 2: '#6a34a8', 3: '#9a6634' };
+  PALS.vE = { 1: '#ff9ccc', 2: '#c04a7a', 3: '#3a2418' };
+  PALS.vF = { 1: '#efeadc', 2: '#9a9484', 3: '#b8bcc8' };
 
   const S = {
     // ── 王子阿爾特（綽號小鐵）：頭上小王冠，手上拿鐵鎚 ──
@@ -209,17 +217,29 @@
       '.kbbkssm', 'kbbbbkss', 'kbbkcccc', 'kbkccccc', 'kbkcckcc', '.kkcccck',
       '..kccccc', '..kcccck', '..kckckc', '...k.k.k',
     ] },
-    // 靜默指揮家：白色面具，棕色頭髮跟阿爾特同色系（伏筆）
+    // 靜默指揮家：沒有身體的純黑影子，輪廓是阿爾特的剪影（頭上同樣的王冠尖角＝伏筆），
+    // 臉上一張只會微笑的白面具、眼洞透出紅光，下襬散成煙——每個人心裡那個想把一切關掉的自己
     maestro: { sym: true, rows: [
-      '....kkkk', '...kNNNN', '..kNNNNN', '..kNwwww', '..kNwkkw', '...kwwww',
-      '....kskk', '..kkkwwk', '.kddkwwr', 'kdddkwwk', 'kddddkkd', 'kdkddddd',
-      'kdkdddkd', 'kk.kdddk', '...kddk.', '...kkkk.',
+      '.....V.V', '....Vvvv', '...Vvvvv', '..Vvvwww', '..Vvwkxw', '..Vvwwww',
+      '..Vvwkww', '..Vvwwkk', '..Vvvwww', '.Vvvvvvw', 'Vvvvvvvv', 'Vvvvvvvv',
+      'Vvvvvvvv', '.Vvvvvvv', '..Vvvvvv', '...Vvvvv',
     ] },
     // 面具裂開後：底下是阿爾特自己的臉
     maestroBare: { sym: true, rows: [
-      '....kkkk', '...knnnn', '..knnnnn', '..knssss', '..knskss', '...kssss',
-      '....kssm', '..kkkwwk', '.kddkwwr', 'kdddkwwk', 'kddddkkd', 'kdkddddd',
-      'kdkdddkd', 'kk.kdddk', '...kddk.', '...kkkk.',
+      '.....V.V', '....Vvvv', '...Vvvvv', '..Vvnnnn', '..Vnnsss', '..Vvssks',
+      '..Vvssss', '..Vvvssm', '..Vvvvss', '.Vvvvvvv', 'Vvvvvvvv', 'Vvvvvvvv',
+      'Vvvvvvvv', '.Vvvvvvv', '..Vvvvvv', '...Vvvvv',
+    ] },
+    // 序章廣場上唱歌的鎮民：1／2 衣服、3 頭髮，換 pal 就是不同的人；Sing 是張嘴的那一格
+    villager: { sym: true, rows: [
+      '........', '.....kkk', '....k333', '...k3333', '...k33ss', '...kssss',
+      '...kskss', '...kssss', '....kssk', '....ksss', '..kk1111', '.k112111',
+      '.k112111', '.ks12111', '..k22222', '...kkkkk',
+    ] },
+    villagerSing: { sym: true, rows: [
+      '........', '.....kkk', '....k333', '...k3333', '...k33ss', '...kssss',
+      '...kskss', '...kssss', '....kssR', '....ksRR', '..kk1111', '.k112111',
+      '.k112111', '.ks12111', '..k22222', '...kkkkk',
     ] },
 
     // ── NPC ──

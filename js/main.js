@@ -1157,6 +1157,92 @@
     cg.globalAlpha = 1;
   }
 
+  // 廣場上的鎮民：後排小一號、站高一點（遠），前排避開國王（130～210）與呱呱商人（330～410）
+  const townFolk = [
+    ...[[28, 'vF'], [92, 'vC'], [196, 'vE'], [252, 'vA'], [300, 'vB'], [404, 'vD'], [468, 'vC']].map(([x, pal], i) => ({ x, pal, sc: 3, lift: 22 })),
+    ...[[2, 'vA'], [58, 'vE'], [212, 'vD'], [266, 'vF'], [412, 'vB'], [466, 'vA']].map(([x, pal], i) => ({ x, pal, sc: 4, lift: 0 })),
+  ].map((v, i) => Object.assign(v, { ph: (i * 1.37) % 3, flip: i % 2 === 1 }));
+
+  /* 序章：阿爾特腳下的影子站起來，變成戴微笑面具的巨大黑影；鎮上每一扇窗也飄出一縷暗影匯進它身上
+     （每個人心裡都有一塊想讓世界閉嘴的地方）。它舉起指揮棒，所有音符被捲向棒尖 */
+  function drawMaestroRise(t) {
+    const st = t - cineT0;
+    const k = Math.min(1, st / 2200), e = 1 - Math.pow(1 - k, 3);          // 從影子裡長出來
+    const lift = Math.min(1, Math.max(0, (st - 1600) / 900));             // 舉起指揮棒
+    const cx = SIZE / 2, sc = 10, fw = 16 * sc;
+    const fy = 96 + (1 - e) * 150 + Math.sin(t / 900) * 5;               // 身體左上角
+    const footY = SIZE - 40;
+    drawSky(t, '#05040c', '#170c24');
+    // 身後一圈病態的紫光，讓純黑的剪影浮出來
+    const halo = cg.createRadialGradient(cx, fy + 70, 10, cx, fy + 70, 230);
+    halo.addColorStop(0, `rgba(110,60,170,${0.55 * e})`); halo.addColorStop(1, 'rgba(110,60,170,0)');
+    cg.fillStyle = halo; cg.fillRect(0, 0, SIZE, SIZE);
+    drawTown(t);
+    // 每扇窗飄出來的暗影：沿著曲線流進黑影的胸口
+    for (let i = 0; i < 9; i++) {
+      const h = 90 + (i * 37) % 60, wx = i * 62 + 13, wy = SIZE - h + 28;
+      for (let j = 0; j < 7; j++) {
+        const p = ((st / 2600 + j / 7 + i * 0.11) % 1);
+        if (st < 600 + i * 120) continue;
+        const tx = cx, ty = fy + 120;
+        const mx = (wx + tx) / 2 + Math.sin(i * 2.1) * 80, my = Math.min(wy, ty) - 90;
+        const x = (1 - p) * (1 - p) * wx + 2 * (1 - p) * p * mx + p * p * tx;
+        const y = (1 - p) * (1 - p) * wy + 2 * (1 - p) * p * my + p * p * ty;
+        cg.globalAlpha = Math.sin(p * Math.PI) * 0.55 * e;
+        cg.fillStyle = j % 2 ? '#3a2258' : '#2a173f';
+        cg.beginPath(); cg.arc(x, y, 7 - p * 3, 0, Math.PI * 2); cg.fill();
+      }
+    }
+    cg.globalAlpha = 1;
+    // 阿爾特腳下的影子一路拉長，接到黑影的下襬
+    const baseY = fy + fw - 24, sway = Math.sin(t / 500) * 10;
+    cg.fillStyle = '#0c0914';
+    cg.beginPath();
+    cg.moveTo(cx - 22, footY + 2);
+    cg.bezierCurveTo(cx - 40 + sway, footY - 60, cx - 70 - sway, baseY + 50, cx - 62, baseY);
+    cg.lineTo(cx + 62, baseY);
+    cg.bezierCurveTo(cx + 70 + sway, baseY + 50, cx + 40 - sway, footY - 60, cx + 22, footY + 2);
+    cg.fill();
+    // 黑影周圍往上散的煙
+    for (let i = 0; i < 26; i++) {
+      const p = ((t / 2200 + i / 26) % 1), side = i % 2 ? 1 : -1;
+      const x = cx + side * (40 + (i * 13) % 50 + p * 30), y = fy + 150 - p * 170 - (i * 7) % 30;
+      cg.globalAlpha = (1 - p) * 0.75 * e; cg.fillStyle = '#0c0914';
+      cg.beginPath(); cg.arc(x, y, 9 + p * 10, 0, Math.PI * 2); cg.fill();
+    }
+    cg.globalAlpha = 1;
+    // 阿爾特（小小的，背對著我們仰頭看自己的影子）
+    bigSprite('heroUp', null, cx - 32, footY - 64, 4);
+    // 手臂：右手舉指揮棒、左手往外張；先畫紫色輪廓再疊黑色
+    const sh = fy + 10.5 * sc;
+    const hand = [cx + 70 + 70 * lift, sh - 10 - 120 * lift + Math.sin(t / 380) * 6 * lift];
+    const hand2 = [cx - 70 - 60 * lift, sh + 30 - 50 * lift + Math.sin(t / 450 + 1) * 5 * lift];
+    // 手臂是一串由粗到細的煙團，越往指尖越細
+    cg.globalAlpha = e;
+    for (const [pad, col] of [[3, '#7a52c0'], [0, '#0c0914']]) {
+      cg.fillStyle = col;
+      for (const [hx, hy, s] of [[...hand, 1], [...hand2, -1]]) {
+        const x0 = cx + s * 55, mx = cx + s * 95, my = sh - 20;
+        for (let i = 0; i <= 20; i++) {
+          const q = i / 20, x = (1 - q) * (1 - q) * x0 + 2 * (1 - q) * q * mx + q * q * hx, y = (1 - q) * (1 - q) * sh + 2 * (1 - q) * q * my + q * q * hy;
+          cg.beginPath(); cg.arc(x, y, 13 - q * 9 + pad, 0, Math.PI * 2); cg.fill();
+        }
+      }
+    }
+    const tip = [hand[0] + 34, hand[1] - 46];
+    cg.lineCap = 'round';
+    cg.strokeStyle = '#efeadc'; cg.lineWidth = 4;
+    cg.beginPath(); cg.moveTo(hand[0], hand[1]); cg.lineTo(tip[0], tip[1]); cg.stroke();
+    cg.globalAlpha = 1;
+    cg.drawImage(MT.sprite('maestro', null, sc), cx - fw / 2, fy);
+    // 面具眼洞的紅光一明一暗
+    const glow = 0.35 + 0.35 * Math.sin(t / 260);
+    cg.globalCompositeOperation = 'lighter'; cg.fillStyle = `rgba(255,58,106,${glow * e})`;
+    for (const ex of [6, 9]) { cg.beginPath(); cg.arc(cx - fw / 2 + (ex + 0.5) * sc, fy + 4.5 * sc, 14, 0, Math.PI * 2); cg.fill(); }
+    cg.globalCompositeOperation = 'source-over';
+    return { tip, lift };
+  }
+
   const SCENES = {
     rehearsal: t => {
       const st = t - cineT0;
@@ -1221,7 +1307,17 @@
       }
       cg.globalAlpha = 1;
     },
-    town: t => { drawSky(t, '#141a3a', '#3a2a5a'); drawStars(t); drawTown(t); floatingNotes(t, 10, SIZE / 2, SIZE - 60, 220, null, 300); bigSprite('bard', null, 130, SIZE - 118, 5); bigSprite('frog', null, 330, SIZE - 118, 5, true); },
+    // 傍晚的廣場：滿滿的鎮民一起唱歌，國王和呱呱商人也在人群裡
+    town: t => {
+      drawSky(t, '#141a3a', '#3a2a5a'); drawStars(t); drawTown(t);
+      for (const v of townFolk) {
+        const sing = Math.floor(t / 420 + v.ph) % 3 !== 0;                 // 大部分時間張著嘴
+        const bob = Math.abs(Math.sin(t / 480 + v.ph * 2)) * v.sc * 1.5;
+        bigSprite(sing ? 'villagerSing' : 'villager', v.pal, v.x, SIZE - 38 - v.sc * 16 - v.lift - bob, v.sc, v.flip);
+      }
+      bigSprite('bard', null, 130, SIZE - 118, 5); bigSprite('frog', null, 330, SIZE - 118, 5, true);
+      floatingNotes(t, 22, SIZE / 2, SIZE - 70, 250, null, 320);
+    },
     forge: t => {
       drawSky(t, '#2a1810', '#5a2a18');
       cg.fillStyle = '#3a2418'; cg.fillRect(0, SIZE - 120, SIZE, 120);
@@ -1241,18 +1337,18 @@
       bigSprite('bard', null, 330, SIZE - 250, 8);
     },
     maestro: t => {
-      drawSky(t, '#05040c', '#1a0f2a'); drawTown(t);
-      // 被吸走的音符
+      const { tip, lift } = drawMaestroRise(t);
+      // 指揮棒舉起之後，滿天的音符被捲向棒尖、越靠近越暗
+      if (lift <= 0) return;
       cg.font = 'bold 24px serif'; cg.textAlign = 'center';
       for (let i = 0; i < 24; i++) {
         const p = ((t / 1600 + i / 24) % 1);
         const a = i * 0.9 + p * 6;
-        const r = 230 * (1 - p);
-        cg.globalAlpha = p; cg.fillStyle = ['#ffe066', '#aef4ff', '#ff9ccc'][i % 3];
-        cg.fillText('♪♫♬♩'[i % 4], SIZE / 2 + Math.cos(a) * r, 150 + Math.sin(a) * r * 0.5);
+        const r = 260 * (1 - p);
+        cg.globalAlpha = Math.sin(p * Math.PI) * lift; cg.fillStyle = ['#ffe066', '#aef4ff', '#ff9ccc'][i % 3];
+        cg.fillText('♪♫♬♩'[i % 4], tip[0] + Math.cos(a) * r, tip[1] + Math.sin(a) * r * 0.6);
       }
       cg.globalAlpha = 1;
-      bigSprite('maestro', null, SIZE / 2 - 64, 110, 8);
     },
     tower: t => { drawSky(t, '#3a4060', '#c89a7a'); drawTower(t, SIZE / 2, 120, '#0e0b16'); drawTown(t); },
     meet: t => {
