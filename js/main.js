@@ -84,12 +84,12 @@
   // 一張圖畫成 n×n 格大（大型怪物：16×16 的圖畫成 2×2、24×24 的畫成 3×3）
   const spriteAt = (name, pal, n, flip) => { const d = MT.SPRITES[name]; return MT.sprite(name, pal, TILE * n / ((d && d.size) || 16), flip); };
   const BOSS_GLOW = { DG: '#ffd84a', SR: '#5ab0ff', EM: '#7affff' };
-  // 有功能的 NPC 頭上的圖示（腳下都會發金光）：呱呱商人、表哥、小偷賣鑰匙＝鑰匙；祭壇、鐵匠、學徒收金幣＝金幣；
+  // 有功能的 NPC 頭上的圖示（腳下都會發金光）：呱呱商人、小偷賣鑰匙＝鑰匙；祭壇、鐵匠、學徒收金幣、13F 表哥收購鑰匙＝金幣；
   // 節拍之神用經驗值升級＝「Lv」；老琴師（技能鑑定）、豎琴之靈（技能三選一）＝「♪」
   function tradeIcon(code) {
     const n = MT.NPCS[code];
     if (!n) return null;
-    if (n.shop === 'keys' || n.shop === 'keys2' || (n.deal && MT.DEALS[n.deal].gain.keys)) return ['key1', 'keyCu'];
+    if (n.shop === 'keys' || (n.deal && MT.DEALS[n.deal].gain.keys)) return ['key1', 'keyCu'];   // 13F 表哥只收不賣（keys2），歸金幣
     if (n.deal || n.shop) return ['coin'];
     if (n.level) return { text: 'Lv', color: '#c8f0a0' };
     if (n.sage || n.choose) return { text: '♪', color: '#aef4ff' };
@@ -1177,7 +1177,7 @@
       else if (it.kind === 'note') { name = MT.itemName('note'); desc = MT.t('info_note'); }
       else if (it.kind === 'tool') { name = MT.itemName(it.tool); desc = MT.t('info_' + it.tool); }
       else { name = MT.t('name_' + code); desc = MT.t('info_' + it.kind, { n: v }); }
-    } else if (n && (n.shop === 'keys' || n.shop === 'keys2')) { name = MT.t(n.shop === 'keys' ? 'frog' : 'frog2'); const K = MT.SHOPS[n.shop]; desc = MT.t('info_frog', K) + (K.sell ? MT.t('info_sell', K.sell) : ''); }
+    } else if (n && (n.shop === 'keys' || n.shop === 'keys2')) { name = MT.t(n.shop === 'keys' ? 'frog' : 'frog2'); const K = MT.SHOPS[n.shop]; desc = K.y != null ? MT.t('info_frog', K) : MT.t('info_buyer', K.sell); }
     else if (n && n.level) { name = MT.t('level_' + n.level); desc = MT.t('info_level', { cost: MT.levelCost(st), hp: MT.LEVEL[n.level].hp, atk: MT.LEVEL[n.level].atk, def: MT.LEVEL[n.level].def }); }
     else if (n && n.sage) { name = MT.t('speaker_harpist'); desc = MT.t('info_sage_' + MT.sagePreview(st)); }
     else if (n && n.choose) { name = MT.t('speaker_harpghost'); desc = MT.t('info_choose'); }
@@ -1495,7 +1495,7 @@
   function openShop(id) {
     if (id === 'keys' || id === 'keys2') {
       const K = MT.SHOPS[id], two = id === 'keys2';
-      const opts = [['y', 'buyY'], ['b', 'buyB'], ['r', 'buyR']].map(([k, lab]) =>
+      const opts = [['y', 'buyY'], ['b', 'buyB'], ['r', 'buyR']].filter(([k]) => K[k] != null).map(([k, lab]) =>
         `<button class="btn opt" data-k="${k}" ${st.gold < K[k] ? 'disabled' : ''}>${img(...spriteFor(KEY_OF[k]))} ${esc(MT.t(lab, { p: K[k] }))}</button>`).join('');
       // 表哥另外收購（K.sell）：身上沒有那種鑰匙就反灰
       const sells = K.sell ? `<p class="muted small">${esc(MT.t('sellHead'))}</p><div class="opts">` + Object.keys(K.sell).map(k =>

@@ -382,7 +382,7 @@
   };
 
   /* 買東西。回傳 true＝成交 */
-  // 賣鑰匙給商人（3.2.7，只有 13F 表哥收：SHOPS.keys2.sell）。半價，買了再賣一定虧；通關評價照原價算剩的鑰匙，賣掉等於拿分數換現在用
+  // 賣鑰匙給商人（3.2.7，只有 13F 表哥收：SHOPS.keys2.sell）。價格是 6F 賣價的一半，買了再賣一定虧；通關評價照原價算剩的鑰匙，賣掉等於拿分數換現在用
   MT.sellKey = function (st, shop, what) {
     const price = (MT.SHOPS[shop].sell || {})[what];
     if (!price || st.keys[what] <= 0) return false;
@@ -392,7 +392,7 @@
   MT.buy = function (st, shop, what) {
     if (shop === 'keys' || shop === 'keys2') {
       const price = MT.SHOPS[shop][what];
-      if (st.gold < price) return false;
+      if (price == null || st.gold < price) return false;   // 13F 表哥只收不賣，沒有賣價
       st.gold -= price; st.keys[what]++;
       return true;
     }
