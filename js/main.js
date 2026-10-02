@@ -125,10 +125,20 @@
     const d = st.dir;
     // 原地踏步：站著時慢慢左右腳輪流抬，走路時踩快一點
     const foot = Math.floor(t / (view.move ? 140 : 380)) % 2 ? 'A' : 'B';
-    const name = (d === 'up' ? 'heroUp' : d === 'down' ? 'heroDown' : 'heroSide') + foot;
+    // 外形跟著變強：攻＋防決定盔甲階段，手上拿的、臂上掛的照實際裝備（Ken 指定）
+    const tier = MT.heroTier(st), eq = st.equip || {};
+    if (view.tier != null && tier > view.tier) { sparkle(st.x, st.y, 40, ['#ffe066', '#ffffff', '#fff6b0', '#ffd84a']); flash('#fff6b0', 350); sfx('fanfare'); }   // 換新外形的那一刻閃一下
+    view.tier = tier;
+    const name = MT.heroSprite(d === 'up' ? 'up' : d === 'down' ? 'down' : 'side', foot, tier, eq.sword, eq.shield);
     const bob = view.move ? (Math.floor(t / 70) % 2 ? -SC : 0) : 0;
     const im = MT.sprite(name, null, SC, d === 'left');
     g.save();
+    if (tier >= 3) {                          // 最後一階：腳下一圈一明一暗的金色光暈
+      const cx = x * TILE + ox + TILE / 2, cy = y * TILE + oy + TILE * 0.62;
+      const glow = g.createRadialGradient(cx, cy, 4, cx, cy, TILE * 0.7);
+      glow.addColorStop(0, `rgba(255,216,74,${0.35 + 0.15 * Math.sin(t / 300)})`); glow.addColorStop(1, 'rgba(255,216,74,0)');
+      g.fillStyle = glow; g.fillRect(cx - TILE, cy - TILE, TILE * 2, TILE * 2);
+    }
     if (view.hurt > t && Math.floor(t / 50) % 2) g.globalAlpha = 0.35;
     g.drawImage(im, x * TILE + ox, y * TILE + oy + bob);
     g.restore();
@@ -1887,6 +1897,7 @@
     mode = 'game'; busy = 0;
     $('#title').hidden = true; $('#cine').hidden = true; $('#stage').classList.remove('under');
     view.fairy = false; view.move = null; view.dying = null; view.fx = []; view.fade = 0; view.fadeTo = 0; view.fadeCur = 0;
+    view.tier = null;   // 讀進來的存檔本來就強的話，不要當成剛變身
     autoPath = null; clearRoute(); setLook(false);
     playClock = Date.now();
     renderHud();

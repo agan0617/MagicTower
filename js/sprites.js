@@ -49,25 +49,8 @@
   PALS.vF = { 1: '#efeadc', 2: '#9a9484', 3: '#b8bcc8' };
 
   const S = {
-    // ── 王子阿爾特（綽號小鐵）：頭上小王冠，手上拿鐵鎚 ──
-    heroDown: { rows: [
-      '.....y.yy.y.....',
-      '....kyyyyyyk....',
-      '....knnnnnnk....',
-      '...knnNnnNnnk...',
-      '...knssssssnk...',
-      '...kssksskssk...',
-      '...kssssssssk...',
-      '....kssmmssk....',
-      '...kkkkkkkkkk...',
-      '..ksbbnnnnbbsk..',
-      '..ksbbnnnnbbskG.',
-      '..kkbbnnnnbbkkGG',
-      '....kbnnnnbk.kn.',
-      '....kbbkkbbk..n.',
-      '....kNNk.kNNk...',
-      '....kkkk.kkkk...',
-    ] },
+    // ── 王子阿爾特（綽號小鐵）：頭上小王冠 ──
+    // 地圖上的 heroDown／heroUp／heroSide 由下面的 MT.heroSprite 組出來（身體＋武器＋盾＋披風，跟著變強換外形）
     // 序章練唱：沒拿鐵鎚、張嘴唱歌
     heroSing: { rows: [
       '.....y.yy.y.....',
@@ -105,42 +88,6 @@
       '....kbbkkbbk....',
       '....kNNk.kNNk...',
       '....kkkk.kkkk...',
-    ] },
-    heroUp: { rows: [
-      '.....y.yy.y.....',
-      '....kyyyyyyk....',
-      '....knnnnnnk....',
-      '...knnnnnnnnk...',
-      '...knnnnnnnnk...',
-      '...knnNnnNnnk...',
-      '...knnnnnnnnk...',
-      '....knnnnnnk....',
-      '...kkkkkkkkkk...',
-      '..ksbbbbbbbbsk..',
-      '.Gksbbbbbbbbsk..',
-      'GGkkbbbbbbbbkk..',
-      '.nk.kbbbbbbk....',
-      '.n..kbbkkbbk....',
-      '....kNNk.kNNk...',
-      '....kkkk.kkkk...',
-    ] },
-    heroSide: { rows: [
-      '.....y.yy.y.....',
-      '....kyyyyyyk....',
-      '....knnnnnnk....',
-      '...knnnnnNnnk...',
-      '...knnnnsssk....',
-      '...knnnsskskk...',
-      '...knnnssssssk..',
-      '....knnsssmsk...',
-      '....kkkkkkkk....',
-      '...kbbnnnnbk.GG.',
-      '...kbbnnnnsk.GG.',
-      '...kbbnnnnskkn..',
-      '....kbnnnnbkn...',
-      '....kbbkbbbk....',
-      '....kNNkkNNk....',
-      '....kkkkkkkk....',
     ] },
     // 序章躲在打鐵鋪：眉頭壓低、嘴抿成一條線的臭臉
     heroSideSulk: { rows: [
@@ -673,19 +620,92 @@
   };
 
   // 樂譜符號（加圖示用）
-  // 地圖上的原地踏步（勇者鬥惡龍那種）：同一張圖只換最下面三列，A 抬左腳、B 抬右腳，輪流播
-  const STEP = {
-    heroDown: [['....kNNkkbbk..n.', '....kkkk.kNNk...', '.........kkkk...'],
-               ['....kbbkkNNk..n.', '....kNNkkkkk....', '....kkkk........']],
-    heroUp: [['.n..kNNkkbbk....', '....kkkk.kNNk...', '.........kkkk...'],
-             ['.n..kbbkkNNk....', '....kNNkkkkk....', '....kkkk........']],
-    heroSide: [['....kNNkbbbk....', '....kkkkkNNk....', '........kkkk....'],
-               ['....kbbkNNNk....', '....kNNkkkkk....', '....kkkk........']],
+  /* ── 地圖上的王子：身體＋武器＋盾＋披風組出來，跟著變強換外形（Ken 指定）──
+     身體用 u（上衣／盔甲）、a（袖子褲子）、f（靴子）三個字母，換 pal 就換一套裝備顏色；
+     武器、盾照實際裝備畫（鐵鎚→鐵劍→銀劍、沒盾→鐵盾→銀盾），握在拳頭（s）裡；
+     第 2 階起多一件紅披風，第 3 階金色盔甲（地圖上另外加金色光暈，見 main.js 的 drawHero）。
+     腳：A 抬左腳、B 抬右腳、不給就是站好（序章的 heroDown／heroUp／heroSide 用站好的那張） */
+  const HERO_HEAD = {
+    down: ['.....y.yy.y.....', '....kyyyyyyk....', '....knnnnnnk....', '...knnNnnNnnk...', '...knssssssnk...',
+      '...kssksskssk...', '...kssssssssk...', '....kssmmssk....', '...kkkkkkkkkk...'],
+    up: ['.....y.yy.y.....', '....kyyyyyyk....', '....knnnnnnk....', '...knnnnnnnnk...', '...knnnnnnnnk...',
+      '...knnNnnNnnk...', '...knnnnnnnnk...', '....knnnnnnk....', '...kkkkkkkkkk...'],
+    side: ['.....y.yy.y.....', '....kyyyyyyk....', '....knnnnnnk....', '...knnnnnNnnk...', '...knnnnsssk....',
+      '...knnnsskskk...', '...knnnssssssk..', '....knnsssmsk...', '....kkkkkkkk....'],
   };
-  for (const [name, [a, b]] of Object.entries(STEP)) {
-    S[name + 'A'] = { rows: S[name].rows.slice(0, 13).concat(a) };
-    S[name + 'B'] = { rows: S[name].rows.slice(0, 13).concat(b) };
-  }
+  const HERO_BODY = {
+    down: ['..ksaauuuuaask..', '..ksaauuuuaask..', '..kkaauuuuaakk..', '....kauuuuak....'],
+    up: ['..ksauuuuuuask..', '..ksauuuuuuask..', '..kkauuuuuuakk..', '....kauuuuak....'],
+    side: ['...kaauuuuak....', '...kaauuuusk....', '...kaauuuusk....', '....kauuuuak....'],
+  };
+  const HERO_LEGS = {
+    front: { '': ['....kaakkaak....', '....kffk.kffk...', '....kkkk.kkkk...'],
+      A: ['....kffkkaak....', '....kkkk.kffk...', '.........kkkk...'],
+      B: ['....kaakkffk....', '....kffkkkkk....', '....kkkk........'] },
+    side: { '': ['....kaakaaak....', '....kffkkffk....', '....kkkkkkkk....'],
+      A: ['....kffkaaak....', '....kkkkkffk....', '........kkkk....'],
+      B: ['....kaakfffk....', '....kffkkkkk....', '....kkkk........'] },
+  };
+  // 疊圖：{列號: 那一列}，'.' 透明。up 用 down 的左右鏡射（背面看，武器跟盾換邊）
+  const HERO_WEAPON = {
+    down: {
+      hammer: { 6: '.............gGG', 7: '.............GGG', 8: '..............h.', 9: '..............h.', 10: '..............h.', 11: '............kssk', 12: '..............h.' },
+      s1: { 2: '..............g.', 3: '..............gG', 4: '..............gG', 5: '..............gG', 6: '..............gG', 7: '..............gG', 8: '..............gG', 9: '..............gG', 10: '.............YYY', 11: '............kssk', 12: '..............Y.' },
+      s2: { 1: '..............w.', 2: '..............wc', 3: '..............wc', 4: '..............wc', 5: '..............wc', 6: '..............wc', 7: '..............wc', 8: '..............wc', 9: '..............wc', 10: '.............yyy', 11: '............kssk', 12: '..............r.' },
+    },
+    side: {
+      hammer: { 9: '..............gg', 10: '..............GG', 11: '...........shhGG', 12: '..............GG' },
+      s1: { 10: '............Ygg.', 11: '...........sYGGg', 12: '............Y...' },
+      s2: { 10: '............ywww', 11: '...........syccw', 12: '............y...' },
+    },
+  };
+  const HERO_SHIELD = {
+    down: {
+      a1: { 9: 'kkkk', 10: 'kgGk', 11: 'kGGk', 12: 'kGGk', 13: '.kk.' },
+      a2: { 9: 'kyyk', 10: 'ywcy', 11: 'ycyy', 12: 'yccy', 13: '.yy.' },
+    },
+    side: {
+      a1: { 9: '....kkkk', 10: '....kgGk', 11: '....kGGk', 12: '.....kk.' },
+      a2: { 9: '....kyyk', 10: '....ywcy', 11: '....ycyy', 12: '.....yy.' },
+    },
+  };
+  // 披風：down／side 墊在身體後面（只填空白處），up 是背影、直接蓋在背上
+  const HERO_CAPE = {
+    down: { 8: '..rrrrrrrrrrrr..', 9: '.RrrrrrrrrrrrrR.', 10: '.RrrrrrrrrrrrrR.', 11: '.RrrrrrrrrrrrrR.', 12: '.RRrrrrrrrrrrRR.', 13: '.RRrrrrrrrrrrRR.', 14: '..RRRRRRRRRRRR..' },
+    up: { 9: '....rrrrrrrr....', 10: '....rrrrrrrr....', 11: '...rrrrrrrrrr...', 12: '...rrrrrrrrrr...', 13: '...RRRRRRRRRR...' },
+    side: { 8: '...r............', 9: '..rr............', 10: '..rr............', 11: '.Rrr............', 12: '.Rrrr...........', 13: '.RRrr...........', 14: 'RRRR............' },
+  };
+  PALS.hero0 = { u: '#9a6634', a: '#5ab0ff', f: '#5a3a1e' };   // 布背心（一開始的小鐵）
+  PALS.hero1 = { u: '#8a93a6', a: '#3d6fe0', f: '#555a68' };   // 鎖子甲
+  PALS.hero2 = { u: '#dfe6f0', a: '#2d5fc0', f: '#a8b0c0' };   // 銀色板甲＋紅披風
+  PALS.hero3 = { u: '#ffd84a', a: '#7a3ad0', f: '#c9921a' };   // 金色盔甲＋紅披風＋光暈
+  Object.assign(BASE, { u: PALS.hero0.u, a: PALS.hero0.a, f: PALS.hero0.f, h: '#9a6634' });   // h＝鐵鎚握柄
+  const mirror = o => Object.fromEntries(Object.entries(o).map(([r, s]) => [r, s.padEnd(16, '.').split('').reverse().join('')]));
+  const overlay = (rows, o, under) => {
+    for (const [r, s] of Object.entries(o || {})) {
+      const row = rows[r].split('');
+      for (let x = 0; x < s.length; x++) if (s[x] !== '.' && (!under || row[x] === '.')) row[x] = s[x];
+      rows[r] = row.join('');
+    }
+  };
+  // 回傳組好的圖名（給 MT.sprite 用）；dir：down／up／side，foot：''／A／B，tier：0～3，sword／shield：裝備代碼或空字串
+  MT.heroSprite = function (dir, foot, tier, sword, shield) {
+    const name = `hero_${dir}_${foot}_${tier}_${sword || 'hammer'}_${shield || ''}`;
+    if (S[name]) return name;
+    const legs = HERO_LEGS[dir === 'side' ? 'side' : 'front'][foot || ''];
+    const rows = HERO_HEAD[dir].concat(HERO_BODY[dir], legs);
+    const pick = (table, key) => { const t = table[dir === 'up' ? 'down' : dir]; return t && t[key] && (dir === 'up' ? mirror(t[key]) : t[key]); };
+    if (tier >= 2 && dir !== 'up') overlay(rows, HERO_CAPE[dir], true);
+    overlay(rows, pick(HERO_SHIELD, shield));
+    if (tier >= 2 && dir === 'up') overlay(rows, HERO_CAPE.up);
+    overlay(rows, pick(HERO_WEAPON, sword || 'hammer'));
+    S[name] = { rows, pal: 'hero' + tier };
+    return name;
+  };
+  // 外形的四個階段看攻擊＋防禦：一開始 20，5F 的 Boss 前後約 70、10F 約 170、通關約 300
+  MT.heroTier = st => { const p = st.atk + st.def; return p >= 200 ? 3 : p >= 110 ? 2 : p >= 50 ? 1 : 0; };
+  // 序章與標題畫面用的：一開始的樣子、拿鐵鎚、站好
+  for (const dir of ['down', 'up', 'side']) S['hero' + dir[0].toUpperCase() + dir.slice(1)] = S[MT.heroSprite(dir, '', 0, '', '')];
 
   MT.SPRITE_OF = function (code) {
     if (MT.MONSTERS[code]) return MT.MONSTERS[code];
@@ -702,7 +722,7 @@
     if (c) return c;
     const def = S[name];
     if (!def) return null;
-    const colors = Object.assign({}, BASE, pal ? PALS[pal] : null);
+    const colors = Object.assign({}, BASE, pal ? PALS[pal] : def.pal ? PALS[def.pal] : null);   // def.pal：組出來的王子自帶裝備配色
     c = document.createElement('canvas');
     c.width = c.height = 16 * scale;
     const g = c.getContext('2d');
