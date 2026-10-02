@@ -1132,6 +1132,7 @@
   const cg = cine.getContext('2d');
   cg.imageSmoothingEnabled = false;
   let cineScene = null, cineT0 = 0, cineQueue = [], cineDone = null;   // cineT0＝這個場景開始的時間，給有時間軸的演出用
+  let cinePose = null;   // 劇本那一步指定的阿爾特表情（pose），換場景時清掉
 
   const stars = Array.from({ length: 70 }, (_, i) => [(i * 97) % SIZE, (i * 53) % 300, (i % 3) + 1]);
   function drawTown(t, day) {
@@ -1174,6 +1175,14 @@
     cg.beginPath(); cg.moveTo(x - w / 2 - 14, 100); cg.lineTo(x, 30); cg.lineTo(x + w / 2 + 14, 100); cg.fill();
     cg.fillStyle = '#c07cf5';
     for (let i = 0; i < 6; i++) cg.fillRect(x - 6, 130 + i * 55, 12, 18);
+  }
+
+  // 夜裡的打鐵鋪：星空、左邊的鐵砧和還沒熄的爐火
+  function drawForgeNight(t) {
+    drawSky(t, '#120c1c', '#3a1a14'); drawStars(t);
+    cg.fillStyle = '#2a1a14'; cg.fillRect(0, SIZE - 120, SIZE, 120);
+    cg.fillStyle = '#454a58'; cg.fillRect(40, SIZE - 170, 120, 30); cg.fillRect(70, SIZE - 140, 60, 50);
+    cg.fillStyle = 'rgba(255,120,40,0.10)'; cg.beginPath(); cg.arc(100, SIZE - 160, 110 + Math.sin(t / 300) * 6, 0, Math.PI * 2); cg.fill();
   }
 
   /* 序章練唱廳：阿爾特在台上領唱、破音、全場哄笑。st＝場景開始後幾毫秒，laughing＝笑到什麼程度（0～1） */
@@ -1407,26 +1416,78 @@
       drawSky(t, '#141a3a', '#3a2a5a'); drawStars(t); drawTown(t);
       drawFolk(t, townFolk);
       bigSprite('bard', null, 130, SIZE - 118, 5);
-      bigSprite('heroSing', null, 224, SIZE - 118 - Math.abs(Math.sin(t / 420)) * 6, 5);
+      bigSprite('heroSing', null, 224, SIZE - 118, 5);
       floatingNotes(t, 22, SIZE / 2, SIZE - 70, 250, null, 320);
     },
+    // 打鐵鋪：阿爾特臭著臉敲鐵，老鐵匠在他身後看著
     forge: t => {
       drawSky(t, '#2a1810', '#5a2a18');
       cg.fillStyle = '#3a2418'; cg.fillRect(0, SIZE - 120, SIZE, 120);
       cg.fillStyle = '#555a68'; cg.fillRect(270, SIZE - 170, 120, 30); cg.fillRect(300, SIZE - 140, 60, 50);
+      bigSprite('smith', null, -4, SIZE - 122 - 144, 9);
       const hit = Math.floor(t / 400) % 2;
-      bigSprite('heroSide', null, 150, SIZE - 250 + (hit ? 6 : 0), 8);
+      bigSprite('heroSideSulk', null, 150, SIZE - 250 + (hit ? 6 : 0), 8);
       if (hit) for (let i = 0; i < 8; i++) { cg.fillStyle = ['#ffd84a', '#ff9a2e'][i % 2]; cg.fillRect(300 + Math.cos(i + t / 100) * 40, SIZE - 190 - Math.abs(Math.sin(i * 3 + t / 90)) * 50, 5, 5); }
       cg.fillStyle = 'rgba(255,140,40,0.15)'; cg.beginPath(); cg.arc(330, SIZE - 160, 140 + Math.sin(t / 200) * 10, 0, Math.PI * 2); cg.fill();
     },
-    // 前一晚：國王站在打鐵鋪門口唸王子
+    // 前一晚：先從黑畫面淡入夜裡的打鐵鋪，國王從右邊走進來唸王子
     forgeKing: t => {
-      drawSky(t, '#120c1c', '#3a1a14'); drawStars(t);
-      cg.fillStyle = '#2a1a14'; cg.fillRect(0, SIZE - 120, SIZE, 120);
-      cg.fillStyle = '#454a58'; cg.fillRect(40, SIZE - 170, 120, 30); cg.fillRect(70, SIZE - 140, 60, 50);
-      cg.fillStyle = 'rgba(255,120,40,0.10)'; cg.beginPath(); cg.arc(100, SIZE - 160, 110 + Math.sin(t / 300) * 6, 0, Math.PI * 2); cg.fill();
-      bigSprite('heroSide', null, 170, SIZE - 250, 8);
-      bigSprite('bard', null, 330, SIZE - 250, 8);
+      const st = t - cineT0;
+      drawForgeNight(t);
+      const k = Math.min(1, Math.max(0, (st - 500) / 1100)), e = 1 - Math.pow(1 - k, 2);
+      const step = k > 0 && k < 1 ? Math.abs(Math.sin(st / 120)) * 8 : 0;
+      bigSprite('heroSideSulk', null, 170, SIZE - 250, 8);
+      bigSprite('bard', null, SIZE + 10 - (SIZE + 10 - 330) * e, SIZE - 250 - step, 8);
+      const dark = 1 - Math.min(1, st / 900);
+      if (dark > 0) { cg.fillStyle = `rgba(6,4,12,${dark})`; cg.fillRect(0, 0, SIZE, SIZE); }
+    },
+    // 「全部都給我閉嘴！」：畫面猛震、紅光一圈圈炸開，吼聲往國王衝過去，國王被嚇得往後跳
+    forgeRage: t => {
+      const st = t - cineT0;
+      const amp = st < 900 ? 3 + 11 * (1 - st / 900) : 2;
+      cg.translate((Math.random() - 0.5) * amp, (Math.random() - 0.5) * amp);
+      drawForgeNight(t);
+      const lunge = Math.min(1, st / 160) * 16, tremble = Math.sin(t / 30) * 2;
+      const hx = 170 + lunge + tremble, hy = SIZE - 250;
+      const mx = hx + 11 * 8, my = hy + 7 * 8 + 6;                      // 嘴巴的位置
+      // 從王子身上炸開的紅光
+      const pulse = st < 250 ? st / 250 : 0.45 + 0.25 * Math.sin(st / 140);
+      const red = cg.createRadialGradient(hx + 64, hy + 64, 20, hx + 64, hy + 64, 300);
+      red.addColorStop(0, `rgba(255,50,40,${0.5 * pulse})`); red.addColorStop(1, 'rgba(255,50,40,0)');
+      cg.fillStyle = red; cg.fillRect(0, 0, SIZE, SIZE);
+      // 國王往後一跳、再嚇得發抖
+      const back = Math.min(1, st / 220);
+      const hop = st < 450 ? Math.sin(st / 450 * Math.PI) * 26 : 0;
+      bigSprite('bard', null, 330 + back * 40 + (st > 450 ? Math.sin(t / 45) * 1.5 : 0), SIZE - 250 - hop, 8);
+      bigSprite('heroSideAngry', null, hx, hy, 8);
+      // 吼聲：從嘴巴往右擴散的一圈圈聲波＋放射線
+      cg.lineCap = 'round';
+      for (let i = 0; i < 4; i++) {
+        const p = ((st / 650 + i / 4) % 1);
+        cg.globalAlpha = 1 - p; cg.strokeStyle = '#fff3c0'; cg.lineWidth = 6 - p * 3;
+        cg.beginPath(); cg.arc(mx, my, 24 + p * 200, -0.55, 0.55); cg.stroke();
+      }
+      cg.globalAlpha = 0.9; cg.strokeStyle = '#ffd84a'; cg.lineWidth = 4;
+      for (let i = 0; i < 5; i++) {
+        const a = -0.5 + i * 0.25, flick = 0.6 + 0.4 * Math.abs(Math.sin(t / 70 + i * 2));
+        cg.beginPath(); cg.moveTo(mx + Math.cos(a) * 30, my + Math.sin(a) * 30);
+        cg.lineTo(mx + Math.cos(a) * (30 + 70 * flick), my + Math.sin(a) * (30 + 70 * flick)); cg.stroke();
+      }
+      cg.globalAlpha = 1;
+      // 頭上冒的怒氣符號（四個角朝外的紅色折線，一跳一跳）
+      const ax = hx + 116, ay = hy + 4, s = 1 + 0.25 * Math.abs(Math.sin(t / 120));
+      cg.strokeStyle = '#ff3a3a'; cg.lineWidth = 5;
+      for (const [dx, dy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+        const cx = ax + dx * 9 * s, cy = ay + dy * 9 * s;
+        cg.beginPath(); cg.moveTo(cx, cy + dy * 9 * s); cg.lineTo(cx, cy); cg.lineTo(cx + dx * 9 * s, cy); cg.stroke();
+      }
+      // 頭頂冒煙
+      for (let i = 0; i < 4; i++) {
+        const p = ((st / 900 + i / 4) % 1);
+        cg.globalAlpha = (1 - p) * 0.6; cg.fillStyle = '#d8d0d0';
+        cg.beginPath(); cg.arc(hx + 40 + i * 14 + Math.sin(p * 6 + i) * 6, hy - 6 - p * 70, 6 + p * 8, 0, Math.PI * 2); cg.fill();
+      }
+      cg.globalAlpha = 1;
     },
     maestro: t => {
       const { tip, lift } = drawMaestroRise(t);
@@ -1446,7 +1507,7 @@
     meet: t => {
       drawSky(t, '#3a4060', '#c89a7a'); drawTower(t, SIZE / 2 + 120, 80, '#0e0b16');
       cg.fillStyle = '#4a3a3a'; cg.fillRect(0, SIZE - 90, SIZE, 90);
-      bigSprite('heroSide', null, 90, SIZE - 250, 8);
+      bigSprite(cinePose || 'heroSideShock', null, 90, SIZE - 90 - 128, 8);   // 腳踩在地面上緣
       bigSprite('fairy', null, 300, SIZE - 300 + Math.sin(t / 250) * 12, 7);
       for (let i = 0; i < 6; i++) { cg.fillStyle = '#fff6b0'; cg.fillRect(360 + Math.cos(t / 300 + i) * 60, SIZE - 240 + Math.sin(t / 200 + i * 2) * 50, 4, 4); }
     },
@@ -1508,7 +1569,8 @@
     if (typing) { clearInterval(typing); typing = null; $('#cineBody').textContent = cineFull; return; }
     const s = cineQueue.shift();
     if (!s) { endCine(); return; }
-    if (s.scene) { cineScene = s.scene; cineT0 = now(); }
+    if (s.scene) { cineScene = s.scene; cineT0 = now(); cinePose = null; }
+    if (s.pose) cinePose = s.pose;
     if (s.music) MT.Audio.play(s.music, ['base', 'drums', 'strings', 'lead']);
     if (s.sfx) sfx(s.sfx);
     const text = s.text ? MT.story(s.text) : '';
@@ -1522,11 +1584,15 @@
     clearInterval(typing);
     const chars = Array.from(text);
     let i = 0;
-    typing = setInterval(() => {
-      i++; el.textContent = chars.slice(0, i).join('');
-      if (s.speaker && i % 3 === 1) sfx('blip');
-      if (i >= chars.length) { clearInterval(typing); typing = null; }
-    }, 32);
+    const type = () => {
+      typing = setInterval(() => {
+        i++; el.textContent = chars.slice(0, i).join('');
+        if (s.speaker && i % 3 === 1) sfx('blip');
+        if (i >= chars.length) { clearInterval(typing); typing = null; }
+      }, 32);
+    };
+    // delay：等畫面演完（例如國王走進來）才開始打字；這段時間點一下就直接顯示全文
+    if (s.delay) typing = setTimeout(type, s.delay); else type();
     dialogResolve = null;
   }
   function endCine() {
@@ -1546,16 +1612,16 @@
     { scene: 'rehearsalSpot', text: 'pro_3s' },
     { scene: 'forge', text: 'pro_3a', music: 'title' },
     { text: 'pro_3b', speaker: 'smith' },
-    { scene: 'forgeKing', text: 'pro_4', speaker: 'bard' },
-    { text: 'pro_4b', speaker: 'tink', music: 'none', sfx: 'boom' },
+    { scene: 'forgeKing', text: 'pro_4', speaker: 'bard', delay: 1600 },
+    { scene: 'forgeRage', text: 'pro_4b', speaker: 'tink', music: 'none', sfx: 'boom' },
     { scene: 'maestro', text: 'pro_5', sfx: 'harp' },
     { scene: 'tower', text: 'pro_6' },
     { scene: 'meet', text: 'pro_7', speaker: 'doremi' },
     { text: 'pro_8', speaker: 'tink' },
     { text: 'pro_9', speaker: 'doremi' },
-    { text: 'pro_10', speaker: 'tink' },
+    { text: 'pro_10', speaker: 'tink', pose: 'heroSideGuilty' },
     { text: 'pro_11', speaker: 'doremi' },
-    { text: 'pro_12', speaker: 'tink' },
+    { text: 'pro_12', speaker: 'tink', pose: 'heroSideSulk' },
   ];
 
   /* ───────── 標題畫面 ───────── */
