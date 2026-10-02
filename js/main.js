@@ -678,7 +678,8 @@
   // 點到走不到的地方：那格閃一下紅色 ✕
   const cross = (x, y) => view.fx.push({ kind: 'cross', x: x * TILE + TILE / 2, y: y * TILE + TILE / 2, t0: now(), life: 550 });
 
-  /* 說明卡：長按地圖上的東西、或查看模式裡點東西時，在地圖上方或下方（避開那格）浮出來，再點一下任何地方收起來 */
+  /* 說明卡：長按地圖上的東西、或查看模式裡點東西時浮出來，再點一下任何地方收起來。
+     放在地圖外面（不擋地圖），見 placeCard */
   const monCard = $('#monCard');
   const KEY_OF = { y: 'Yk', b: 'Bk', r: 'Rk' }, DOOR_OF = { y: 'Yd', b: 'Bd', r: 'Rd' };
   // 一格東西的說明：怪物用圖鑑那一列，其他是圖＋名稱＋一行說明；空地、牆回傳空字串
@@ -710,13 +711,38 @@
   function showInfo(html, x, y) {
     inspect = { x, y };
     monCard.innerHTML = html;
-    monCard.classList.toggle('top', y >= Math.ceil(H / 2));
     monCard.hidden = false;
+    placeCard();
     sfx('select');
     try { if (navigator.vibrate) navigator.vibrate(15); } catch (e) { /* 不支援就算了 */ }
   }
+  /* 說明卡的位置：依序找地圖外放得下的空白，都放不下才蓋住功能鍵／狀態列（仍然不蓋地圖）。
+     直向：地圖與功能鍵之間 → 狀態列與地圖之間 → 蓋住功能鍵 → 蓋住狀態列；
+     橫向：左欄功能鍵下面 → 蓋住左欄的功能鍵 */
+  function placeCard() {
+    const R = el => el.getBoundingClientRect();
+    const s = R($('#stage')), m = R($('#mapWrap')), hud = R($('#hud')), bar = R($('#bar'));
+    const wide = matchMedia('(min-aspect-ratio: 5/4)').matches, gap = 6;
+    // 區域：[top, bottom, left, width, below]（座標相對 #stage；below＝在地圖下方，放不下時貼底、往上長）
+    const area = (top, bottom, x, below) => [top - s.top, bottom - s.top, x.left - s.left, x.width, below];
+    const areas = wide
+      ? [area(bar.bottom + 10, m.bottom, bar, true), area(hud.bottom + 10, m.bottom, bar, true)]
+      : [area(m.bottom + gap, bar.top - gap, m, true), area(hud.bottom + gap, m.top - gap, m, false),
+        area(m.bottom + gap, s.bottom - gap, m, true), area(s.top + 4, m.top - gap, m, false)];
+    const [, , x0, w0] = areas[0];
+    monCard.style.left = x0 + 'px'; monCard.style.width = w0 + 'px';
+    const h = monCard.offsetHeight;
+    const fit = areas.find(a => a[1] - a[0] >= h) || areas.reduce((p, a) => (a[1] - a[0] > p[1] - p[0] ? a : p));
+    const [top, bottom, left, width, below] = fit;
+    monCard.style.left = left + 'px'; monCard.style.width = width + 'px';
+    // 放得下：直向置中在空白裡、橫向緊貼功能鍵下面；放不下：在地圖下方的貼底、上方的貼頂
+    monCard.style.top = (bottom - top >= h ? (wide ? top : top + (bottom - top - h) / 2) : below ? bottom - h : top) + 'px';
+  }
+  window.addEventListener('resize', () => { if (!monCard.hidden) placeCard(); });
   function hideMonCard() { if (monCard.hidden) return false; monCard.hidden = true; inspect = null; return true; }
   monCard.addEventListener('pointerdown', e => { e.preventDefault(); hideMonCard(); });
+  // 卡片在地圖外面，點狀態列或空白處也要能收起來（地圖自己會處理；功能鍵開視窗時也會收）
+  $('#stage').addEventListener('pointerdown', e => { if (e.target !== canvas && !$('#bar').contains(e.target)) hideMonCard(); });
 
   /* 查看模式（功能鍵列的「查看」，按一下開、再按一下關）：點地圖只看說明、不會走過去。
      開著時按鈕亮黃色、地圖框變淡黃色（不在地圖上蓋提示條）；Esc／返回鍵／方向鍵也會關掉 */
