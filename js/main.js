@@ -295,6 +295,7 @@
     $('#bBook span').textContent = MT.t('btnBook'); $('#bFly span').textContent = MT.t('btnFly');
     $('#bSave span').textContent = MT.t('btnSave'); $('#bMenu span').textContent = MT.t('btnMenu');
     $('#cineSkip').textContent = MT.t('skip');
+    $('#lookText').textContent = MT.t('lookBar'); $('#lookEnd').textContent = MT.t('lookEnd');
     renderCloudChip();
     if (mode === 'title') renderTitle();
     renderHud();
@@ -568,12 +569,12 @@
 
   /* ───────── 點地圖移動 ─────────
      手機上沒有方向鍵，一律點地圖：點一下就畫出路線（虛線＋終點框），勇者沿著走過去，走過的那段跟著消失。
-     終點是怪物或門（會扣血、用掉鑰匙）時，第一下只顯示路線和代價，同一格再點一次才出發，誤觸不會白白損失。
-     長按怪物顯示牠的能力（同圖鑑那一列）。 */
+     終點是怪物或門也是點一下就出發（打不贏、打不動、沒鑰匙的會直接擋下來，不會白白損失）。
+     長按怪物顯示牠的能力（同圖鑑那一列）；選單的「查看模式」裡點任何東西都會顯示說明。 */
   let route = null;     // { cells:[[x,y]…], kind } 畫在地圖上的路線；kind：walk／fight／door
-  let pending = null;   // 等第二下確認的終點 'x,y'
-  let inspect = null;   // 長按中的怪物 { x, y }
-  function clearRoute() { route = null; pending = null; }
+  let inspect = null;   // 正在看說明的格子 { x, y }
+  let looking = false;  // 查看模式：點地圖只看說明、不移動
+  function clearRoute() { route = null; }
 
   // BFS：只穿過 pass(代碼) 為真的格子，終點可以是任何東西（碰到就觸發）。回傳不含起點、含終點的格子
   function bfs(tx, ty, pass) {
@@ -621,31 +622,22 @@
     const cells = code === '##' || code === 'Gt' ? null : findPath(x, y);   // 牆和鐵門不能當終點
     const refuse = msg => { autoPath = null; clearRoute(); sfx('error'); cross(x, y); if (msg) toast(msg); };
     if (!cells) { refuse(); return; }
-    let kind = 'walk', msg = '';
+    let kind = 'walk';
     const m = MT.MONSTERS[code];
-    if (m && !(m.onBump && !st.flags['bump:' + code])) {   // 有劇情的 Boss 第一次碰是播劇情，不用確認
+    if (m && !(m.onBump && !st.flags['bump:' + code])) {   // 有劇情的 Boss 第一次碰是播劇情，不算開打
       const c = MT.calc(st, code);
       if (c.damage == null) { refuse(MT.t('cantHurtMsg', { name: MT.monName(code) })); return; }
       if (c.damage >= st.hp) { refuse(MT.t('cantWin', { name: MT.monName(code), d: c.damage })); return; }
-      kind = 'fight'; msg = c.damage ? MT.t('confirmFight', { d: c.damage }) : MT.t('confirmFight0');
+      kind = 'fight';
     } else if (MT.DOORS[code]) {
-      const k = MT.DOORS[code];
-      if (st.keys[k] <= 0) { refuse(MT.t('needKey_' + k)); return; }
-      kind = 'door'; msg = MT.t('confirmDoor_' + k);
+      if (st.keys[MT.DOORS[code]] <= 0) { refuse(MT.t('needKey_' + MT.DOORS[code])); return; }
+      kind = 'door';
     }
-    const at = x + ',' + y;
-    if (kind !== 'walk' && pending !== at) {
-      autoPath = null;   // 正在走的話先停下來，等確認
-      pending = at; route = { cells, kind };
-      sfx('select'); toast(msg);
-      return;
-    }
-    pending = null;
     route = { cells, kind };
     walkRoute(cells);
   }
 
-  // 光標顏色（r,g,b）：平常白色，等確認開打時帶一點淡紅
+  // 光標顏色（r,g,b）：平常白色，走去開打時帶一點淡紅
   const CURSOR_RGB = { walk: '255,255,255', door: '255,255,255', fight: '255,176,176' };
   // 終點光標：圓角方框＋淡淡的內光，約 1.6 秒一次緩慢明暗呼吸（同一般 RPG 的目的地游標）
   function cursor(x, y, rgb, t) {
@@ -686,11 +678,36 @@
   // 點到走不到的地方：那格閃一下紅色 ✕
   const cross = (x, y) => view.fx.push({ kind: 'cross', x: x * TILE + TILE / 2, y: y * TILE + TILE / 2, t0: now(), life: 550 });
 
-  /* 長按怪物：地圖上方或下方（避開那隻怪）浮出能力卡，再點一下任何地方收起來 */
+  /* 說明卡：長按怪物、或查看模式裡點東西時，在地圖上方或下方（避開那格）浮出來，再點一下任何地方收起來 */
   const monCard = $('#monCard');
-  function showMonCard(code, x, y) {
+  const KEY_OF = { y: 'Yk', b: 'Bk', r: 'Rk' }, DOOR_OF = { y: 'Yd', b: 'Bd', r: 'Rd' };
+  // 一格東西的說明：怪物用圖鑑那一列，其他是圖＋名稱＋一行說明；空地、牆回傳空字串
+  function infoRow(code) {
+    if (MT.MONSTERS[code]) return monRow(code);
+    const sp = spriteFor(code), it = MT.ITEMS[code], n = MT.NPCS[code];
+    if (!sp) return '';
+    let name = '', desc = '';
+    if (MT.DOORS[code]) {
+      const k = MT.DOORS[code];
+      name = MT.t('name_' + code); desc = MT.t('info_door', { key: MT.t('name_' + KEY_OF[k]), n: st.keys[k] });
+    } else if (code === 'Gt') { name = MT.t('name_Gt'); desc = MT.t('info_gate'); }
+    else if (code === 'UU' || code === 'DD') { name = MT.t('name_' + code); desc = MT.t('info_stairs', { n: st.floor + (code === 'UU' ? 1 : -1) }); }
+    else if (it) {
+      const v = it.zone || it.value != null ? MT.itemValue(code, st.floor) : 0;   // 鑰匙、日記、音符沒有數值
+      if (it.kind === 'key') { name = MT.t('name_' + code); desc = MT.t('info_key', { door: MT.t('name_' + DOOR_OF[it.key]) }); }
+      else if (it.equip) { name = MT.itemName(code); desc = MT.t('info_equip', { stat: MT.t(it.kind), n: v }); }
+      else if (it.kind === 'page') { name = MT.t('name_page'); desc = MT.t('info_page'); }
+      else if (it.kind === 'note') { name = MT.itemName('note'); desc = MT.t('info_note'); }
+      else { name = MT.t('name_' + code); desc = MT.t('info_' + it.kind, { n: v }); }
+    } else if (n && n.shop === 'keys') { name = MT.t('frog'); desc = MT.t('info_frog', MT.SHOPS.keys); }
+    else if (n && n.shop) { const S = MT.SHOPS[n.shop]; name = MT.t(n.shop); desc = MT.t('info_shop', { price: MT.shopPrice(st, n.shop), hp: S.hp, atk: S.atk, def: S.def }); }
+    else if (n && n.talk) { name = MT.t('speaker_' + n.talk); desc = MT.t('info_talk'); }
+    else return '';
+    return `<div class="mon">${img(sp[0], sp[1], 'big')}<div class="mi"><div class="mn">${esc(name)}</div><div class="md">${esc(desc)}</div></div></div>`;
+  }
+  function showInfo(html, x, y) {
     inspect = { x, y };
-    monCard.innerHTML = monRow(code);
+    monCard.innerHTML = html;
     monCard.classList.toggle('top', y >= Math.ceil(H / 2));
     monCard.hidden = false;
     sfx('select');
@@ -698,6 +715,23 @@
   }
   function hideMonCard() { if (monCard.hidden) return false; monCard.hidden = true; inspect = null; return true; }
   monCard.addEventListener('pointerdown', e => { e.preventDefault(); hideMonCard(); });
+
+  /* 查看模式（選單裡開）：點地圖只看說明、不會走過去；地圖上方一條提示，點「結束」或 Esc／返回鍵／方向鍵離開 */
+  function setLook(on) {
+    looking = on;
+    $('#lookBar').hidden = !on;
+    $('#mapWrap').classList.toggle('looking', on);
+    if (on) { autoPath = null; clearRoute(); }
+    hideMonCard();
+  }
+  $('#lookEnd').addEventListener('click', () => { setLook(false); sfx('select'); });
+  function lookAt(x, y) {
+    if (x < 0 || y < 0 || x >= W || y >= H) return;
+    const same = inspect && inspect.x === x && inspect.y === y;
+    const html = x === st.x && y === st.y ? '' : infoRow(st.maps[st.floor][y][x]);
+    if (same || !html) { hideMonCard(); return; }
+    showInfo(html, x, y);
+  }
 
   const tileAt = e => {
     const r = canvas.getBoundingClientRect();
@@ -709,11 +743,13 @@
     if (mode !== 'game') return;
     e.preventDefault();
     if (press) return;   // 第二根手指不理
-    if (advanceDialog() || hideMonCard() || busy) return;
+    if (advanceDialog() || busy) return;
     const [x, y] = tileAt(e);
+    if (looking) { lookAt(x, y); return; }
+    if (hideMonCard()) return;
     press = { id: e.pointerId, cx: e.clientX, cy: e.clientY, long: false, timer: 0 };
     const code = MT.tile(st, st.floor, x, y);
-    if (MT.isMonster(code)) press.timer = setTimeout(() => { if (press) { press.long = true; showMonCard(code, x, y); } }, LONG_MS);
+    if (MT.isMonster(code)) press.timer = setTimeout(() => { if (press) { press.long = true; showInfo(monRow(code), x, y); } }, LONG_MS);
   });
   canvas.addEventListener('pointermove', e => {
     // 手指滑開就不算長按（放開時仍照放開的位置算一次點擊）
@@ -733,6 +769,7 @@
   /* 鍵盤：按住連續走（電腦用） */
   let holdDir = null, holdTimer = null;
   function startHold(d) {
+    if (looking) setLook(false);
     autoPath = null; clearRoute(); hideMonCard();
     if (holdDir === d) return;
     holdDir = d;
@@ -758,7 +795,7 @@
     if (e.key === 'b' || e.key === 'B') openBook();
     else if (e.key === 'f' || e.key === 'F') openFly();
     else if (e.key === 'S') openSaves();
-    else if (e.key === 'Escape') openMenu();
+    else if (e.key === 'Escape') { if (looking) setLook(false); else openMenu(); }
   });
   document.addEventListener('keyup', e => { const d = KEYMAP[e.key]; if (d) stopHold(d); });
   window.addEventListener('blur', () => stopHold());
@@ -924,13 +961,15 @@
   function openMenu() {
     if (!st || mode !== 'game' || busy) return;
     openModal(MT.t('btnMenu'), `<div class="menu">
+      <button class="btn" data-a="look">${esc(MT.t(looking ? 'lookOff' : 'lookOn'))}</button>
       <button class="btn" data-a="saves">${esc(MT.t('saveTitle'))}</button>
       <button class="btn" data-a="settings">${esc(MT.t('settings'))}</button>
       <button class="btn" data-a="cloud">${esc(MT.t('cloud'))}</button>
       <button class="btn" data-a="title">${esc(MT.t('backTitle'))}</button></div>`, body => {
       body.querySelectorAll('[data-a]').forEach(b => b.addEventListener('click', () => {
         const a = b.dataset.a; closeModal();
-        if (a === 'saves') openSaves();
+        if (a === 'look') setLook(!looking);
+        else if (a === 'saves') openSaves();
         else if (a === 'settings') openSettings();
         else if (a === 'cloud') openCloud();
         else if (a === 'title') { autosave(); showTitle(); }
@@ -1577,6 +1616,7 @@
   }
   function showTitle() {
     mode = 'title'; st = null; busy = 0;
+    setLook(false);
     $('#title').hidden = false; $('#stage').classList.add('under');
     $('#dialog').hidden = true;
     renderTitle();
@@ -1601,7 +1641,7 @@
     mode = 'game'; busy = 0;
     $('#title').hidden = true; $('#cine').hidden = true; $('#stage').classList.remove('under');
     view.fairy = false; view.move = null; view.dying = null; view.fx = []; view.fade = 0; view.fadeTo = 0; view.fadeCur = 0;
-    autoPath = null; clearRoute(); hideMonCard();
+    autoPath = null; clearRoute(); setLook(false);
     playClock = Date.now();
     renderHud();
     playMusic(musicFor());
@@ -1654,6 +1694,7 @@
   MT.onBack = () => {
     if (!$('#confirm').hidden) { const b = $('#cButtons button'); if (b) b.click(); return true; }
     if (!$('#modal').hidden) { closeModal(); return true; }
+    if (mode === 'game' && looking) { setLook(false); return true; }
     if (mode === 'game' && !busy) { openMenu(); return true; }
     return false;
   };
