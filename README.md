@@ -31,7 +31,14 @@
 
 做法跟 [K書吧](https://github.com/agan0617/KBookBar) 一樣：進度存在**你自己的私有 repo** 裡的 `saves/magictower.json`，每台裝置貼一次 GitHub fine-grained token，瀏覽器／App 直接跟 GitHub API 對話，沒有任何中間伺服器。
 
-這個 repo 可以跟 K書吧和其他遊戲共用（預設是 `agan0617/CloudSave`）：每款遊戲各寫 `saves/` 底下自己的檔案，不會互相蓋掉。已經有 K書吧的 token 的話，直接貼同一支就好。
+一個私有 repo 可以同時給好幾個 App 當雲端存檔，**一支 token 全部通用**，不用每個 App 各建一個 repo、各產生一支 token。每個 App 只讀寫 `saves/` 底下自己的位置，互不干擾，目錄也是 App 自己建的：
+
+| App | 存在 repo 的哪裡 |
+|---|---|
+| [K書吧](https://github.com/agan0617/KBookBar) | `saves/kbookbar/`（書目、書檔、閱讀進度） |
+| [魔塔](https://github.com/agan0617/MagicTower) | `saves/magictower.json` |
+
+已經在其中一個 App 連上的話，其他 App 連線時貼同一支 token、repo 填同一個就好。
 
 1. 建一個 **Private** repo（預設名稱 `CloudSave`，勾 Add a README file）
 2. 到 GitHub → Settings → Developer settings → Personal access tokens → **Fine-grained tokens** → Generate new token：Repository access 只選那個 repo，Permissions 的 **Contents** 設成 **Read and write**
