@@ -169,6 +169,18 @@
     }
   }
 
+  /* 戰鬥中怪物腳下的血條（頭上是跳扣血數字的地方）：跟著每一下扣血滑順地縮短，剩一半變黃、剩四分之一變紅 */
+  function drawHpBar(d, alpha) {
+    const r = Math.max(0, d.hp / d.hpMax);
+    d.shown = d.shown == null ? r : d.shown + (r - d.shown) * 0.3;
+    const bw = TILE - 10, bh = 6, bx = d.x * TILE + 5, by = d.y * TILE + TILE - 7;
+    g.save(); g.globalAlpha = alpha;
+    g.fillStyle = 'rgba(0,0,0,0.75)'; g.fillRect(bx - 1, by - 1, bw + 2, bh + 2);
+    g.fillStyle = r > 0.5 ? '#6ee06e' : r > 0.25 ? '#ffd84a' : '#ff5a5a';
+    g.fillRect(bx, by, bw * d.shown, bh);
+    g.restore();
+  }
+
   function render() {
     const t = now();
     requestAnimationFrame(render);
@@ -204,6 +216,7 @@
         const sp = spriteFor(d.code);
         g.drawImage(MT.sprite(sp[0], sp[1], SC), d.x * TILE + (d.phase === 'die' ? 0 : (Math.random() - 0.5) * (d.flash > t ? 4 : 0)), d.y * TILE);
         g.restore();
+        if (d.hpMax) drawHpBar(d, d.phase === 'die' ? Math.max(0, 1 - k) : 1);
       }
     }
     drawMarks(t);
@@ -491,10 +504,11 @@
 
   async function battle(ev, fx, fy, dir) {
     busy++;
+    clearRoute();   // 開打了，終點光標不用再留在怪物身上
     const c = ev.calc, m = c.m;
     const boss = (m.sp || []).includes('boss');
     const [dx, dy] = DIR_V[dir];
-    view.dying = { code: ev.tile, x: ev.x, y: ev.y, t0: now(), dur: 1e9, phase: 'fight', flash: 0 };
+    view.dying = { code: ev.tile, x: ev.x, y: ev.y, t0: now(), dur: 1e9, phase: 'fight', flash: 0, hpMax: m.hp, hp: m.hp };
     /* 每一回合照實演：勇者先打（怪物剩多少血就扣多少），怪物還活著就回擊（先攻＝開打前先打一次、連擊＝一次打兩下）。
        照正常速度演會超過上限（一般 4 回合、Boss 8 回合的長度）時，才把每一下的間隔等比例縮短，整場塞進上限 */
     const sp = m.sp || [];
@@ -520,6 +534,7 @@
     for (let i = 0; i < c.turns; i++) {
       const hit = Math.min(monHp, c.heroHit);
       monHp -= hit;
+      view.dying.hp = monHp;
       view.lunge = { dx, dy, t0: now() };
       sfxT('hit');
       view.dying.flash = now() + 120;
@@ -532,7 +547,7 @@
     $('#hHp').textContent = st.hp;
     if (c.damage > 0) floatText(st.x, st.y, '-' + c.damage, '#ff6a6a', 18);
     sfx('kill');
-    view.dying = { code: ev.tile, x: ev.x, y: ev.y, t0: now(), dur: boss ? 900 : 300, phase: 'die', done: true };
+    view.dying = { code: ev.tile, x: ev.x, y: ev.y, t0: now(), dur: boss ? 900 : 300, phase: 'die', done: true, hpMax: m.hp, hp: 0, shown: view.dying.shown };
     sparkle(ev.x, ev.y, boss ? 60 : 14, boss ? null : ['#ffffff', '#ffe066', '#c8c8d8', '#ffffff']);
     if (boss) { shake(600, 12); flash('#ffffff', 700); sfx('boom'); }
     if (ev.gold) setTimeout(() => floatText(ev.x, ev.y, '+' + ev.gold + ' G', '#ffe066', 14), 180);
