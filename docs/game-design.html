@@ -75,8 +75,8 @@ blockquote { margin: 10px 0; padding: 6px 14px; border-left: 3px solid var(--acc
 <main>
 <header class="top">
   <h1>魔塔：失落的旋律　遊戲設計文件</h1>
-  <div class="meta">依 3.0.1 撰寫　·　2026-10-02</div>
-  <div class="note">3.0.0 是關卡全面改版：20 層＋隱藏層 B1、經驗值與等級、三選一技能、大型 Boss、路上 NPC、暗牆與裂牆。關卡設計規則與平衡流程另見 repo 根目錄的 <code>DESIGN.md</code>。</div>
+  <div class="meta">依 3.0.5 撰寫　·　2026-10-02</div>
+  <div class="note">3.0.0 是關卡全面改版：20 層＋隱藏層 B1、經驗值與等級、三選一技能、大型 Boss、路上 NPC、暗牆與裂牆。3.0.2～3.0.5：序章加兩幕過場、加生命的道具改成愛心、標題畫面與選單加圖文教學。關卡設計規則與平衡流程另見 repo 根目錄的 <code>DESIGN.md</code>。</div>
 </header>
 
 <!-- ───────────── 1 ───────────── -->
@@ -90,7 +90,7 @@ blockquote { margin: 10px 0; padding: 6px 14px; border-left: 3px solid var(--acc
 <tr><td>語言</td><td class="wrap">繁體中文／English／日本語（介面與全部劇情）</td></tr>
 <tr><td>設計目標</td><td class="wrap">「會玩和不會玩要有明顯差距」：每一扇門、每一個房間都是取捨，怪物依打法分類（高攻、高防、高血、魔法、吸血、連擊、夾擊、破甲），技能三選一讓同一張地圖有不同的最佳路線。用自動玩家驗證：新手卡在 3F、一般卡在 5F、高手通關約 19500～22600 分</td></tr>
 <tr><td>目標體驗</td><td class="wrap">「手機上單手點一點就能玩的經典魔塔」＋「一個青春期王子跟自己和解的短篇故事」。音樂隨劇情一層層回來（低音→鼓→和聲→笛→主旋律）；沿路的 NPC 與多蕾帶來幽默橋段；所有音樂、美術由程式產生，無任何外部素材</td></tr>
-<tr><td>版本</td><td class="wrap">網頁版 3.0.1（<code>index.html</code> 的 <code>MT.VERSION</code>、<code>sw.js</code> 的 <code>mt-3.0.1</code>）；存檔格式 v3（<code>MT.SAVE_V = 3</code>，2.x 存檔讀不了）</td></tr>
+<tr><td>版本</td><td class="wrap">網頁版 3.0.5（<code>index.html</code> 的 <code>MT.VERSION</code>、<code>sw.js</code> 的 <code>mt-3.0.5</code>）；存檔格式 v3（<code>MT.SAVE_V = 3</code>，2.x 存檔讀不了）</td></tr>
 </table></div>
 
 <!-- ───────────── 2 ───────────── -->
@@ -116,6 +116,8 @@ blockquote { margin: 10px 0; padding: 6px 14px; border-left: 3px solid var(--acc
 <ol>
 <li>廣場：鎮民一起唱歌，阿爾特是領唱（<code>pro_1</code>～<code>pro_2</code>，配樂 title）</li>
 <li>練唱破音、全場哄笑（音效 <code>crackLaugh</code>）；「笑聲很快就停了。可是在他耳朵裡，那陣笑聲一直沒有停」</li>
+<li>逃出練唱廳（<code>flee</code>，3.0.2）：夜裡街道兩層視差往後退，阿爾特邊哭邊跑（<code>heroRunA</code>／<code>heroRunB</code>，還沒拿鐵鎚、眼角掛淚），「哈哈」一路追在後面越來越淡；越跑越慢，打鐵鋪的爐光從右邊滑進來、老鐵匠站在門口（<code>pro_3r</code>）</li>
+<li>第一鎚（<code>firstStrike</code>，3.0.2）：老鐵匠把鎚子塞進他手裡，一鎚敲下去白光一閃、畫面一震、火星四濺、跳出「噹！」（音效 <code>clang</code>；劇本步驟的 <code>sfxAt</code> 讓音效對準敲下去那一刻），繞在頭上的笑聲全被震飛（<code>pro_3t</code>）</li>
 <li>打鐵鋪：老鐵匠的話（<code>pro_3b</code>）</li>
 <li>國王來唸他：「明天就是豐收祭了。你到底還要躲到什麼時候？」</li>
 <li>阿爾特吼：「吵死了！全部都給我閉嘴！」→ 爐火熄滅、心跳（音效 <code>heartbeat</code>，八下一下比一下快）、白天的笑聲與嘮叨在他身邊打轉（<code>rage_echo</code>），影子開始自己動</li>
@@ -171,6 +173,7 @@ blockquote { margin: 10px 0; padding: 6px 14px; border-left: 3px solid var(--acc
 <tr><td>長按（420ms）</td><td class="wrap">怪物、道具、門、鐵門、樓梯、商人／祭壇、NPC 跳說明卡（怪物＝圖鑑那一列：能力與預估損失；門＝要哪把鑰匙與身上幾把；道具＝撿起來加多少）。手指移動超過 14px 取消長按；手機會震動 15ms。說明卡放在地圖外（直向在地圖上方，橫向在左欄功能鍵下方）</td></tr>
 <tr><td>查看模式</td><td class="wrap">功能鍵列第一顆「查看」：開啟時按鈕變黃、地圖框淡黃，點一下只看說明不移動；再按一次、<code>Esc</code>、返回鍵或方向鍵離開</td></tr>
 <tr><td>鍵盤</td><td class="wrap">方向鍵／WASD 走（按住每 125ms 連續走）；<code>B</code> 圖鑑、<code>F</code> 飛行、<code>Shift+S</code> 存讀、<code>Esc</code> 選單（查看模式中為離開查看）；<code>Enter</code>／空白鍵推進對話與過場</td></tr>
+<tr><td>數值變動</td><td class="wrap">撿道具、買東西、升級、劇情給東西時，「+N」從那一格飛進資訊列對應的欄位（<code>flyGains</code>），顏色跟資訊列同一組：生命紅、攻擊橘、防禦藍、金幣黃，只在 <code>style.css</code> 的 <code>--hp</code>／<code>--atk</code>／<code>--def</code>／<code>--gold</code> 定義一次（3.0.3）；鑰匙飛的是鑰匙圖</td></tr>
 <tr><td>功能鍵列</td><td class="wrap">查看／圖鑑／飛行／存讀／選單。圖鑑列出<b>本層</b>所有怪物（需先有《怪物圖鑑》）</td></tr>
 <tr><td>教學</td><td class="wrap">標題畫面或選單 → 教學，8 頁圖文（目標、移動、戰鬥、鑰匙與門、道具、金幣與經驗、怪物特技、小技巧），左右鍵或下方圓點翻頁。示意圖由 <code>tutScene</code> 用地圖同款圖塊即時畫出，戰鬥頁的損失數字與例子照 <code>MT.calc</code> 實算（假設生命 200／攻擊 10／防禦 10），改數值不用改圖</td></tr>
 <tr><td>Android 返回鍵</td><td class="wrap"><code>MT.onBack</code>：先關確認框 → 關視窗 → 離開查看模式 → 開選單</td></tr>
@@ -288,7 +291,7 @@ S：分數 ≥ 22000 且真結局　A：≥ 17000　B：≥ 11000　其餘 C</co
 </ul>
 
 <!-- ───────────── 4 ───────────── -->
-<h2 id="s4">4. 數值表（3.0.1）</h2>
+<h2 id="s4">4. 數值表（3.0.5）</h2>
 <h3>4.1 怪物</h3>
 <div class="tw"><table>
 <tr><th>代號</th><th>名稱</th><th>生命</th><th>攻擊</th><th>防禦</th><th>金幣</th><th>經驗</th><th>出現樓層（數量）</th><th>特殊能力</th></tr>
@@ -436,7 +439,7 @@ S：分數 ≥ 22000 且真結局　A：≥ 17000　B：≥ 11000　其餘 C</co
 
 <h3>6.5 離線快取（<code>sw.js</code>）</h3>
 <ul>
-<li>僅在 https 下註冊 service worker；快取名 <code>mt-3.0.1</code>，安裝時以 <code>cache: 'reload'</code> 預先快取全部檔案（繞過 GitHub Pages 的 10 分鐘 HTTP 快取，避免新頁配舊 js）</li>
+<li>僅在 https 下註冊 service worker；快取名 <code>mt-3.0.5</code>，安裝時以 <code>cache: 'reload'</code> 預先快取全部檔案（繞過 GitHub Pages 的 10 分鐘 HTTP 快取，避免新頁配舊 js）</li>
 <li>讀取策略：先回快取秒開、背景抓新版更新快取，下次開啟生效；非同源（GitHub API）不快取；啟用時刪掉舊版快取</li>
 <li>Android App 外殼也是開線上網址，一樣靠這個離線</li>
 </ul>
@@ -451,12 +454,16 @@ S：分數 ≥ 22000 且真結局　A：≥ 17000　B：≥ 11000　其餘 C</co
 <li>大型怪物：中 Boss 用 16×16 的圖畫成 2×2 格、Boss 用 24×24 的圖畫成 3×3 格（皆 6 倍放大）；戰鬥時整塊一起演出，血條橫跨整塊</li>
 <li>3.0 新增 30 張：8 種怪物、4 隻中 Boss、4 隻大型 Boss、11 位 NPC、鑿子、笛；12 組新配色；金劍金盾的勇者疊圖；勇者外形門檻 70／170／300</li>
 <li>地形四套：石磚、紅磚、新的鏡面（銀色鏡板＋青色框＋斜光）、水晶；另有裂牆（明顯的黑色裂痕）與暗牆（幾乎看不出的細縫）</li>
-<li>序章、標題、結局動畫沿用 2.x</li>
+<li>3.0.2：序章逃跑的兩張跑步圖 <code>heroRunA</code>／<code>heroRunB</code>（還沒拿鐵鎚、眼角掛淚）</li>
+<li>3.0.3：加生命的道具改成愛心，跟狀態列的生命愛心同一個形象——小愛心 <code>heartS</code>（<code>hp</code>）、金邊大愛心＋右上角閃光 <code>heartBig</code>（<code>HP</code>，跟金邊藍盾同一套做法）；舊的藥水圖 <code>potion</code> 拿掉。劇情裡鏡中少女「這瓶藥水送你」是直接補血，文字保留</li>
+<li>教學頁的示意圖不是另存的圖檔，是 <code>tutScene</code> 用上面這些圖與地板牆壁當場畫的，改圖會自動跟上</li>
+<li>序章、標題、結局動畫沿用 2.x，3.0.2 序章多了逃跑與第一鎚兩幕</li>
 </ul>
 <h3 id="s7-2">7.2 音樂與音效（<code>audio.js</code>）</h3>
 <ul>
 <li>全部 Web Audio 即時合成，沒有任何音檔</li>
 <li>分層配樂：一開始只有 base；打倒鼓魔像加 drums、弦之魔女加 strings、<b>回音之鏡加 winds（3.0 新增的笛聲部：三角波＋慢慢加深的顫音）</b>、結局加 lead。title、tower、boss 三首都有笛的副旋律</li>
+<li>序章音效：<code>crackLaugh</code>（破音＋哄笑）、<code>heartbeat</code>（八下一下比一下快的心跳）、<code>clang</code>（3.0.2，第一鎚的打鐵聲）</li>
 </ul>
 
 <h2 id="s8">8. 技術架構</h2>
@@ -473,7 +480,7 @@ S：分數 ≥ 22000 且真結局　A：≥ 17000　B：≥ 11000　其餘 C</co
 <tr><td><code>js/main.js</code></td><td class="wrap">畫面繪製、點擊／長按／鍵盤、自動尋路、戰鬥與劇本演出、選單（圖鑑、飛行、存讀、商店、設定、教學、雲端）、序章／結局動畫、標題畫面、自動存檔時機、App 介面（<code>MT.onBack</code>、<code>appPause</code>、<code>appResume</code>）</td></tr>
 <tr><td><code>style.css</code></td><td class="wrap">版面（直向／橫向以 5:4 長寬比切換）、元件樣式</td></tr>
 <tr><td><code>sw.js</code>、<code>manifest.webmanifest</code></td><td class="wrap">離線快取與 PWA 安裝資訊（standalone、任意方向）</td></tr>
-<tr><td><code>tools/</code></td><td class="wrap"><code>solve.js</code> 自動玩家（確認打得通並算評價基準）、<code>count.js</code> 每層資源統計、<code>check_reach.js</code> 連通檢查、<code>test_sync.js</code> 同步測試、<code>make_icons.py</code> 圖示</td></tr>
+<tr><td><code>tools/</code></td><td class="wrap"><code>sim.js</code> 三種程度的自動玩家（新手／一般／高手）共用程式、<code>solve.js</code> 平衡檢查（三種玩家各打一次，確認打得通並算評價基準）、<code>audit.js</code> 關卡稽核（白開的房間、多餘的門、擋路 NPC、樓梯岔路…）、<code>check_reach.js</code> 連通檢查、<code>rooms.js</code> 印出一層的區域與相連的門怪、<code>show.js</code> 印出一層地圖與不付代價拿得到的東西、<code>count.js</code> 每層資源統計、<code>guide.js</code>＋<code>guide.css</code> 通關攻略產生器（高手實跑一次，切段畫地圖、步驟表、怪物代價表；道具名讀遊戲的 <code>name_*</code>）、<code>test_sync.js</code> 同步測試、<code>make_icons.py</code> 圖示</td></tr>
 </table></div>
 
 <h3>8.2 資料流</h3>
@@ -492,6 +499,7 @@ S：分數 ≥ 22000 且真結局　A：≥ 17000　B：≥ 11000　其餘 C</co
 <li><b>改版必須把 <code>sw.js</code> 的 VERSION 加一</b>，否則已開過的瀏覽器會繼續用快取裡的舊檔</li>
 <li>App 外殼版號由 User-Agent 的 <code>MagicTowerApp/x.y.z</code> 讀出，網頁更新不需重包 App</li>
 <li>改關卡或數值後依序跑 <code>node tools/check_reach.js</code>、<code>node tools/audit.js</code>、<code>node tools/solve.js</code>（新手／一般／高手三種自動玩家），細節見 <code>DESIGN.md</code></li>
+<li>改關卡、數值或道具名稱後重產通關攻略：<code>node tools/guide.js &lt;輸出&gt; --width 4 --skill reflect</code>（這組拿得到 S）</li>
 </ul>
 
 
@@ -511,8 +519,9 @@ S：分數 ≥ 22000 且真結局　A：≥ 17000　B：≥ 11000　其餘 C</co
 <tr><td>2.0.24～2.0.25</td><td>2026-10-02</td><td class="wrap">雲端同步入口移入存檔頁；通關評價 S／A／B／C＋最佳紀錄</td></tr>
 <tr><td>2.0.27～2.0.28</td><td>2026-10-02</td><td class="wrap">勇者外形隨強度四階變化、手持實際武器；序章加「閉嘴」到黑衣人出現之間的過場（心跳、回音、影子站起）</td></tr>
 <tr><td>3.0.0～3.0.1</td><td>2026-10-02</td><td class="wrap">關卡全面改版：20 層＋隱藏層 B1、四區四隻 3×3 Boss（新 15F 回音之鏡＋笛聲部）、2×2 中 Boss、經驗值與等級、三選一技能、路上 NPC（提示／贈送／交易）、暗牆與裂牆、破甲／吸血／夾擊、圖鑑改成撿的、風之羽延到 9F、Boss 層禁飛；新的平衡與稽核工具（三種自動玩家、tools/audit.js）；存檔格式 v3。3.0.1：回音的反彈比例調成 35／60／85%（三種技能分數拉近），新增通關攻略產生器 tools/guide.js</td></tr>
+<tr><td>3.0.2～3.0.5</td><td>2026-10-02</td><td class="wrap">3.0.2：序章在被嘲笑與開始打鐵之間加兩幕過場（逃出練唱廳、第一鎚，新音效 clang）。3.0.3：加生命的道具改成小愛心／金邊大愛心，飛進資訊列的 +數字改用資訊列同一組顏色。3.0.4～3.0.5：選單與標題畫面加 8 頁圖文教學（示意圖用遊戲圖塊即時畫、戰鬥例子照 MT.calc 實算）；攻略產生器改讀遊戲的道具名</td></tr>
 </table></div>
-<p class="muted">2026-09-30 首版至 2026-10-02 的 3.0.1。</p>
+<p class="muted">2026-09-30 首版至 2026-10-02 的 3.0.5。</p>
 
 </main>
 </body>
