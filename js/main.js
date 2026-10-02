@@ -92,6 +92,48 @@
     if (n.deal) return ['coin'];
     return null;
   }
+  /* 遇到才教（Ken 指定）：第一次碰到某個機制，多蕾講一句、問要不要看那一頁教學。每個 key 只講一次（旗標 tut:key）。
+     page 是 TUT_PAGES 的索引：3 鑰匙與門、4 撿道具、5 金幣與經驗值、6 怪物特技 */
+  async function tutHint(key, page, vars) {
+    if (!st || st.flags['tut:' + key] || scripting) return;
+    st.flags['tut:' + key] = 1;
+    busy++;
+    view.fairy = true; sfx('fly');
+    await say('doremi', MT.t('th_' + key.split(':')[0], vars));
+    const k = await ask(MT.t('thAsk'), [{ key: 'n', label: MT.t('thLater') }, { key: 'y', label: MT.t('thOpen') }]);
+    view.fairy = false; busy--;
+    autosave();
+    if (k === 'y') openTutorial(false, page);
+  }
+  // 到了新的一層：這層有沒看過的怪物特技、回音地板、祭壇／商人／節拍之神，就提一下（危險的先講，一次最多兩個）
+  const SHOP_CODES = ['Sh', 'S2', 'S3', 'Mk', 'Mq', 'L1', 'L2'];
+  function floorNews(f) {
+    const out = [], m = st.maps[f], seen = new Set();
+    for (const row of m) for (const c of row) {
+      const mon = MT.MONSTERS[c];
+      for (const s of (mon && mon.sp) || []) {
+        if (s === 'boss' || s === 'invincible' || seen.has(s)) continue;
+        seen.add(s);
+        const tag = MT.t('sp_' + s, { p: Math.round((mon.drain || 0) * 100), n: mon.aura || 0 }).replace(/\s*[（(].*$/, '');
+        out.push(['sp:' + s, 6, { sp: tag }]);
+      }
+      if (c === 'Ec' && !seen.has('Ec')) { seen.add('Ec'); out.push(['echo', 6]); }
+      if (SHOP_CODES.includes(c) && !seen.has('shop')) { seen.add('shop'); out.push(['shop', 5]); }
+    }
+    out.sort((a, b) => (a[0] === 'shop') - (b[0] === 'shop'));
+    return out.filter(([k]) => !st.flags['tut:' + k]);
+  }
+  async function floorHints() {
+    for (const [k, p, v] of floorNews(st.floor).slice(0, 2)) await tutHint(k, p, v);
+  }
+  // 舊存檔第一次讀進來：去過的樓層上已經見過的東西、開過門撿過道具，都當作講過了，不要一口氣補講
+  function tutCatchUp() {
+    if (st.flags.tutInit) return;
+    st.flags.tutInit = 1;
+    if (st.visited.length <= 1 && !st.steps) return;
+    st.flags['tut:door'] = st.flags['tut:item'] = 1;
+    for (const f of st.visited) for (const [k] of floorNews(f)) st.flags['tut:' + k] = 1;
+  }
   // 第一次因為沒鑰匙過不去：多蕾提醒有人賣鑰匙（只講一次）
   function keyHint() {
     if (st.flags.hintKeyShop || scripting) return;
@@ -661,12 +703,14 @@
         else if (it.kind === 'note') { sfx('fanfare'); toast(MT.t('got_note')); sparkle(ev.x, ev.y, 30); }
         renderHud();
         if (ev.script) { await sleep(120); await runScript(ev.script); autosave(); return false; }
+        if ((it.kind === 'atk' || it.kind === 'def') && !it.equip && !st.flags['tut:item']) { tutHint('item', 4); return false; }
         return true;
       }
       case 'door': {
         sfx('door');
         view.doorFade = { x: ev.x, y: ev.y, t0: now(), pal: { y: 'doorY', b: 'doorB', r: 'doorR' }[ev.key] };
         renderHud(); busy++; await sleep(200); busy--;
+        tutHint('door', 3);
         return false;
       }
       case 'noKey': sfx('error'); toast(MT.t('needKey_' + ev.key)); keyHint(); return false;
@@ -678,7 +722,7 @@
         return false;
       }
       case 'fight': await battle(ev, fx, fy, dir); return false;
-      case 'stairs': await changeFloor(ev.tile === 'UU'); if (ev.script) await runScript(ev.script); autosave(); return false;
+      case 'stairs': await changeFloor(ev.tile === 'UU'); if (ev.script) await runScript(ev.script); await floorHints(); autosave(); return false;
       case 'talk': if (ev.script) { await runScript(ev.script); autosave(); } else toast(MT.t('npcBusy')); return false;
       case 'shop': openShop(ev.shop); return false;
       case 'script': await runScript(ev.script); autosave(); return false;
@@ -1496,9 +1540,9 @@
       .map(([sp, k]) => tutRow(img(sp, null, 'big'), '', MT.t('tut_t_' + k))).join('') },
   ];
   let tutGo = null;   // 教學開著時的翻頁（鍵盤左右鍵用）
-  function openTutorial(fromTitle) {   // 選單或標題畫面都開得了（教學的圖和例子不看目前這局）
+  function openTutorial(fromTitle, startPage) {   // 選單、標題畫面、資訊列的「？」都開得了（教學的圖和例子不看目前這局）；startPage＝直接翻到第幾頁
     if (!fromTitle && (!st || mode !== 'game' || busy)) return;
-    let page = 0;
+    let page = startPage || 0;
     const n = TUT_PAGES.length;
     openModal(MT.t('tutorial'), '', body => {
       const show = () => {
@@ -2624,11 +2668,13 @@
   });
   $('#tLoad').addEventListener('click', () => { MT.Audio.init(); openSaves(true); });
   $('#tTutorial').addEventListener('click', () => { MT.Audio.init(); openTutorial(true); });
+  $('#hHelp').addEventListener('click', () => { sfx('select'); openTutorial(); });
   $('#tSettings').addEventListener('click', () => { MT.Audio.init(); openSettings(); });
   $('#tCloud').addEventListener('click', () => { MT.Audio.init(); openCloud(); });
 
   function startGame(s, fresh) {
     st = MT.migrate(s);
+    tutCatchUp();
     hudGen++; for (const k of HUD_KEYS) hudHold[k] = 0;   // 上一局還在飛的數字不要帶過來
     mode = 'game'; busy = 0;
     $('#title').hidden = true; $('#cine').hidden = true; $('#stage').classList.remove('under');

@@ -46,6 +46,10 @@ button { font: inherit; color: inherit; }
 .hf b { font-size: 22px; color: var(--accent); letter-spacing: 1px; }
 #hInst { display: flex; gap: 2px; }
 #hInst img { width: 16px; height: 16px; }
+/* 資訊列的「？」：隨時打開教學 */
+#hHelp { width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--accent); background: transparent; color: var(--accent);
+  font: bold 14px/1 sans-serif; padding: 0; cursor: pointer; }
+#hHelp:active { background: var(--accent); color: var(--panel); }
 .hs { display: flex; flex-direction: column; line-height: 1.15; }
 .hs .hl { font-size: 11px; color: var(--muted); display: flex; align-items: center; gap: 2px; }
 .hs .hl img { width: 14px; height: 14px; }
