@@ -293,9 +293,20 @@
 
   /* ───────── 訊息 ───────── */
   let toastTimer = null;
+  /* 遊戲中提示放在地圖底下，不蓋住上面的生命／攻擊（決定要不要開打時正要看）：
+     直向放在地圖和功能鍵之間的空白，空白不夠（或橫向）就貼著地圖下緣、疊在地圖最底下。標題畫面照舊在最上面 */
+  function placeToast(el) {
+    el.style.top = el.style.left = el.style.maxWidth = '';
+    if (mode !== 'game') return;
+    const m = $('#mapWrap').getBoundingClientRect(), b = $('#bar').getBoundingClientRect();
+    el.style.left = (m.left + m.width / 2) + 'px';
+    el.style.maxWidth = (m.width - 16) + 'px';
+    const h = el.offsetHeight, gap = b.top - m.bottom;
+    el.style.top = (gap >= h + 8 ? m.bottom + (gap - h) / 2 : m.bottom - h - 10) + 'px';
+  }
   function toast(msg) {
     const el = $('#toast');
-    el.textContent = msg; el.hidden = false; el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+    el.textContent = msg; el.hidden = false; placeToast(el); el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
     clearTimeout(toastTimer); toastTimer = setTimeout(() => { el.hidden = true; }, 1900);
   }
 
@@ -895,6 +906,11 @@
     });
   }
 
+  /* 版號：網頁版與 App 外殼分開列。App 是開線上網頁的 WebView，外殼版號從它加在 User-Agent 的 MagicTowerApp/x.y.z 讀 */
+  function versionText() {
+    const app = (navigator.userAgent.match(/MagicTowerApp\/([\w.]+)/) || [])[1];
+    return MT.t('verWeb') + ' v' + MT.VERSION + (app ? '　' + MT.t('verApp') + ' v' + app : '');
+  }
   function openSettings() {
     const langs = MT.LANGS.map(l => `<button class="btn ${l === MT.getLang() ? 'primary' : ''}" data-l="${l}">${esc(MT.TEXT[l].langName)}</button>`).join('');
     openModal(MT.t('settings'), `
@@ -902,7 +918,7 @@
       <label class="lab" for="vMusic">${esc(MT.t('musicVol'))}</label><input type="range" id="vMusic" min="0" max="1" step="0.05" value="${settings.music}">
       <label class="lab" for="vSfx">${esc(MT.t('sfxVol'))}</label><input type="range" id="vSfx" min="0" max="1" step="0.05" value="${settings.sfx}">
       <p class="muted small">${esc(MT.t('controls'))}</p>
-      <p class="muted small ver">v${MT.VERSION}</p>`, body => {
+      <p class="muted small ver">${esc(versionText())}</p>`, body => {
       body.querySelectorAll('[data-l]').forEach(b => b.addEventListener('click', () => {
         MT.setLang(b.dataset.l); MT.LS.set('lang', b.dataset.l);
         closeModal(); renderStaticText(); openSettings();
