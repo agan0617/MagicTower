@@ -97,8 +97,10 @@
   }
   /* 遇到才教（Ken 指定）：第一次碰到某個機制，多蕾講一句、問要不要看那一頁教學。每個 key 只講一次（旗標 tut:key）。
      page 是 TUT_PAGES 的索引：3 鑰匙與門、4 撿道具、5 金幣與經驗值、6 怪物特技 */
+  // 通關過（有最佳紀錄，跨裝置同步）就是老玩家：再玩一次不用再教（Ken 指定）
+  const veteran = () => !!(MT.Sync.best && MT.Sync.best());
   async function tutHint(key, page, vars) {
-    if (!st || st.flags['tut:' + key] || scripting) return;
+    if (!st || st.flags['tut:' + key] || scripting || veteran()) return;
     st.flags['tut:' + key] = 1;
     busy++;
     view.fairy = true; sfx('fly');
@@ -154,7 +156,7 @@
   }
   // 第一次因為沒鑰匙過不去：多蕾提醒有人賣鑰匙（只講一次）
   function keyHint() {
-    if (st.flags.hintKeyShop || scripting) return;
+    if (st.flags.hintKeyShop || scripting || veteran()) return;
     runScript('keyHint').then(autosave);
   }
   function drawTile(code, x, y, t) {
