@@ -1096,9 +1096,9 @@
     tg.globalAlpha = 1;
     tg.font = 'bold 26px serif'; tg.textAlign = 'center';
     for (let i = 0; i < 14; i++) {
-      const p = ((t / 2200 + i / 14) % 1);
+      const p = ((t / (9000 + (i % 4) * 1200) + i / 14) % 1);   // 一趟 9～12.6 秒，速度略有差別才不會整排齊飄
       tg.globalAlpha = Math.sin(p * Math.PI) * 0.8; tg.fillStyle = ['#ffe066', '#aef4ff', '#ff9ccc'][i % 3];
-      tg.fillText('♪♫♬♩'[i % 4], cx + Math.sin(i * 2.1 + t / 1200) * 200, SIZE - p * SIZE * 0.9);
+      tg.fillText('♪♫♬♩'[i % 4], cx + Math.sin(i * 2.1 + t / 4000) * 200, SIZE - p * SIZE * 0.9);
     }
     tg.globalAlpha = 1;
     tg.drawImage(MT.sprite('heroUp', null, 4), cx - 32, SIZE - 80);
