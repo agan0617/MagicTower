@@ -300,6 +300,7 @@
     renderHud();
   }
   function setupIcons() {
+    $('#iHp').src = icon('heart'); $('#iGold').src = icon('coin');
     $('#iAtk').src = icon('gemSword', 'gemRed'); $('#iDef').src = icon('gemShield', 'gemBlue');
     $('#iKy').src = icon('key', 'yellow'); $('#iKb').src = icon('key', 'blue'); $('#iKr').src = icon('key', 'red');
     $('#bBook img').src = icon('book'); $('#bFly img').src = icon('feather');
@@ -1158,11 +1159,32 @@
     cg.globalAlpha = 1;
   }
 
-  // 廣場上的鎮民：後排小一號、站高一點（遠），前排避開國王（130～210）與呱呱商人（330～410）
-  const townFolk = [
-    ...[[28, 'vF'], [92, 'vC'], [196, 'vE'], [252, 'vA'], [300, 'vB'], [404, 'vD'], [468, 'vC']].map(([x, pal], i) => ({ x, pal, sc: 3, lift: 22 })),
-    ...[[2, 'vA'], [58, 'vE'], [212, 'vD'], [266, 'vF'], [412, 'vB'], [466, 'vA']].map(([x, pal], i) => ({ x, pal, sc: 4, lift: 0 })),
-  ].map((v, i) => Object.assign(v, { ph: (i * 1.37) % 3, flip: i % 2 === 1 }));
+  // 唱歌的鎮民：[x, pal]；後排小一號、站高一點（遠），前排踩在地上
+  function folk(back, front, backLift) {
+    return [
+      ...back.map(([x, pal]) => ({ x, pal, sc: 3, lift: backLift })),
+      ...front.map(([x, pal]) => ({ x, pal, sc: 4, lift: 0 })),
+    ].map((v, i) => Object.assign(v, { ph: (i * 1.37) % 3, flip: i % 2 === 1 }));
+  }
+  function drawFolk(t, list) {
+    for (const v of list) {
+      const sing = Math.floor(t / 420 + v.ph) % 3 !== 0;                 // 大部分時間張著嘴
+      const bob = Math.abs(Math.sin(t / 480 + v.ph * 2)) * v.sc * 1.5;
+      bigSprite(sing ? 'villagerSing' : 'villager', v.pal, v.x, SIZE - 38 - v.sc * 16 - v.lift - bob, v.sc, v.flip);
+    }
+  }
+  // 序章廣場：前排避開國王（130～210）與呱呱商人（330～410）
+  const townFolk = folk(
+    [[28, 'vF'], [92, 'vC'], [196, 'vE'], [252, 'vA'], [300, 'vB'], [404, 'vD'], [468, 'vC']],
+    [[2, 'vA'], [58, 'vE'], [212, 'vD'], [266, 'vF'], [412, 'vB'], [466, 'vA']], 22);
+  // 一般結局的豐收祭：後排站在阿爾特、大鼓、國王那一排的空檔，前排擠滿地面（左邊留給呱呱商人）
+  const festFolk = folk(
+    [[4, 'vD'], [52, 'vA'], [218, 'vC'], [470, 'vE']],
+    [[70, 'vB'], [122, 'vF'], [174, 'vA'], [226, 'vE'], [278, 'vC'], [330, 'vD'], [382, 'vA'], [434, 'vB'], [482, 'vF']], 66);
+  // 真結局：後排在舞台兩側，前排是台前的觀眾（大鼓 40～120、國王 400～480 之間）
+  const festTrueFolk = folk(
+    [[0, 'vC'], [84, 'vE'], [150, 'vA'], [330, 'vB'], [384, 'vF'], [476, 'vD']],
+    [[110, 'vF'], [160, 'vD'], [210, 'vB'], [262, 'vA'], [312, 'vE'], [354, 'vC']], 92);
 
   /* 序章：阿爾特腳下的影子站起來，變成戴微笑面具的巨大黑影；鎮上每一扇窗也飄出一縷暗影匯進它身上
      （每個人心裡都有一塊想讓世界閉嘴的地方）。它舉起指揮棒，所有音符被捲向棒尖 */
@@ -1311,11 +1333,7 @@
     // 傍晚的廣場：滿滿的鎮民一起唱歌，國王和呱呱商人也在人群裡
     town: t => {
       drawSky(t, '#141a3a', '#3a2a5a'); drawStars(t); drawTown(t);
-      for (const v of townFolk) {
-        const sing = Math.floor(t / 420 + v.ph) % 3 !== 0;                 // 大部分時間張著嘴
-        const bob = Math.abs(Math.sin(t / 480 + v.ph * 2)) * v.sc * 1.5;
-        bigSprite(sing ? 'villagerSing' : 'villager', v.pal, v.x, SIZE - 38 - v.sc * 16 - v.lift - bob, v.sc, v.flip);
-      }
+      drawFolk(t, townFolk);
       bigSprite('bard', null, 130, SIZE - 118, 5); bigSprite('frog', null, 330, SIZE - 118, 5, true);
       floatingNotes(t, 22, SIZE / 2, SIZE - 70, 250, null, 320);
     },
@@ -1359,22 +1377,26 @@
       bigSprite('fairy', null, 300, SIZE - 300 + Math.sin(t / 250) * 12, 7, true);
       for (let i = 0; i < 6; i++) { cg.fillStyle = '#fff6b0'; cg.fillRect(360 + Math.cos(t / 300 + i) * 60, SIZE - 240 + Math.sin(t / 200 + i * 2) * 50, 4, 4); }
     },
+    // 一般結局：聲音回來了，全鎮的人跟阿爾特、國王一起在廣場上唱
     festival: t => {
       drawSky(t, '#5ab0ff', '#ffe0b0');
       cg.fillStyle = '#fff6d0'; cg.beginPath(); cg.arc(430, 80, 40, 0, Math.PI * 2); cg.fill();
       drawTown(t, true);
-      floatingNotes(t, 16, SIZE / 2, SIZE - 60, 250, null, 360);
+      drawFolk(t, festFolk.filter(v => v.sc === 3));
       bigSprite('drum', null, 290, SIZE - 180, 6);
       bigSprite('bard', null, 392, SIZE - 190 + (Math.floor(t / 300) % 2) * 4, 5);
       bigSprite('heroDown', null, 120, SIZE - 200 + (Math.floor(t / 250) % 2) * -6, 6);
       bigSprite('fairy', null, 200, SIZE - 290 + Math.sin(t / 250) * 10, 4);
-      bigSprite('frog', null, 20, SIZE - 90, 3);
+      drawFolk(t, festFolk.filter(v => v.sc === 4));
+      bigSprite('frog', null, 14, SIZE - 90, 3);
+      floatingNotes(t, 24, SIZE / 2, SIZE - 70, 250, null, 360);
     },
-    // 真結局：阿爾特站上舞台中央領唱，音符一圈圈流向他；國王在台下跟著唱（多蕾已經融進他的聲音，不出現）
+    // 真結局：阿爾特站上舞台中央領唱，音符一圈圈流向他；國王和全鎮的人在台下跟著唱（多蕾已經融進他的聲音，不出現）
     festivalTrue: t => {
       drawSky(t, '#ff9a6a', '#ffe0b0');
       cg.fillStyle = '#fff6d0'; cg.beginPath(); cg.arc(SIZE / 2, 120, 60 + Math.sin(t / 400) * 4, 0, Math.PI * 2); cg.fill();
       drawTown(t, true);
+      drawFolk(t, festTrueFolk.filter(v => v.sc === 3));
       cg.fillStyle = '#8a4a3e'; cg.fillRect(SIZE / 2 - 120, SIZE - 110, 240, 30);
       cg.font = 'bold 26px serif'; cg.textAlign = 'center';
       for (let i = 0; i < 20; i++) {
