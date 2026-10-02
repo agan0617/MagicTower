@@ -75,8 +75,8 @@ blockquote { margin: 10px 0; padding: 6px 14px; border-left: 3px solid var(--acc
 <main>
 <header class="top">
   <h1>魔塔：失落的旋律　遊戲設計文件</h1>
-  <div class="meta">依 3.2.6 撰寫　·　2026-10-02</div>
-  <div class="note">3.0.0 是關卡全面改版：20 層＋隱藏層 B1、經驗值與等級、三選一技能、大型 Boss、路上 NPC、暗牆與裂牆。3.0.2～3.0.5：序章加兩幕過場、加生命的道具改成愛心、標題畫面與選單加圖文教學。3.0.6 音效優化，3.0.7 最終 Boss 加強。<b>3.1.0：第 3 區加回音地板、第 4 區加共鳴水晶（跟位置有關的機制），新增真人型自動玩家並照它重定評價門檻。</b>關卡設計規則與平衡流程另見 repo 根目錄的 <code>DESIGN.md</code>。</div>
+  <div class="meta">依 3.2.6 撰寫　·　2026-10-03</div>
+  <div class="note">3.0.0 是關卡全面改版：20 層＋隱藏層 B1、經驗值與等級、三選一技能、大型 Boss、路上 NPC、暗牆與裂牆。3.0.2～3.0.5：序章加兩幕過場、加生命的道具改成愛心、標題畫面與選單加圖文教學。3.0.6 音效優化，3.0.7 最終 Boss 加強。<b>3.1.0：第 3 區加回音地板、第 4 區加共鳴水晶（跟位置有關的機制），新增真人型自動玩家並照它重定評價門檻。</b>3.1.1～3.2.6：樓梯不再擋路、進塔前第一人稱推開塔門與 1F 淡入、遇到才教＋資訊列「？」、收藏品圖鑑、有功能的 NPC 發金光、王子腳下光圈與箭頭、節拍之神改成鈴鐺、教學不再劇透（真結局條件、評價規則、道具用途與位置）。關卡設計規則與平衡流程另見 repo 根目錄的 <code>DESIGN.md</code>。</div>
 </header>
 
 <!-- ───────────── 1 ───────────── -->
@@ -123,6 +123,8 @@ blockquote { margin: 10px 0; padding: 6px 14px; border-left: 3px solid var(--acc
 <li>阿爾特吼：「吵死了！全部都給我閉嘴！」→ 爐火熄滅、心跳（音效 <code>heartbeat</code>，八下一下比一下快）、白天的笑聲與嘮叨在他身邊打轉（<code>rage_echo</code>），影子開始自己動</li>
 <li>影子裡站起戴面具的黑衣人，舉起指揮棒把所有聲音捲進夜空；天亮時鐘樓位置多了一座漆黑高塔，全國發不出聲音</li>
 <li>遇見多蕾：「整個王國的聲音都被收進那座塔了……只剩下你的」→ 阿爾特承認「應該是我害的吧」→ 出發</li>
+<li>推開塔門（<code>gate</code>，3.1.2，約 5.5 秒）：第一人稱，隨呼吸晃著走到塔門前、心跳；兩隻手伸出來貼上門，「嘎」一聲先開一條縫透出紫光、停住，再整扇往裡推開（畫面震、<code>doorCreak</code>／<code>doorGroan</code>），撞上牆的悶響在塔裡迴盪三次（<code>doorThud</code>）；門後一片漆黑、音符被吸進深處，鏡頭往黑暗裡衝，演完才出旁白 <code>pro_13</code></li>
+<li>進塔（3.2.5）：1F 地圖從全黑淡入 2 秒，資訊列與下方按鈕晚 1.2 秒才浮出來（<code>#stage.enter</code>），亮完才出樓層字卡、再過 0.9 秒開場對話；淡入期間不能操作。讀檔不播</li>
 </ol>
 
 
@@ -131,7 +133,7 @@ blockquote { margin: 10px 0; padding: 6px 14px; border-left: 3px solid var(--acc
 <div class="tw"><table>
 <tr><th>樓層</th><th>觸發</th><th>劇本</th><th>內容</th></tr>
 <tr><td>B1</td><td>踩 (5,14)</td><td><code>b1Enter</code></td><td class="wrap">進地下室：箱子上都寫著「不是偷的」</td></tr>
-<tr><td>1F</td><td>踩 (5,14)</td><td><code>f1Start</code></td><td class="wrap">多蕾教學（圖鑑改成要在 1F 撿到）</td></tr>
+<tr><td>1F</td><td>踩 (5,14)</td><td><code>f1Start</code></td><td class="wrap">多蕾開場：先講明目標是塔頂、偷走聲音的靜默指揮家在最上面那層（<code>f1_goal</code>，3.1.2：第一次玩的人原本不知道要往上爬），再提這層掉了一本《怪物圖鑑》</td></tr>
 <tr><td>5F</td><td>踩 (5,5)</td><td><code>golemIntro</code></td><td>鼓魔像：「全部……給我閉嘴！」</td></tr>
 <tr><td>10F</td><td>踩 (5,5)</td><td><code>sirenIntro</code></td><td>弦之魔女嘲諷「破音王子」</td></tr>
 <tr><td>15F</td><td>踩 (5,5)</td><td><code>echoIntro</code></td><td class="wrap">回音之鏡：鏡子裡是七歲、唱得完美的自己。「留下來吧，在鏡子裡你永遠都唱得好聽」</td></tr>
@@ -174,13 +176,15 @@ blockquote { margin: 10px 0; padding: 6px 14px; border-left: 3px solid var(--acc
 <tr><td>查看模式</td><td class="wrap">功能鍵列第一顆「查看」：開啟時按鈕變黃、地圖框淡黃，點一下只看說明不移動；再按一次、<code>Esc</code>、返回鍵或方向鍵離開</td></tr>
 <tr><td>鍵盤</td><td class="wrap">方向鍵／WASD 走（按住每 125ms 連續走）；<code>B</code> 圖鑑、<code>F</code> 飛行、<code>Shift+S</code> 存讀、<code>Esc</code> 選單（查看模式中為離開查看）；<code>Enter</code>／空白鍵推進對話與過場</td></tr>
 <tr><td>數值變動</td><td class="wrap">撿道具、買東西、升級、劇情給東西時，「+N」從那一格飛進資訊列對應的欄位（<code>flyGains</code>），顏色跟資訊列同一組：生命紅、攻擊橘、防禦藍、金幣黃，只在 <code>style.css</code> 的 <code>--hp</code>／<code>--atk</code>／<code>--def</code>／<code>--gold</code> 定義一次（3.0.3）；鑰匙飛的是鑰匙圖</td></tr>
-<tr><td>功能鍵列</td><td class="wrap">查看／圖鑑／飛行／存讀／選單。圖鑑列出<b>本層</b>所有怪物（需先有《怪物圖鑑》）</td></tr>
-<tr><td>教學</td><td class="wrap">標題畫面或選單 → 教學，8 頁圖文（目標、移動、戰鬥、鑰匙與門、道具、金幣與經驗、怪物特技、小技巧），左右鍵或下方圓點翻頁。示意圖由 <code>tutScene</code> 用地圖同款圖塊即時畫出，戰鬥頁的損失數字與例子照 <code>MT.calc</code> 實算（假設生命 200／攻擊 10／防禦 10），改數值不用改圖</td></tr>
+<tr><td>功能鍵列</td><td class="wrap">查看／圖鑑／飛行／存讀／選單。圖鑑分「怪物｜收藏品」兩頁（3.2.0）：怪物頁列出<b>本層</b>所有怪物（需先有《怪物圖鑑》），收藏品見 3.4；面板固定大小、分頁鈕釘在上面，切分頁只換內容不重開面板（3.2.1）</td></tr>
+<tr><td>教學</td><td class="wrap"><b>完整教學</b>：標題畫面、選單 → 教學、或資訊列樓層下方的「？」（3.1.3），8 頁圖文（目標、移動、戰鬥、鑰匙與門、道具、金幣與經驗、怪物特技、小技巧），左右鍵或下方圓點翻頁；面板固定大小，內容在中間捲、翻頁列釘在底部，每頁「下一頁」都在同一位置（3.2.1）。示意圖由 <code>tutScene</code> 用地圖同款圖塊即時畫出，戰鬥頁的損失數字與例子照 <code>MT.calc</code> 實算（假設生命 200／攻擊 10／防禦 10），改數值不用改圖<br><b>遇到才教</b>（<code>tutHint</code>，3.1.3 起）：第一次開門、第一次撿紅色小劍／藍色小盾，以及<b>走到附近 2 格內</b>才有的沒看過的怪物特技、回音地板、祭壇／商人／節拍之神（<code>nearHints</code>，3.2.3；一次一個、危險的先講、講的時候停下腳步），多蕾講一句並問要不要看教學；選「看教學」只開那一頁、底下只有「關閉」（3.2.1）。每個只講一次（旗標 <code>tut:*</code>）；舊存檔第一次讀進來時，去過的樓層都當作講過（<code>tutInit</code>）<br><b>老玩家不教</b>（3.2.4）：有最佳紀錄（<code>MT.Sync.best()</code>，跨裝置）就不跳遇到才教與沒鑰匙提醒<br><b>不劇透</b>（3.1.3～3.2.1）：教學不寫真結局條件、S／A／B／C 評價規則、特殊道具的用途與在哪一層（改在收藏品看），只說「塔裡散落著看不出用途的東西，先撿起來」</td></tr>
 <tr><td>Android 返回鍵</td><td class="wrap"><code>MT.onBack</code>：先關確認框 → 關視窗 → 離開查看模式 → 開選單</td></tr>
 <tr><td>夾擊格</td><td class="wrap">自動尋路會盡量繞開兩隻夾擊怪中間的格子；夾擊怪腳下有紅色虛線框</td></tr>
 <tr><td>回音地板／共鳴（3.1）</td><td class="wrap">回音地板是一圈圈青色波紋、腳下標「現在踩要扣多少」；共鳴水晶周圍八格鋪粉紅色＋虛線框（水晶區地板是紫色，用粉紅才分得出來）。長按或查看會跳說明（共鳴範圍裡的空地也有）。踩到時青色／粉紅數字從勇者身上跳出來；共鳴每一步都扣，提示只在這次開遊戲第一次跳</td></tr>
 <tr><td>暗牆／裂牆</td><td class="wrap">暗牆看起來就是牆，點下去會走過去（發現暗道）；裂牆要有鑿子，沒有時點下去會提示</td></tr>
 <tr><td>怪物圖鑑</td><td class="wrap">1F 撿到之前，地圖上不顯示戰鬥代價，長按怪物只看得到名字</td></tr>
+<tr><td>王子的位置（3.2.6）</td><td class="wrap">腳下常駐一圈淡藍白光圈（輕輕呼吸，跟 NPC 的金光分開）；剛換樓層 2.8 秒內、或停著不動 3 秒以上，頭上跳一個白色小箭頭，走動時消失；站在最上面一列時箭頭改在腳下往上指</td></tr>
+<tr><td>有功能的 NPC（3.1.1、3.2.2）</td><td class="wrap">腳下金色光圈＋背後光暈＋往上飄的光點（光圈與光點畫在圖的前面，整格寬的圖才蓋不住），頭上一個記號：鑰匙＝賣鑰匙（呱呱商人、表哥、小偷）、金幣＝收金幣（祭壇、鐵匠、學徒）、「Lv」＝節拍之神、「♪」＝老琴師與豎琴之靈（<code>tradeIcon</code>）</td></tr>
 </table></div>
 
 
@@ -214,6 +218,8 @@ damage  = drain + 怪物出手 × (連擊 ? 2 : 1) × monHit</code></pre>
 <li>三級：銅（Yk／Yd）→ 銀（Bk／Bd）→ 金（Rk／Rd），每扇用掉 1 把。全塔門數遠多於鑰匙（銅門 159、銀門 17、金門 5；鑰匙 94／15／3），不可能全開</li>
 <li>鐵門（Gt）：指定格子的怪物都打倒就開（<code>MT.GATES</code>）：5F／10F／15F 的 (5,1) ← Boss；20F (5,4) ← 兩隻休止符衛士</li>
 <li>前期每層一上樓的區域放一把鑰匙，上樓路線只需 1～2 扇門；中後期越來越緊</li>
+<li>銅鑰匙刻意最緊（1～8F 地圖上 37 把對 69 扇銅門），不夠的用金幣買：6F 呱呱商人 10 金一把、8F 小偷 30 金三把、13F 表哥較貴。真人型自動玩家沒通關的全卡在 4F，原因就是銅鑰匙用光。前期銀門多半不在主線上，所以常出現「缺銅、銀用不掉」</li>
+<li>第一次因為沒鑰匙開不了門：多蕾提醒「腳下發金光、頭上有鑰匙記號的人會賣鑰匙」（<code>keyHint</code>，3.1.1，只講一次）</li>
 </ul>
 
 <h3>3.4 道具</h3>
@@ -221,6 +227,7 @@ damage  = drain + 怪物出手 × (連擊 ? 2 : 1) × monHit</code></pre>
 <li>愛心、小劍、小盾：數值依所在區域（見 4.2）。裝備固定數值（見 4.3）</li>
 <li>工具（<code>kind: 'tool'</code>）：《怪物圖鑑》<code>Mb</code>（1F）、老鐵匠的鑿子 <code>Ch</code>（4F、7F 暗牆後、12F 金門後、B1 奶奶給，共 4 把）</li>
 <li>劇情道具：《風之羽》（9F 鴿子）、大鼓／豎琴／笛（Boss）、日記三頁、失落的音符</li>
+<li><b>收藏品圖鑑</b>（3.2.0，<code>MT.COLLECT</code> 16 格）：怪物圖鑑、風之羽、鑿子、鐵／銀／金的劍與盾、大鼓、豎琴、笛、日記三頁、失落的音符。沒拿到是黑色剪影＋「？？？ 還沒找到」，拿到後顯示名字、用途與在哪層拿到（<code>st.found</code>，<code>MT.markFound</code> 在撿到與劇情 <code>give</code> 時記），日記可以重讀；第一次拿到頭上飄「收進收藏品圖鑑！」。舊存檔照去過樓層「原本有、現在沒了」補記樓層，劇情給的不知道哪層記 -1（不顯示樓層）</li>
 </ul>
 
 <h3 id="s3-5">3.5 商店、交易定價</h3>
@@ -264,7 +271,7 @@ S：分數 ≥ 20000 且真結局　A：≥ 16000　B：≥ 12000　其餘 C</co
 </ul>
 
 <h3>3.11 路上的 NPC（<code>MT.NPCS</code>）</h3>
-<p>NPC 一律站在凹處、不擋通道；說話型的第一次說 <code>talk</code>、之後說 <code>again</code>；交易型（<code>MT.DEALS</code>）成交後離開。</p>
+<p>NPC 一律站在凹處、不擋通道；說話型的第一次說 <code>talk</code>、之後說 <code>again</code>；交易型（<code>MT.DEALS</code>）成交後離開。有功能的（商店、祭壇、交易、節拍之神、老琴師、豎琴之靈）腳下發金光、頭上有記號，見 3.1。</p>
 <div class="tw"><table>
 <tr><th>NPC</th><th>代號</th><th>樓層</th><th>類型</th><th>用處</th></tr>
 <tr><td>國王巴索</td><td><code>Om</code></td><td>2F</td><td>對話</td><td>兩把銅鑰匙、暗牆提示</td></tr>
@@ -280,7 +287,7 @@ S：分數 ≥ 20000 且真結局　A：≥ 16000　B：≥ 12000　其餘 C</co
 <tr><td>進階節拍之神</td><td><code>L2</code></td><td>13F</td><td>經驗換等級</td><td class="wrap">每級 +300 生命 +4 攻 +4 防（與 L1 共用等級與價格）</td></tr>
 <tr><td>呱呱商人的表哥</td><td><code>Mq</code></td><td>13F</td><td>商店</td><td>自稱正牌，鑰匙比較貴</td></tr>
 <tr><td>琴師學徒</td><td><code>N6</code></td><td>14F</td><td>交易</td><td class="wrap">320 金 → 防禦 +14（「保證——大概——不會壞」）</td></tr>
-<tr><td>占星師</td><td><code>N7</code></td><td>16F</td><td>提示</td><td>東南角暗牆、失落音符與真結局條件</td></tr>
+<tr><td>占星師</td><td><code>N7</code></td><td>16F</td><td>提示</td><td class="wrap">東南角暗牆、失落音符；日記只含蓄地說「別把它們丟了，故事好像不只一種結尾」（3.1.3 起不明講真結局條件）</td></tr>
 <tr><td>迷路的小節拍</td><td><code>N8</code></td><td>17F</td><td>贈送</td><td>銀鑰匙 ×1</td></tr>
 <tr><td>最後的衛兵</td><td><code>N9</code></td><td>19F</td><td>贈送</td><td>生命 +1500</td></tr>
 <tr><td>小偷的奶奶</td><td><code>Nb</code></td><td>B1</td><td>贈送</td><td class="wrap">鑿子 ×1；叫你看到孫子時叫他回家吃飯</td></tr>
@@ -473,13 +480,16 @@ S：分數 ≥ 20000 且真結局　A：≥ 16000　B：≥ 12000　其餘 C</co
 <li>3.0.3：加生命的道具改成愛心，跟狀態列的生命愛心同一個形象——小愛心 <code>heartS</code>（<code>hp</code>）、金邊大愛心＋右上角閃光 <code>heartBig</code>（<code>HP</code>，跟金邊藍盾同一套做法）；舊的藥水圖 <code>potion</code> 拿掉。劇情裡鏡中少女「這瓶藥水送你」是直接補血，文字保留</li>
 <li>3.1：共鳴水晶 <code>resonator</code>（一叢尖水晶、中間一根像音叉，配色 <code>resonator</code> 淡紫＋粉色共振光）；地形多一種 <code>echo</code>（回音地板：地板加青色同心波紋，地圖上再疊一圈會動的波紋）</li>
 <li>教學頁的示意圖不是另存的圖檔，是 <code>tutScene</code> 用上面這些圖與地板牆壁當場畫的，改圖會自動跟上</li>
-<li>序章、標題、結局動畫沿用 2.x，3.0.2 序章多了逃跑與第一鎚兩幕</li>
+<li>序章、標題、結局動畫沿用 2.x，3.0.2 序章多了逃跑與第一鎚兩幕；3.1.2 加推開塔門（<code>gate</code>：石磚牆、拱門、兩扇木門依開啟角度畫成透視梯形、第一人稱的兩隻手、暗角，全部當場用 canvas 畫）</li>
+<li>3.2.3：節拍之神 <code>metronome</code> 改成金色鈴鐺精靈（掛環、圓頂直身外翻的鈴、小臉＋腮紅、鈴舌；<code>metroA</code> 金、<code>metroB</code> 銀藍）。原本的咖啡色節拍器 Ken 說像大便，重畫的節拍器也不行，從四個方向裡選了鈴鐺；代碼沿用 <code>metronome</code></li>
+<li>地圖上的標示：有功能的 NPC 的金光與頭上記號、王子的光圈與箭頭（見 3.1），都是 <code>main.js</code> 每格當場畫，不在圖裡</li>
 </ul>
 <h3 id="s7-2">7.2 音樂與音效（<code>audio.js</code>）</h3>
 <ul>
 <li>全部 Web Audio 即時合成，沒有任何音檔</li>
 <li>分層配樂：一開始只有 base；打倒鼓魔像加 drums、弦之魔女加 strings、<b>回音之鏡加 winds（3.0 新增的笛聲部：三角波＋慢慢加深的顫音）</b>、結局加 lead。title、tower、boss 三首都有笛的副旋律</li>
 <li>序章音效：<code>crackLaugh</code>（破音＋哄笑）、<code>heartbeat</code>（八下一下比一下快的心跳）、<code>clang</code>（3.0.2，第一鎚的打鐵聲）</li>
+<li>3.1.2 塔門：<code>doorCreak</code>／<code>doorGroan</code>（共用 <code>creak</code>：鋸齒波在窄帶通裡不規則抖＋摩擦沙沙聲，一短一長）、<code>doorThud</code>（門撞上牆的悶響，在塔裡迴盪三次）</li>
 <li>3.1：<code>echoHit</code>（上一場那一記悶響一聲比一聲遠）、<code>echoQuiet</code>（還沒打過，只有水面般的輕響）、<code>auraHit</code>（水晶被震到的嗡：兩個很近的高音互相打架）</li>
 </ul>
 
