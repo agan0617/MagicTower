@@ -625,9 +625,12 @@
             MT.applyCmd(st, c);
             MT.Audio.setLayers(st.layers);
             break;
-          case 'give':
+          case 'give': {
+            const fresh = MT.COLLECT.includes(c[1]) && !(st.found && st.found[c[1]] != null);
             MT.applyCmd(st, c);
             if (['book', 'fly', 'drum', 'harp', 'flute', 'chisel'].includes(c[1])) floatText(st.x, st.y, MT.itemName(c[1]), '#ffe9a8', 15);
+            if (fresh) colNotice();
+          }
             renderHud(); break;
           case 'set':
             MT.applyCmd(st, c);
@@ -697,6 +700,7 @@
         else if (it.kind === 'atk') sfx('swordGet');
         else if (it.kind === 'def') sfx('shieldGet');
         flyGains(before, ev.x, ev.y);   // +N（鑰匙是鑰匙圖）從撿到的地方飛進資訊列
+        if (g2.newFound) colNotice();
         // 藥水、小劍、小盾也跟鑰匙一樣跳提示（Ken 指定）
         if (['hp', 'atk', 'def'].includes(it.kind) && !it.equip) toast(MT.t('got_' + it.kind, { name: MT.t('name_' + ev.item), n: g2.value }));
         else if (it.kind === 'page') { toast(MT.t('got_page')); }
@@ -1310,13 +1314,44 @@
       <div class="ms">${esc(MT.t('hp'))} ${inv ? '???' : m.hp}　${esc(MT.t('atk'))} ${inv ? '???' : m.atk}　${esc(MT.t('def'))} ${inv ? '???' : m.def}　${esc(MT.t('gold'))} ${m.gold}</div>
       <div class="md">${esc(MT.t('dmg'))}：${dmg}${m.exp ? `　<span class="muted">EXP ${m.exp}</span>` : ''}</div></div></div>`;
   }
-  function openBook() {
+  /* 圖鑑：兩個分頁——怪物（這層的怪物）｜收藏品（Ken 指定：特殊物品拿到才知道是什麼，不寫在教學裡） */
+  let bookTab = 'mon';
+  function openBook(tab) {
     if (!st || mode !== 'game' || busy) return;
     if (!st.items.book) return;
-    const seen = [];
-    for (const row of st.maps[st.floor]) for (const c of row) if (MT.MONSTERS[c] && !seen.includes(c)) seen.push(c);
-    const rows = seen.map(monRow);
-    openModal(MT.t('bookTitle') + ' · ' + MT.t('floorN', { n: st.floor }), rows.length ? rows.join('') : `<p class="muted">${esc(MT.t('noMonsters'))}</p>`);
+    bookTab = tab || bookTab;
+    const n = MT.COLLECT.filter(k => st.found && st.found[k] != null).length;
+    const tabs = `<div class="bookTabs"><button class="btn ${bookTab === 'mon' ? 'primary' : ''}" data-tab="mon">${esc(MT.t('tabMon'))}</button>`
+      + `<button class="btn ${bookTab === 'col' ? 'primary' : ''}" data-tab="col">${esc(MT.t('tabCol'))} ${n}／${MT.COLLECT.length}</button></div>`;
+    let html;
+    if (bookTab === 'mon') {
+      const seen = [];
+      for (const row of st.maps[st.floor]) for (const c of row) if (MT.MONSTERS[c] && !seen.includes(c)) seen.push(c);
+      html = seen.length ? seen.map(monRow).join('') : `<p class="muted">${esc(MT.t('noMonsters'))}</p>`;
+    } else html = MT.COLLECT.map(colRow).join('');
+    openModal(bookTab === 'mon' ? MT.t('bookTitle') + ' · ' + MT.t('floorN', { n: st.floor }) : MT.t('btnBook'), tabs + html, body => {
+      body.querySelectorAll('[data-tab]').forEach(b => b.addEventListener('click', () => { if (b.dataset.tab === bookTab) return; closeModal(); openBook(b.dataset.tab); }));
+      body.querySelectorAll('[data-read]').forEach(b => b.addEventListener('click', async () => { closeModal(); await runScript(MT.PAGE_SCRIPTS[b.dataset.read]); }));
+    });
+  }
+  // 第一次拿到收藏品：頭上飄一行「收進收藏品圖鑑」（不用 toast，免得蓋掉撿到東西的提示）
+  function colNotice() { floatText(st.x, st.y - 0.8, MT.t('colNew'), '#ffe9a8', 13); }
+  // 收藏品一列：拿到前是剪影＋？？？，拿到後是圖、名字、用途、在哪層拿到；日記可以重讀
+  function colIcon(k) {
+    if (k[0] === 'P') return ['page'];
+    if (MT.ITEMS[k]) return [MT.ITEMS[k].sprite, MT.ITEMS[k].pal];
+    return [{ book: 'book', fly: 'feather', chisel: 'chisel', drum: 'drum', harp: 'harp', flute: 'flute', note: 'goldnote' }[k]];
+  }
+  function colRow(k) {
+    const [sp, pal] = colIcon(k), f = st.found && st.found[k];
+    if (f == null) return `<div class="mon colRow"><span class="colSil">${img(sp, pal, 'big')}</span><div class="mi"><div class="mn">${esc(MT.t('colUnknown'))}</div><div class="md muted">${esc(MT.t('colNotYet'))}</div></div></div>`;
+    const it = MT.ITEMS[k];
+    const name = k[0] === 'P' ? MT.story('page' + k[1] + '_title') : MT.itemName(k);
+    const desc = it && it.equip ? MT.t('col_equip', { stat: MT.t(it.kind), n: it.value }) : MT.t('col_' + (k[0] === 'P' ? 'page' : k));
+    const where = f >= 0 ? MT.t('colWhere', { f: MT.floorName(f) }) : '';
+    const read = k[0] === 'P' ? `<button class="btn colRead" data-read="${k[1]}">${esc(MT.t('colReread'))}</button>` : '';
+    return `<div class="mon colRow">${img(sp, pal, 'big')}<div class="mi"><div class="mn">${esc(name)}</div><div class="md">${esc(desc)}</div>`
+      + `${where ? `<div class="md muted">${esc(where)}</div>` : ''}${read}</div></div>`;
   }
 
   function openFly() {
@@ -1536,7 +1571,7 @@
       const tag = MT.t('sp_' + s, { p: Math.round((m.drain || 0) * 100), n: m.aura || 0 }).replace(/\s*[（(].*$/, '');   // 括號裡的說明下面另外寫
       return tutRow(img(m.sprite, m.pal, 'big'), tag, MT.t('tut_sp_' + s, { n: m.aura || 0 }));
     }).join('') + tutRow(echoImg(), MT.t('name_Ec'), MT.t('tut_echo')) },
-    { after: () => [['lens', 'look'], ['book', 'book'], ['feather', 'fly'], ['chisel', 'chisel'], ['porter', 'npc'], ['harp', 'skill'], ['page', 'save'], ['goldnote', 'rate']]
+    { after: () => [['lens', 'look'], ['porter', 'npc'], ['harp', 'skill'], ['page', 'save'], ['goldnote', 'rate']]   // 特殊道具的用法拿到才看得到（圖鑑的收藏品分頁），不寫在這裡
       .map(([sp, k]) => tutRow(img(sp, null, 'big'), '', MT.t('tut_t_' + k))).join('') },
   ];
   let tutGo = null;   // 教學開著時的翻頁（鍵盤左右鍵用）

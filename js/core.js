@@ -21,6 +21,7 @@
       keys: clone(s.keys),
       items: { book: 0, fly: 0, drum: 0, harp: 0, flute: 0, note: 0, chisel: 0 },
       pages: [],
+      found: {},             // 收藏品圖鑑：代碼 → 在第幾層拿到（-1＝舊存檔補記、不知道哪一層）
       equip: { sword: '', shield: '' },
       layers: [],            // 已經找回的樂器：drums／strings／lead
       maps: MT.FLOORS.map(f => (f ? parseFloor(f) : null)),
@@ -302,6 +303,18 @@
     return true;
   };
 
+  /* 收藏品圖鑑（Ken 指定）：拿到之前只看得到剪影。代碼：道具名（book、fly…）、裝備代碼（s1…a3）、日記 P1～P3 */
+  MT.COLLECT = ['book', 'fly', 'chisel', 's1', 'a1', 's2', 'a2', 's3', 'a3', 'drum', 'harp', 'flute', 'P1', 'P2', 'P3', 'note'];
+  // 地圖上的代碼 → 收藏品代碼（舊存檔補記用）
+  const COLLECT_TILE = { Mb: 'book', Ch: 'chisel', s1: 's1', a1: 'a1', s2: 's2', a2: 'a2', s3: 's3', a3: 'a3', P1: 'P1', P2: 'P2', P3: 'P3', FN: 'note' };
+  // 記下拿到了，回傳是不是第一次
+  MT.markFound = function (st, k) {
+    if (!MT.COLLECT.includes(k)) return false;
+    if (!st.found) st.found = {};
+    if (st.found[k] != null) return false;
+    st.found[k] = st.floor;
+    return true;
+  };
   MT.pickup = function (st, t) {
     const it = MT.ITEMS[t];
     const v = it.kind === 'key' || it.kind === 'page' || it.kind === 'note' || it.kind === 'tool' ? 1 : MT.itemValue(t, st.floor);
@@ -314,6 +327,7 @@
     else if (it.kind === 'note') { st.items.note = 1; got.script = 'noteGet'; }
     else if (it.kind === 'tool') { st.items[it.tool] = (st.items[it.tool] || 0) + (it.n || 1); got.script = it.script || null; }
     if (it.equip) st.equip[it.equip] = t;
+    got.newFound = MT.markFound(st, it.kind === 'tool' ? it.tool : it.kind === 'page' ? 'P' + it.page : it.kind === 'note' ? 'note' : t);
     return got;
   };
 
@@ -384,7 +398,7 @@
   /* 劇本裡會改狀態的指令（畫面照順序播，每一條都會呼叫這裡） */
   MT.applyCmd = function (st, c) {
     switch (c[0]) {
-      case 'give': st.items[c[1]] = (st.items[c[1]] || 0) + c[2]; break;
+      case 'give': st.items[c[1]] = (st.items[c[1]] || 0) + c[2]; MT.markFound(st, c[1]); break;
       case 'stat': st[c[1]] += c[2]; break;
       case 'flag': st.flags[c[1]] = 1; break;
       case 'set': MT.setTile(st, st.floor, c[1], c[2], c[3]); break;
@@ -434,6 +448,21 @@
       for (const f in open) for (const [x, y] of open[f]) if (st.maps[f] && st.maps[f][y][x] === '##') st.maps[f][y][x] = '..';
       for (const f of [10, 15]) { const m = st.maps[f]; if (m && m[10][5] === 'DD' && m[7][4] === '##') { m[10][5] = '..'; m[7][4] = 'DD'; } }
       st.mapV = 32;
+    }
+    // 3.2 收藏品圖鑑：舊存檔照「去過的樓層上原本有、現在沒了」補記在哪一層拿到；劇情給的（風之羽、樂器）不知道哪層就記 -1
+    if (!st.found) {
+      st.found = {};
+      for (const f of st.visited) {
+        const orig = MT.FLOORS[f] && parseFloor(MT.FLOORS[f]), cur = st.maps[f];
+        if (!orig || !cur) continue;
+        for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+          const k = COLLECT_TILE[orig[y][x]];
+          if (k && cur[y][x] !== orig[y][x] && st.found[k] == null) st.found[k] = f;
+        }
+      }
+      for (const k of ['book', 'fly', 'chisel', 'drum', 'harp', 'flute', 'note']) if (st.items[k] && st.found[k] == null) st.found[k] = -1;
+      for (const p of st.pages || []) if (st.found['P' + p] == null) st.found['P' + p] = -1;
+      for (const e of [st.equip.sword, st.equip.shield]) if (e && st.found[e] == null) st.found[e] = -1;
     }
     if (st.items.chisel == null) st.items.chisel = 0;
     if (st.exp == null) { st.exp = 0; st.lv = 1; }

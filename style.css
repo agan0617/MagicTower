@@ -195,6 +195,12 @@ input[type=text], input[type=password] { width: 100%; padding: 10px 12px; border
 .mon:last-child { border-bottom: 0; }
 .mon img.big, .shopTop img.big { width: 48px; height: 48px; flex: none; background: #2a2648; border-radius: 8px; }
 .mi { flex: 1; min-width: 0; }
+/* 圖鑑分頁與收藏品：還沒拿到的是黑色剪影 */
+.bookTabs { display: flex; gap: 8px; margin-bottom: 6px; }
+.bookTabs .btn { flex: 1; }
+.colSil { flex: none; width: 48px; height: 48px; background: #2a2648; border-radius: 8px; }
+.colSil img.big { background: none; filter: brightness(0); opacity: 0.7; }
+.colRead { margin-top: 6px; padding: 4px 12px; font-size: 13px; }
 .mn { font-weight: 700; }
 .ms { font-size: 13px; color: var(--muted); margin: 2px 0; font-variant-numeric: tabular-nums; }
 .md { font-size: 14px; }
