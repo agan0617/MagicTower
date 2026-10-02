@@ -355,7 +355,7 @@
       el.innerHTML = `<img src="${icon(sp[0], sp[1])}" style="width:${w}px;height:${w}px;image-rendering:pixelated;display:block">`;
     } else {
       el.textContent = { hp: '+' + n, atk: MT.t('atk') + '+' + n, def: MT.t('def') + '+' + n, gold: '+' + n + 'G' }[key];
-      el.style.color = { hp: '#8cff8c', atk: '#ff8a80', def: '#8ac8ff', gold: '#ffe066' }[key];
+      el.style.color = `var(--${key})`;   // 跟資訊列上那個數字同色（style.css 的 --hp／--atk／--def／--gold）
     }
     document.body.appendChild(el);
     setTimeout(() => {
@@ -1239,7 +1239,7 @@
       return;
     }
     const S = MT.SHOPS[id], price = MT.shopPrice(st, id), poor = st.gold < price;
-    const opts = [['hp', 'buyHp', S.hp, 'potion', 'red'], ['atk', 'buyAtk', S.atk, 'gemSword', 'gemRed'], ['def', 'buyDef', S.def, 'gemShield', 'gemBlue']].map(([k, lab, n, sp, pal]) =>
+    const opts = [['hp', 'buyHp', S.hp, 'heartS', null], ['atk', 'buyAtk', S.atk, 'gemSword', 'gemRed'], ['def', 'buyDef', S.def, 'gemShield', 'gemBlue']].map(([k, lab, n, sp, pal]) =>
       `<button class="btn opt" data-k="${k}" ${poor ? 'disabled' : ''}>${img(sp, pal)} ${esc(MT.t(lab, { n }))}</button>`).join('');
     openModal(MT.t(id), `<div class="shopTop">${img('altar', MT.NPCS[{ shop1: 'Sh', shop2: 'S2', shop3: 'S3' }[id]].pal, 'big')}<p>${esc(MT.t('shopText', { price }))}</p></div>
       <div class="opts">${opts}</div><p class="muted small">${esc(MT.t('gold'))}：${st.gold}</p><button class="btn" data-x>${esc(MT.t('leave'))}</button>`, body => {

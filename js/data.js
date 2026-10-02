@@ -74,8 +74,8 @@
     Yk: { kind: 'key', key: 'y', sprite: 'key1', pal: 'keyCu' },
     Bk: { kind: 'key', key: 'b', sprite: 'key2', pal: 'keyAg' },
     Rk: { kind: 'key', key: 'r', sprite: 'key3', pal: 'keyAu' },
-    hp: { kind: 'hp', zone: 'hp', sprite: 'potion', pal: 'red' },
-    HP: { kind: 'hp', zone: 'HP', sprite: 'potion', pal: 'blue' },
+    hp: { kind: 'hp', zone: 'hp', sprite: 'heartS' },
+    HP: { kind: 'hp', zone: 'HP', sprite: 'heartBig' },
     at: { kind: 'atk', zone: 'at', sprite: 'gemSword', pal: 'gemRed' },
     df: { kind: 'def', zone: 'df', sprite: 'gemShield', pal: 'gemBlue' },
     s1: { kind: 'atk', value: 10, sprite: 'sword', pal: 'iron', equip: 'sword' },
@@ -269,7 +269,7 @@
       'HP .. Bk .. ## DD ## .. Bk .. HP',
     ],
     // ── 第 2 區：紅磚（6～10F） ──
-    // 6F 呱呱商人：雙刀劍客（連擊）登場，防禦變得很值錢；一面裂牆後面是銀鑰匙與藍藥水
+    // 6F 呱呱商人：雙刀劍客（連擊）登場，防禦變得很值錢；一面裂牆後面是銀鑰匙與大愛心
     [
       'UU .. ks ## at .. .. .. Cw HP Bk',
       '.. .. .. ## .. dw .. ## ## ## ##',
