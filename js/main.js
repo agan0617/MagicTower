@@ -1446,6 +1446,7 @@
       cg.globalAlpha = 1;
       const wave = Math.floor(t / 350) % 2;
       bigSprite('heroDown', null, SIZE / 2 - 48, SIZE - 210 - wave * 6, 6);
+      drawFolk(t, festTrueFolk.filter(v => v.sc === 4));
       bigSprite('drum', null, 40, SIZE - 150, 5);
       bigSprite('bard', null, 400, SIZE - 160 + (Math.floor(t / 300) % 2) * -4, 5);
       bigSprite('frog', null, SIZE - 60, SIZE - 90, 3, true);
