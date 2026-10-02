@@ -1374,8 +1374,8 @@
       .map(([sp, k]) => tutRow(img(sp, null, 'big'), '', MT.t('tut_t_' + k))).join('') },
   ];
   let tutGo = null;   // 教學開著時的翻頁（鍵盤左右鍵用）
-  function openTutorial() {
-    if (!st || mode !== 'game' || busy) return;
+  function openTutorial(fromTitle) {   // 選單或標題畫面都開得了（教學的圖和例子不看目前這局）
+    if (!fromTitle && (!st || mode !== 'game' || busy)) return;
     let page = 0;
     const n = TUT_PAGES.length;
     openModal(MT.t('tutorial'), '', body => {
@@ -2374,6 +2374,7 @@
     cont.innerHTML = `${esc(MT.t('continue'))}${auto ? `<small>${slotLine(auto)}</small>` : ''}`;
     $('#tNew').textContent = MT.t('newGame');
     $('#tLoad').textContent = MT.t('load');
+    $('#tTutorial').textContent = MT.t('tutorial');
     $('#tSettings').textContent = MT.t('settings');
     const best = MT.Sync.best();
     $('#tBest').hidden = !best;
@@ -2399,6 +2400,7 @@
     startGame(s, true);
   });
   $('#tLoad').addEventListener('click', () => { MT.Audio.init(); openSaves(true); });
+  $('#tTutorial').addEventListener('click', () => { MT.Audio.init(); openTutorial(true); });
   $('#tSettings').addEventListener('click', () => { MT.Audio.init(); openSettings(); });
   $('#tCloud').addEventListener('click', () => { MT.Audio.init(); openCloud(); });
 
