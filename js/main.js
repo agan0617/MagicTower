@@ -554,6 +554,7 @@
     $('#hHp').textContent = st.hp;
     if (c.damage > 0) floatText(st.x, st.y, '-' + c.damage, '#ff6a6a', 18);
     sfx('kill');
+    toast(MT.t(ev.gold ? 'killed' : 'killed0', { name: MT.monName(ev.tile), g: ev.gold }));   // 打倒怪物也跳提示（Ken 指定）；接著開鐵門的話會被「鐵門打開了」蓋過
     view.dying = { code: ev.tile, x: ev.x, y: ev.y, t0: now(), dur: boss ? 900 : 300, phase: 'die', done: true, hpMax: m.hp, hp: 0, shown: view.dying.shown };
     sparkle(ev.x, ev.y, boss ? 60 : 14, boss ? null : ['#ffffff', '#ffe066', '#c8c8d8', '#ffffff']);
     if (boss) { shake(600, 12); flash('#ffffff', 700); sfx('boom'); }
