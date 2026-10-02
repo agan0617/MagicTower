@@ -257,7 +257,11 @@
       if (n.level) return Object.assign(ev, { type: 'level', level: n.level });
       if (n.sage) return Object.assign(ev, { type: 'sage' });
       if (n.choose) return Object.assign(ev, { type: 'choose' });
-      return Object.assign(ev, { type: 'talk', script: MT.npcScript(st, t) });
+      // 選好要播哪段之後就記成「說過了」，下次碰改說 again（3.2.8 修：以前遊戲裡從來沒記，只有自動玩家 sim.js 自己記，
+      // 結果 B1 奶奶的鑿子、11F 鏡中少女的生命 +600 都能一直拿）
+      const script = MT.npcScript(st, t);
+      st.flags[n.flag || 'npc:' + t] = 1;
+      return Object.assign(ev, { type: 'talk', script });
     }
 
     if (t === 'UU' || t === 'DD') {

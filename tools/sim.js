@@ -94,7 +94,7 @@ function collect(st, opt) {
           if (id && !MT.npcTalked(st, t)) {
             const sf = st.floor; st.floor = f; st.talkAt = [nx, ny];
             MT.runScriptState(st, id);
-            if (!MT.npcTalked(st, t)) st.flags[MT.NPCS[t].flag || 'npc:' + t] = 1;   // 劇本沒設旗標也算說過
+            if (!MT.npcTalked(st, t)) st.flags[MT.NPCS[t].flag || 'npc:' + t] = 1;   // 跟遊戲裡 MT.step 的 talk 一樣記成說過（sim 不走 MT.step，所以自己記）
             st.floor = sf; changed = true;
             note(st, { type: 'talk', f, x: nx, y: ny, t });
           }
