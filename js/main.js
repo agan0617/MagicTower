@@ -108,26 +108,41 @@
     autosave();
     if (k === 'y') openTutorial(false, page, true);
   }
-  // 到了新的一層：這層有沒看過的怪物特技、回音地板、祭壇／商人／節拍之神，就提一下（危險的先講，一次最多兩個）
-  const SHOP_CODES = ['Sh', 'S2', 'S3', 'Mk', 'Mq', 'L1', 'L2'];
-  function floorNews(f) {
-    const out = [], m = st.maps[f], seen = new Set();
-    for (const row of m) for (const c of row) {
-      const mon = MT.MONSTERS[c];
-      for (const s of (mon && mon.sp) || []) {
-        if (s === 'boss' || s === 'invincible' || seen.has(s)) continue;
-        seen.add(s);
-        const tag = MT.t('sp_' + s, { p: Math.round((mon.drain || 0) * 100), n: mon.aura || 0 }).replace(/\s*[（(].*$/, '');
-        out.push(['sp:' + s, 6, { sp: tag }]);
-      }
-      if (c === 'Ec' && !seen.has('Ec')) { seen.add('Ec'); out.push(['echo', 6]); }
-      if (SHOP_CODES.includes(c) && !seen.has('shop')) { seen.add('shop'); out.push(['shop', 5]); }
+  /* 走到附近才講（Ken 指定：一到樓層就連講兩個太擠）：英雄周圍 HINT_R 格內有沒看過的怪物特技、回音地板、
+     祭壇／商人／節拍之神，一次講一個（危險的先講），講的時候停下腳步 */
+  const SHOP_CODES = ['Sh', 'S2', 'S3', 'Mk', 'Mq', 'L1', 'L2'], HINT_R = 2;
+  // 一格上有什麼值得講的：[旗標名, 教學頁, 文字參數]…
+  function tileNews(c) {
+    const out = [], mon = MT.MONSTERS[c];
+    for (const s of (mon && mon.sp) || []) {
+      if (s === 'boss' || s === 'invincible') continue;
+      const tag = MT.t('sp_' + s, { p: Math.round((mon.drain || 0) * 100), n: mon.aura || 0 }).replace(/\s*[（(].*$/, '');
+      out.push(['sp:' + s, 6, { sp: tag }]);
+    }
+    if (c === 'Ec') out.push(['echo', 6]);
+    if (SHOP_CODES.includes(c)) out.push(['shop', 5]);
+    return out;
+  }
+  function floorNews(f) {   // 整層（舊存檔補記用）
+    const out = [];
+    for (const row of st.maps[f]) for (const c of row) out.push(...tileNews(c));
+    return out;
+  }
+  function nearNews() {
+    const m = st.maps[st.floor], out = [];
+    for (let y = st.y - HINT_R; y <= st.y + HINT_R; y++) for (let x = st.x - HINT_R; x <= st.x + HINT_R; x++) {
+      if (x < 0 || y < 0 || x >= W || y >= H) continue;
+      for (const n of tileNews(m[y][x])) if (!st.flags['tut:' + n[0]]) out.push(n);
     }
     out.sort((a, b) => (a[0] === 'shop') - (b[0] === 'shop'));
-    return out.filter(([k]) => !st.flags['tut:' + k]);
+    return out[0] || null;
   }
-  async function floorHints() {
-    for (const [k, p, v] of floorNews(st.floor).slice(0, 2)) await tutHint(k, p, v);
+  // 走一步、上下樓之後呼叫：有講就回傳 true（呼叫端停下自動走路）
+  async function nearHints() {
+    const h = nearNews();
+    if (!h) return false;
+    await tutHint(...h);
+    return true;
   }
   // 舊存檔第一次讀進來：去過的樓層上已經見過的東西、開過門撿過道具，都當作講過了，不要一口氣補講
   function tutCatchUp() {
@@ -693,6 +708,7 @@
         if (ev.echo != null || ev.aura) await hazardHit(ev);
         if (ev.pincer) await pincerHit(ev);
         if (ev.script) { await sleep(110); await runScript(ev.script); autosave(); }
+        if (!ev.script && !ev.pincer && await nearHints()) return false;
         return !ev.script && !ev.pincer;
       case 'secret':
         view.move = { fx, fy, t0: now(), dur: 95 };
@@ -747,7 +763,7 @@
         return false;
       }
       case 'fight': await battle(ev, fx, fy, dir); return false;
-      case 'stairs': await changeFloor(ev.tile === 'UU'); if (ev.script) await runScript(ev.script); await floorHints(); autosave(); return false;
+      case 'stairs': await changeFloor(ev.tile === 'UU'); if (ev.script) await runScript(ev.script); await nearHints(); autosave(); return false;
       case 'talk': if (ev.script) { await runScript(ev.script); autosave(); } else toast(MT.t('npcBusy')); return false;
       case 'shop': openShop(ev.shop); return false;
       case 'script': await runScript(ev.script); autosave(); return false;
