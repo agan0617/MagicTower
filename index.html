@@ -15,19 +15,20 @@
 <div id="app">
   <div id="stage" class="under">
     <header id="hud">
-      <div class="hf"><b id="hFloor">1F</b><span id="hInst"></span><button id="hHelp" type="button" aria-label="?">?</button></div>
+      <div class="hf"><b id="hFloor">1F</b><span id="hInst"></span></div>
       <div class="hs hp"><span class="hl"><img class="px" id="iHp" alt=""><span id="lHp">生命</span></span><b id="hHp">0</b></div>
       <div class="hs atk"><span class="hl"><img class="px" id="iAtk" alt=""><span id="lAtk">攻擊</span></span><b id="hAtk">0</b></div>
       <div class="hs def"><span class="hl"><img class="px" id="iDef" alt=""><span id="lDef">防禦</span></span><b id="hDef">0</b></div>
-      <div class="hs gold"><span class="hl"><img class="px" id="iGold" alt=""><span id="lGold">金幣</span></span><b id="hGold">0</b></div>
       <div class="hk">
         <span><img class="px" id="iKy" alt=""><b id="hKy">0</b></span>
         <span><img class="px" id="iKb" alt=""><b id="hKb">0</b></span>
         <span><img class="px" id="iKr" alt=""><b id="hKr">0</b></span>
         <span id="hChW" hidden><img class="px" id="iCh" alt=""><b id="hCh">0</b></span>
+        <span class="hgold"><img class="px" id="iGold" alt=""><b id="hGold">0</b><small id="lGold">金幣</small></span>
         <span class="hlv"><b id="hLv">Lv1</b><small id="hExp">EXP 0</small></span>
         <span id="hSk" hidden></span>
       </div>
+      <button id="hHelp" type="button" aria-label="?">?</button>
     </header>
     <main id="mapWrap">
       <canvas id="map"></canvas>
@@ -81,7 +82,7 @@
   </div>
   <div id="toast" hidden></div>
 </div>
-<script>window.MT = { VERSION: '3.2.33' };</script>
+<script>window.MT = { VERSION: '3.2.34' };</script>
 <script src="js/data.js"></script>
 <script src="js/core.js"></script>
 <script src="js/sprites.js"></script>

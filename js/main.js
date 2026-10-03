@@ -1629,9 +1629,10 @@
     const stat = (cls, img, label, v) => `<div class="hs ${cls}${f(cls)}"><span class="hl">${img}<span>${esc(MT.t(label))}</span></span><b>${v}</b></div>`;
     return `<div class="tutHud"><div class="hf${f('floor')}"><b>1F</b></div>`
       + stat('hp', ic('heart'), 'hp', S0.hp) + stat('atk', ic('gemSword', 'gemRed'), 'atk', S0.atk)
-      + stat('def', ic('gemShield', 'gemBlue'), 'def', S0.def) + stat('gold', ic('coin'), 'gold', S0.gold)
+      + stat('def', ic('gemShield', 'gemBlue'), 'def', S0.def)
       + `<div class="hk"><span class="${f('keys')}">${key('Yk')}<b>${S0.keys.y}</b></span><span class="${f('keys')}">${key('Bk')}<b>${S0.keys.b}</b></span><span class="${f('keys')}">${key('Rk')}<b>${S0.keys.r}</b></span>`
-      + `<span class="hlv${f('lv')}"><b>Lv1</b><small>EXP 0</small></span></div></div>`;
+      + `<span class="hgold${f('gold')}">${ic('coin')}<b>${S0.gold}</b><small>${esc(MT.t('gold'))}</small></span>`
+      + `<span class="hlv${f('lv')}"><b>Lv1</b><small>EXP 0</small></span></div><span class="tutQ">?</span></div>`;
   };
   // 每頁：pic 標題下的示意圖、after 說明文字後面的補充（例子、一列一列的圖示說明）；文字是 i18n 的 tut_<頁>t（標題）、tut_<頁>
   const TUT_PAGES = [
