@@ -432,7 +432,8 @@
      等於幫玩家把資源花完，不用最後跑回去買血。
      門檻（MT.RATING）用 tools/solve.js 的新手／一般／高手三種自動玩家的成績定；S 還要真結局 */
   MT.rating = function (st) {
-    const R = MT.RATING, K = MT.SHOPS.keys, S3 = MT.SHOPS.shop3;
+    // 剩下的銅鑰匙照全塔最便宜的賣價換算（13F 表哥 8 金），不然在 13F 買來囤著就能白賺分數
+    const R = MT.RATING, S3 = MT.SHOPS.shop3, K = Object.assign({}, MT.SHOPS.keys, { y: Math.min(MT.SHOPS.keys.y, MT.SHOPS.keys2.y || Infinity) });
     // 照真的去買來算：鑰匙換回金幣，金幣在水晶祭壇一次一次買生命（每買一次漲價），經驗值一級一級升（只算生命）
     let gold = st.gold + st.keys.y * K.y + st.keys.b * K.b + st.keys.r * K.r, n = st.shops.shop3 || 0, bonus = 0;
     for (let p = S3.base + S3.step * n; gold >= p; p += S3.step) { gold -= p; bonus += S3.hp; }

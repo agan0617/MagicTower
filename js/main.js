@@ -89,7 +89,7 @@
   function tradeIcon(code) {
     const n = MT.NPCS[code];
     if (!n) return null;
-    if (n.shop === 'keys' || (n.deal && MT.DEALS[n.deal].gain.keys)) return ['key1', 'keyCu'];   // 13F 表哥只收不賣（keys2），歸金幣
+    if (n.shop === 'keys' || n.shop === 'keys2' || (n.deal && MT.DEALS[n.deal].gain.keys)) return ['key1', 'keyCu'];   // 13F 表哥 3.2.42 起也賣銅鑰匙
     if (n.deal || n.shop) return ['coin'];
     if (n.level) return { text: 'Lv', color: '#c8f0a0' };
     if (n.sage || n.choose) return { text: '♪', color: '#aef4ff' };
@@ -1183,7 +1183,7 @@
       else if (it.kind === 'note') { name = MT.itemName('note'); desc = MT.t('info_note'); }
       else if (it.kind === 'tool') { name = MT.itemName(it.tool); desc = MT.t('info_' + it.tool); }
       else { name = MT.t('name_' + code); desc = MT.t('info_' + it.kind, { n: v }); }
-    } else if (n && (n.shop === 'keys' || n.shop === 'keys2')) { name = MT.t(n.shop === 'keys' ? 'frog' : 'frog2'); const K = MT.SHOPS[n.shop]; desc = K.y != null ? MT.t('info_frog', K) : MT.t('info_buyer', K.sell); }
+    } else if (n && (n.shop === 'keys' || n.shop === 'keys2')) { name = MT.t(n.shop === 'keys' ? 'frog' : 'frog2'); const K = MT.SHOPS[n.shop]; desc = n.shop === 'keys' ? MT.t('info_frog', K) : MT.t('info_buyer', Object.assign({ y: K.y }, K.sell)); }
     else if (n && n.level) { name = MT.t('level_' + n.level); desc = MT.t('info_level', { cost: MT.levelCost(st), hp: MT.LEVEL[n.level].hp, atk: MT.LEVEL[n.level].atk, def: MT.LEVEL[n.level].def }); }
     else if (n && n.sage) { name = MT.t('speaker_harpist'); desc = MT.t('info_sage_' + MT.sagePreview(st)); }
     else if (n && n.choose) { name = MT.t('speaker_harpghost'); desc = MT.t('info_choose'); }
@@ -1431,7 +1431,14 @@
     for (let f = MT.BOTTOM; f <= MT.TOP; f++) {
       const ok = st.visited.includes(f);
       if (f === 0 && !ok) continue;   // 隱藏層沒去過就不列出來
-      html += `<button class="fl ${f === st.floor ? 'cur' : ''}" data-f="${f}" ${ok ? '' : 'disabled'} title="${ok ? '' : esc(MT.t('notVisited'))}">${MT.floorName(f)}</button>`;
+      // 去過的樓層：樓層名下面列這層還在的祭壇／商人／節拍之神／老琴師／交易 NPC 的小圖（3.2.42 Ken 指定，飛之前就知道要去哪層買）
+      const npcs = [];
+      if (ok) for (const row of st.maps[f]) for (const c of row) {
+        const n = MT.NPCS[c];
+        if (n && (n.shop || n.deal || n.level || n.sage) && !npcs.includes(c)) npcs.push(c);
+      }
+      const icons = npcs.length ? `<span class="flNpc">${npcs.map(c => img(...spriteFor(c))).join('')}</span>` : '';
+      html += `<button class="fl ${f === st.floor ? 'cur' : ''}" data-f="${f}" ${ok ? '' : 'disabled'} title="${ok ? '' : esc(MT.t('notVisited'))}">${MT.floorName(f)}${icons}</button>`;
     }
     html += '</div>';
     openModal(MT.t('flyTitle'), html, body => body.querySelectorAll('[data-f]').forEach(b => b.addEventListener('click', async () => {
