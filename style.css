@@ -234,6 +234,14 @@ input[type=text], input[type=password] { width: 100%; padding: 10px 12px; border
 .tutPic { display: block; max-width: 100%; height: auto; border-radius: 6px; box-shadow: 0 0 0 2px #2a2648, 0 6px 20px -6px #000; }
 .tutText { margin: 0 0 10px; line-height: 1.7; white-space: pre-line; }
 .tutRed { color: #ff5a5a; font-weight: 700; }
+/* 教學第 1 頁的資訊列示意：跟 #hud 同一套，但不吃橫向版面的改排（固定成直式那種兩排） */
+.tutHud { display: grid; grid-template-columns: auto 1fr 1fr 1fr 1fr; grid-template-rows: auto auto; gap: 2px 8px; align-items: center;
+  background: var(--panel); border: 1px solid var(--accent); border-radius: 10px; padding: 6px 10px; margin: 0 0 10px; }
+.tutHud .hf { grid-row: 1 / 3; grid-column: auto; flex-direction: column; }
+.tutHud .hf b { font-size: 22px; }
+.tutHud .hs b { font-size: 17px; }
+.tutHud .hs .hl img { width: 14px; height: 14px; }
+.tutHud .hk { grid-column: 2 / 6; grid-row: 2; justify-content: flex-start; }
 .tutHi { color: #ffe066; }
 .tutRow { display: flex; gap: 12px; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--line); }
 .tutRow:has(+ .tutNav), .tutPage > .tutRow:last-child { border-bottom: 0; }

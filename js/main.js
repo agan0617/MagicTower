@@ -1619,9 +1619,20 @@
   // 圖示＋說明一列（怪物特技、小技巧那兩頁）
   const tutRow = (pic, head, text) => `<div class="tutRow">${pic}<div><b>${esc(head)}</b>${head && text ? '<br>' : ''}<span class="small">${tutFmt(text)}</span></div></div>`;
   const ZV = k => MT.ZONE_VALUES[MT.ITEMS[k].zone][0];
+  // 第 1 頁的資訊列示意（3.2.20 Ken 指定：講「畫面上方」要直接畫出來）：跟真的資訊列同一套樣式，數字用開局的值
+  const tutHud = () => {
+    const S0 = MT.START, ic = (n, p) => `<img class="px" src="${icon(n, p)}" alt="">`, key = c => ic(MT.ITEMS[c].sprite, MT.ITEMS[c].pal);
+    const stat = (cls, img, label, v) => `<div class="hs ${cls}"><span class="hl">${img}<span>${esc(MT.t(label))}</span></span><b>${v}</b></div>`;
+    return `<div class="tutHud"><div class="hf"><b>1F</b></div>`
+      + stat('hp', ic('heart'), 'hp', S0.hp) + stat('atk', ic('gemSword', 'gemRed'), 'atk', S0.atk)
+      + stat('def', ic('gemShield', 'gemBlue'), 'def', S0.def) + stat('gold', ic('coin'), 'gold', S0.gold)
+      + `<div class="hk"><span>${key('Yk')}<b>${S0.keys.y}</b></span><span>${key('Bk')}<b>${S0.keys.b}</b></span><span>${key('Rk')}<b>${S0.keys.r}</b></span>`
+      + `<span class="hlv"><b>Lv1</b><small>EXP 0</small></span></div></div>`;
+  };
   // 每頁：pic 標題下的示意圖、after 說明文字後面的補充（例子、一列一列的圖示說明）；文字是 i18n 的 tut_<頁>t（標題）、tut_<頁>
   const TUT_PAGES = [
-    { pic: () => tutScene(['## ## UU ## ##', '## .. .. .. ##', '## .. .. .. ##', '## N8 @@ .. ##'], { dir: 'up', route: [[2, 3], [2, 2], [2, 1], [2, 0]], goal: [2, 0] }) },
+    { pic: () => tutScene(['## ## UU ## ##', '## .. .. .. ##', '## .. .. .. ##', '## N8 @@ .. ##'], { dir: 'up', route: [[2, 3], [2, 2], [2, 1], [2, 0]], goal: [2, 0] }),
+      after: () => tutHud() },
     { pic: () => tutScene(['.. .. ## .. .. Yk', '.. .. ## .. ## ..', '@@ .. .. .. ## ..'],
       { dir: 'side', route: [[0, 2], [1, 2], [2, 2], [3, 2], [3, 1], [3, 0], [4, 0], [5, 0]], goal: [5, 0], cross: [4, 2] }) },
     { pic: () => tutScene(['@@ gs rs bt sk ab'], { dir: 'side', dmg: true }),
