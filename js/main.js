@@ -861,10 +861,22 @@
   // 老琴師：技能鑑定與升級（台詞跟著目前的狀態變）
   async function runSage() {
     busy++;
+    // 等級夠了：先講學費、問要不要練（3.2.42 起升級要付金幣）
+    if (MT.sagePreview(st) === 'up') {
+      const cost = MT.SKILL.upCost[st.skill.lv + 1];
+      await say('harpist', MT.story('sage_offer').replace('{cost}', cost));
+      if (await ask(MT.t('sageAsk', { cost, g: st.gold }), [{ key: 'n', label: MT.t('no') }, { key: 'y', label: MT.t('yes') }]) !== 'y') { busy--; return; }
+    }
     const r = MT.sage(st);
     const sk = st.skill;
-    const lines = { none: ['sage_none'], activate: ['sage_act1', 'sage_act2_' + (sk && sk.type)], up: ['sage_up', 'sage_up_' + (sk && sk.type)], notyet: ['sage_notyet'], max: ['sage_max'] }[r.r];
-    for (const k of lines) await say('harpist', MT.story(k).replace('{lv}', r.need || (sk && sk.lv)).replace('{skill}', sk ? MT.t('skill_' + sk.type) : ''));
+    const lines = { none: ['sage_none'], activate: ['sage_act1', 'sage_act2_' + (sk && sk.type)], up: ['sage_up', 'sage_up_' + (sk && sk.type)], notyet: ['sage_notyet'], poor: ['sage_poor'], max: ['sage_max'] }[r.r];
+    // 鑑定完、升到第 2 級之後：提醒還能再往上練（下一級要的等級和學費）
+    if ((r.r === 'activate' || r.r === 'up') && sk.lv < 3) lines.push('sage_next');
+    const nextLv = sk && sk.lv < 3 ? MT.SKILL.lvNeed[sk.lv + 1] : 0, nextCost = sk && sk.lv < 3 ? MT.SKILL.upCost[sk.lv + 1] : 0;
+    for (const k of lines) {
+      const lv = k === 'sage_next' ? nextLv : r.need || (sk && sk.lv), cost = k === 'sage_next' ? nextCost : r.cost;
+      await say('harpist', MT.story(k).replace('{lv}', lv).replace('{cost}', cost).replace('{skill}', sk ? MT.t('skill_' + sk.type) : ''));
+    }
     if (r.r === 'activate' || r.r === 'up') { sfx('fanfare'); flash('#d9b8ff', 400); sparkle(st.x, st.y, 30); notes(st.x, st.y, 8); toast(MT.t('skillUp', { s: MT.t('skill_' + sk.type), lv: sk.lv })); }
     busy--;
     renderHud(); autosave();
@@ -1185,7 +1197,7 @@
       else { name = MT.t('name_' + code); desc = MT.t('info_' + it.kind, { n: v }); }
     } else if (n && (n.shop === 'keys' || n.shop === 'keys2')) { name = MT.t(n.shop === 'keys' ? 'frog' : 'frog2'); const K = MT.SHOPS[n.shop]; desc = n.shop === 'keys' ? MT.t('info_frog', K) : MT.t('info_buyer', Object.assign({ y: K.y }, K.sell)); }
     else if (n && n.level) { name = MT.t('level_' + n.level); desc = MT.t('info_level', { cost: MT.levelCost(st), hp: MT.LEVEL[n.level].hp, atk: MT.LEVEL[n.level].atk, def: MT.LEVEL[n.level].def }); }
-    else if (n && n.sage) { name = MT.t('speaker_harpist'); desc = MT.t('info_sage_' + MT.sagePreview(st)); }
+    else if (n && n.sage) { name = MT.t('speaker_harpist'); desc = MT.t('info_sage_' + MT.sagePreview(st), { cost: st.skill && st.skill.lv < 3 ? MT.SKILL.upCost[st.skill.lv + 1] : 0 }); }
     else if (n && n.choose) { name = MT.t('speaker_harpghost'); desc = MT.t('info_choose'); }
     else if (n && n.deal) { name = MT.t('npc_' + code); desc = MT.t('info_deal', { p: MT.DEALS[n.deal].price }); }
     else if (n && n.shop) { const S = MT.SHOPS[n.shop]; name = MT.t(n.shop); desc = MT.t('info_shop', { price: MT.shopPrice(st, n.shop), hp: S.hp, atk: S.atk, def: S.def }); }
@@ -1508,8 +1520,11 @@
   function openShop(id) {
     if (id === 'keys' || id === 'keys2') {
       const K = MT.SHOPS[id], two = id === 'keys2';
-      const opts = [['y', 'buyY'], ['b', 'buyB'], ['r', 'buyR']].filter(([k]) => K[k] != null).map(([k, lab]) =>
-        `<button class="btn opt" data-k="${k}" ${st.gold < K[k] ? 'disabled' : ''}>${img(...spriteFor(KEY_OF[k]))} ${esc(MT.t(lab, { p: K[k] }))}</button>`).join('');
+      const opts = [['y', 'buyY'], ['b', 'buyB'], ['r', 'buyR']].filter(([k]) => K[k] != null).map(([k, lab]) => {
+        const left = MT.keyStockLeft(st, id, k);   // 限量的鑰匙標剩幾把、賣完反灰
+        const tail = left === Infinity ? '' : MT.t(left > 0 ? 'stockLeft' : 'soldOut', { n: left });
+        return `<button class="btn opt" data-k="${k}" ${st.gold < K[k] || left <= 0 ? 'disabled' : ''}>${img(...spriteFor(KEY_OF[k]))} ${esc(MT.t(lab, { p: K[k] }) + tail)}</button>`;
+      }).join('');
       // 表哥另外收購（K.sell）：身上沒有那種鑰匙就反灰
       const sells = K.sell ? `<p class="muted small">${esc(MT.t('sellHead'))}</p><div class="opts">` + Object.keys(K.sell).map(k =>
         `<button class="btn opt" data-s="${k}" ${st.keys[k] > 0 ? '' : 'disabled'}>${img(...spriteFor(KEY_OF[k]))} ${esc(MT.t('sell' + k.toUpperCase(), { p: K.sell[k], n: st.keys[k] }))}</button>`).join('') + '</div>' : '';
@@ -2934,10 +2949,14 @@
       + `<span class="small">${esc(MT.t('rateCalc', { hp: r.hp, bonus: r.bonus, score: r.score }))}</span><br>`
       + (r.bonus ? `<span class="small">${esc(MT.t('rateBonusHint'))}</span><br>` : '')
       + (r.needTrue ? `<span class="small rankWarn">${esc(MT.t('rateNeedTrue'))}</span><br>` : '');
-    $('#cineBody').innerHTML = `<b>${esc(MT.story('ed_thanks'))}</b><br>${rank}<span class="small">${esc(MT.t(trueEnd ? 'endTrue' : 'endNormal'))}　${esc(MT.t('endStats', { t: tstr, s: st.steps, k: st.kills }))}</span><br>${trueEnd ? '' : `<span class="small">${esc(MT.story('ed_hint'))}</span><br>`}<button class="btn primary" id="endBack">${esc(MT.t('backTitle'))}</button>`;
+    // 回到標題的按鈕放在評價下面（3.2.43 Ken 指定：原本在最下面，手機上被切掉看不到）；最下面是開發者資訊
+    $('#cineBody').innerHTML = `<b>${esc(MT.story('ed_thanks'))}</b><br>${rank}<button class="btn primary" id="endBack">${esc(MT.t('endAgain'))}</button><br>`
+      + `<span class="small">${esc(MT.t(trueEnd ? 'endTrue' : 'endNormal'))}　${esc(MT.t('endStats', { t: tstr, s: st.steps, k: st.kills }))}</span><br>${trueEnd ? '' : `<span class="small">${esc(MT.story('ed_hint'))}</span><br>`}`
+      + `<span class="small credits">${esc(MT.t('credits'))}</span>`;
+    $('#cine').classList.add('ending');
     cineQueue = []; endScreen = true;
     $('#cineSkip').hidden = true;
-    $('#endBack').addEventListener('click', e => { e.stopPropagation(); endScreen = false; $('#cineSkip').hidden = false; $('#cine').hidden = true; showTitle(); });
+    $('#endBack').addEventListener('click', e => { e.stopPropagation(); endScreen = false; $('#cineSkip').hidden = false; $('#cine').hidden = true; $('#cine').classList.remove('ending'); showTitle(); });
   }
 
   /* ───────── 啟動 ───────── */

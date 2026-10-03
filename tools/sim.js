@@ -87,7 +87,7 @@ function collect(st, opt) {
           note(st, { type: 'pick', f, x: nx, y: ny, t });
           if (got.script) MT.runScriptState(st, got.script);
         } else if (t === 'Sg' && ['activate', 'up'].includes(MT.sagePreview(st))) {
-          MT.sage(st); changed = true;   // 老琴師：鑑定、升級都不花錢，到得了就做
+          MT.sage(st); changed = true;   // 老琴師：鑑定免費、升級要付金幣（3.2.42），付得起就做
           note(st, { type: 'sage', f, x: nx, y: ny, lv: st.skill.lv });
         } else if (isTalker(t)) {
           const id = MT.npcScript(st, t);

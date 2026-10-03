@@ -87,6 +87,7 @@
     reflect: [0, 0.35, 0.6, 0.85],             // 彈回去的比例（以怪物原本那一下算）
     double: [[], [0.6], [1], [1, 0.5]],        // 每回合額外的攻擊（勇者攻擊力減怪物防禦的倍數）
     lvNeed: [0, 0, 12, 22],                    // 升到第 n 級要的勇者等級（第 1 級＝鑑定就有）
+    upCost: [0, 0, 50, 100],                   // 升到第 n 級要付老琴師的金幣（3.2.42 Ken 指定：升級要花一點資源才合理；鑑定免費）
   };
   const skillOf = st => (st.skill && st.skill.lv > 0 ? st.skill : null);
   MT.monHitRaw = function (st, m) {
@@ -154,17 +155,19 @@
     if (!sk) return { r: 'none' };
     if (sk.lv === 0) { sk.lv = 1; return { r: 'activate' }; }
     if (sk.lv >= 3) return { r: 'max' };
-    const need = MT.SKILL.lvNeed[sk.lv + 1];
-    if (st.lv < need) return { r: 'notyet', need };
-    sk.lv++;
-    return { r: 'up', lv: sk.lv };
+    const need = MT.SKILL.lvNeed[sk.lv + 1], cost = MT.SKILL.upCost[sk.lv + 1];
+    if (st.lv < need) return { r: 'notyet', need, cost };
+    if (st.gold < cost) return { r: 'poor', cost };
+    st.gold -= cost; sk.lv++;
+    return { r: 'up', lv: sk.lv, cost };
   };
   MT.sagePreview = function (st) {
     const sk = st.skill;
     if (!sk) return 'none';
     if (sk.lv === 0) return 'activate';
     if (sk.lv >= 3) return 'max';
-    return st.lv >= MT.SKILL.lvNeed[sk.lv + 1] ? 'up' : 'notyet';
+    if (st.lv < MT.SKILL.lvNeed[sk.lv + 1]) return 'notyet';
+    return st.gold >= MT.SKILL.upCost[sk.lv + 1] ? 'up' : 'poor';
   };
 
   /* 夾擊：走進兩隻夾擊怪（左右或上下）中間，立刻失去目前生命的三分之一 */
@@ -391,11 +394,15 @@
     st.keys[what]--; st.gold += price;
     return true;
   };
+  // 限量鑰匙還剩幾把（沒限量回傳 Infinity）
+  MT.keyStockLeft = (st, shop, what) => { const n = (MT.SHOPS[shop].stock || {})[what]; return n == null ? Infinity : n - (st.shops[shop + ':' + what] || 0); };
   MT.buy = function (st, shop, what) {
     if (shop === 'keys' || shop === 'keys2') {
       const price = MT.SHOPS[shop][what];
       if (price == null || st.gold < price) return false;   // 13F 表哥只收不賣，沒有賣價
+      if (MT.keyStockLeft(st, shop, what) <= 0) return false;   // 限量的賣完了
       st.gold -= price; st.keys[what]++;
+      if ((MT.SHOPS[shop].stock || {})[what] != null) st.shops[shop + ':' + what] = (st.shops[shop + ':' + what] || 0) + 1;
       return true;
     }
     const price = MT.shopPrice(st, shop);
@@ -439,6 +446,8 @@
     for (let p = S3.base + S3.step * n; gold >= p; p += S3.step) { gold -= p; bonus += S3.hp; }
     let exp = st.exp, lv = st.lv;
     for (let c = MT.lvCost(lv); exp >= c; c = MT.lvCost(++lv)) { exp -= c; bonus += MT.LEVEL.L2.hp; }
+    // 留到通關沒花的資源換算後再乘 MT.LEFTOVER（3.2.43 Ken 指定：留著要比花掉划算，先用 1.3）
+    bonus = Math.floor(bonus * (MT.LEFTOVER || 1));
     const score = st.hp + bonus;
     const trueEnd = MT.isTrueEnding(st);
     const grade = score >= R.S && trueEnd ? 'S' : score >= R.A ? 'A' : score >= R.B ? 'B' : 'C';

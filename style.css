@@ -163,6 +163,11 @@ html[lang=en] #tTitle { font-size: clamp(40px, 12vmin, 76px); letter-spacing: 2p
 #cineText.speech #cineBody { color: #fff; }
 #cineBody .small { font-size: 14px; color: var(--muted); }
 #cineBody .btn { margin-top: 14px; }
+/* 通關畫面：內容可能比螢幕高，整頁可捲動（3.2.43） */
+#cine.ending { overflow-y: auto; overflow-x: hidden; justify-content: flex-start; }
+#cine.ending #cineText { box-sizing: border-box; width: min(100%, 620px); flex: none; }
+#cine.ending #cineCanvas { width: min(100%, calc(100dvh - 240px)); flex: none; }
+#cineBody .credits { display: block; margin-top: 12px; text-align: center; opacity: 0.8; }
 /* 通關評價：大字等級，顏色依等級 */
 .rank { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 8px 0 4px; --g: #c8c0d8; }
 .rank[data-g=S], #tBest[data-g=S] { --g: #ffd84a; }
