@@ -445,6 +445,19 @@
       if (k >= 1) view.fade = view.fadeTo;
     } else view.fadeCur = view.fade;
     if (view.fadeCur > 0) { g.fillStyle = `rgba(8,6,16,${view.fadeCur})`; g.fillRect(0, 0, MW, MH); }
+    // 最終決戰：聚光燈（只照兩人，四周變暗）、Boss 血少時畫面邊緣一陣陣閃紅
+    if (view.spot) {
+      const px = (view.spot.x + 0.5) * TILE, py = (view.spot.y + 0.5) * TILE;
+      const gr = g.createRadialGradient(px, py, TILE * 1.6, px, py, TILE * 6);
+      gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,0.72)');
+      g.fillStyle = gr; g.fillRect(0, 0, MW, MH);
+    }
+    if (view.danger) {
+      const a = 0.18 + 0.17 * Math.sin(t / 160);
+      const gr = g.createRadialGradient(MW / 2, MH / 2, Math.min(MW, MH) * 0.35, MW / 2, MH / 2, Math.max(MW, MH) * 0.75);
+      gr.addColorStop(0, 'rgba(255,40,60,0)'); gr.addColorStop(1, `rgba(255,40,60,${a})`);
+      g.fillStyle = gr; g.fillRect(0, 0, MW, MH);
+    }
     if (view.flash) {
       const k = (t - view.flash.t0) / view.flash.dur;
       if (k >= 1) view.flash = null;
@@ -483,6 +496,14 @@
   }
   const shake = (ms, amp) => { view.shake = amp || 8; view.shakeUntil = now() + ms; };
   const flash = (color, dur) => { view.flash = { color: color || '#fff', t0: now(), dur: dur || 450 }; };
+  // 鏡頭推近：把地圖畫布以某格為中心放大（at＝{x,y} 格座標，null＝回到原本）；外框裁掉超出的部分
+  function zoomMap(at, scale, ms) {
+    const cv = $('#map');
+    $('#mapWrap').style.overflow = scale > 1 ? 'hidden' : '';
+    if (at) cv.style.transformOrigin = `${(at.x + 0.5) / W * 100}% ${(at.y + 0.5) / H * 100}%`;
+    cv.style.transition = `transform ${ms}ms cubic-bezier(.2,.8,.2,1)`;
+    cv.style.transform = scale > 1 ? `scale(${scale})` : '';
+  }
 
   /* ───────── HUD ───────── */
   /* 屬性增加時先在地圖上跳「+N」（鑰匙是鑰匙圖），再飛進上面的資訊列，飛到了數字才加上去（Ken 指定）。
@@ -652,7 +673,7 @@
     if (f === 5 && st.flags['trig:5:golemIntro'] && bossAlive('DG')) return 'boss';
     if (f === 10 && st.flags['trig:10:sirenIntro'] && bossAlive('SR')) return 'boss';
     if (f === 15 && st.flags['trig:15:echoIntro'] && bossAlive('EM')) return 'boss';
-    if (f === 20 && st.flags['trig:20:f20Intro'] && !st.done) return 'boss';
+    if (f === 20 && st.flags['trig:20:f20Intro'] && !st.done) return MT.findTile(st, f, 'M3') || MT.findTile(st, f, 'M4') ? 'finale2' : 'finale';   // 最終決戰專屬曲（3.2.46）
     return 'tower';
   }
   const playMusic = name => MT.Audio.play(name, st ? st.layers : ['base']);
@@ -946,8 +967,10 @@
       if (c.monHit > 0 || c.reflect > 0) dead = monTurn(); else seq.push({ who: 'idle' });
       if (seq.length > 4000) break;
     }
-    const heroGap0 = boss ? 200 : 130, monGap0 = heroGap0 * 0.85;   // 雙方一來一往要看得出來
-    const cap = (boss ? 8 : 4) * (heroGap0 + monGap0);
+    // 最終 Boss（指揮家兩階段）：演得久一點、聚光燈、血少時畫面邊緣閃紅，二階段最後一擊慢動作＋鏡頭推近（3.2.46 Ken 指定）
+    const finale = ['M2', 'M3', 'M4'].includes(ev.tile), lastBlow = ev.tile === 'M3' || ev.tile === 'M4';
+    const heroGap0 = boss ? (finale ? 240 : 200) : 130, monGap0 = heroGap0 * 0.85;   // 雙方一來一往要看得出來
+    const cap = (boss ? (finale ? 14 : 8) : 4) * (heroGap0 + monGap0);
     const full = seq.reduce((a, e) => a + (e.who === 'hero' ? heroGap0 : e.who === 'mon' ? monGap0 : 0), 0);
     const k = full > cap ? cap / full : 1;
     const heroGap = Math.max(18, heroGap0 * k), monGap = Math.max(14, monGap0 * k);
@@ -961,15 +984,27 @@
       setHp(shown - c.drain);
       await sleep(420);
     }
-    for (const e of seq) {
+    const lastHero = seq.map(e => e.who).lastIndexOf('hero');
+    if (finale) { view.spot = { x: (st.x + cx) / 2, y: (st.y + cy) / 2 }; zoomMap(view.spot, 1.18, 500); }
+    for (const [si, e] of seq.entries()) {
+      if (lastBlow && si === lastHero) {   // 最後一擊：音樂抽掉只剩心跳、時間變慢、鏡頭推到兩人中間
+        MT.Audio.play('none'); sfx('slowBeat');
+        zoomMap({ x: (st.x + cx) / 2, y: (st.y + cy) / 2 }, 2.1, 900);
+        await sleep(1300);
+      }
       if (e.who === 'hero') {
         monHp -= e.hit; view.dying.hp = monHp;
+        if (finale) view.danger = monHp <= m.hp * 0.25;
         view.lunge = { dx, dy, t0: now(), dur: Math.min(140, heroGap) };
         fxAt('slash', center(cx, cy), i++ % 2, 220);
         sfxT(boss ? 'hitBig' : 'hit');   // 打 Boss 的每一下比較沉
         view.dying.flash = now() + 120;
         floatText(cx + (i % 2 ? 0.14 : -0.14), by > 0 ? by - 0.45 : by + 0.25, '-' + e.hit, '#ffffff', 14);
         if (boss) shake(120, 5);
+        if (lastBlow && si === lastHero) {   // 敲下去：白光、停格、長長的「噹——」（呼應序章第一鎚）
+          flash('#ffffff', 900); shake(500, 14); sfx('clang');
+          await sleep(700);
+        }
         await sleep(heroGap);
       } else if (e.who === 'mon') {
         if (e.hit > 0) {
@@ -990,6 +1025,7 @@
       }
     }
     // 結算
+    if (finale) { view.spot = null; view.danger = false; zoomMap(null, 1, 700); }
     $('#hHp').textContent = hudVal('hp');
     if (c.damage > 0) floatText(st.x, st.y, '-' + c.damage, '#ff6a6a', 18);
     sfx('kill');

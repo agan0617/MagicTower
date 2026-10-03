@@ -765,7 +765,7 @@
       ['fairy', true],
       ['say', 'doremi', 'f15_2'],
       ['fairy', false],
-      ['music', 'boss'],
+      ['music', 'finale'],
     ],
     maestroIntro: [
       ['emote', [5, 1], '…'],
@@ -791,7 +791,7 @@
       ['say', 'maestro', 'md_6'],
       ['swap', 'M1', 'M2'],
       ['flag', 'maestroWeak'],
-      ['music', 'boss'],
+      ['music', 'finale'],
       ['say', 'maestro', 'md_7'],
     ],
     // 第一階段倒下：面具裂開一半、聲音被吸回去，站起來變成失控的指揮家（3.2.44）
@@ -807,7 +807,7 @@
       ['say', 'doremi', 'p2_2'],
       ['say', 'tink', 'p2_3'],
       ['fairy', false],
-      ['music', 'boss'],
+      ['music', 'finale2'],
     ],
     noteGlow: [
       ['sfx', 'harp'], ['flash', '#ffd84a'],

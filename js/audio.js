@@ -82,6 +82,30 @@
       ],
     },
   };
+  // 最終決戰專屬曲（3.2.46 Ken 指定）：E 小調、低音一路往前推，主旋律是英雄式的上行；四樣找回來的樂器全部到齊。
+  // 二階段 finale2 同一首、速度更快
+  SONGS.finale = {
+    gain: 0.85,
+    bpm: 160,
+    tracks: [
+      { layer: 'lead', inst: 'lead', vol: 0.15, notes:
+        'e5 - g5 - b5 - - -  c6 - b5 - g5 - e5 -  d6 - c6 - b5 - a5 -  b5 - - - f#5 - - - ' +
+        'e5 - g5 - b5 - e6 -  c6 - - - b5 - g5 -  a5 - c6 - e6 - d6 c6  b5 - - - d#6 - - -' },
+      { layer: 'base', inst: 'bass', vol: 0.32, notes:
+        'e2 e3 e2 e3 e2 e3 e2 e3  c2 c3 c2 c3 c2 c3 c2 c3  d2 d3 d2 d3 d2 d3 d2 d3  b1 b2 b1 b2 b1 b2 b1 b2 ' +
+        'e2 e3 e2 e3 e2 e3 e2 e3  c2 c3 c2 c3 c2 c3 c2 c3  a1 a2 a1 a2 a1 a2 a1 a2  b1 b2 b1 b2 d#3 b2 f#3 b2' },
+      { layer: 'strings', inst: 'pulse', vol: 0.05, notes:
+        'e4 g4 b4 g4 e4 g4 b4 g4  c4 e4 g4 e4 c4 e4 g4 e4  d4 f#4 a4 f#4 d4 f#4 a4 f#4  b3 d#4 f#4 d#4 b3 d#4 f#4 d#4 ' +
+        'e4 g4 b4 g4 e4 g4 b4 g4  c4 e4 g4 e4 c4 e4 g4 e4  a3 c4 e4 c4 a3 c4 e4 c4  b3 d#4 f#4 d#4 b3 d#4 f#4 a4' },
+      { layer: 'drums', inst: 'drums', vol: 0.55, notes:
+        'k h s h k k s h  k h s h k k s h  k h s h k k s h  k h s h k s s s ' +
+        'k h s h k k s h  k h s h k k s h  k h s h k k s h  s s s s k s k s' },
+      { layer: 'winds', inst: 'flute', vol: 0.09, notes:
+        'b5 - - - - - - -  g5 - - - - - - -  a5 - - - - - - -  f#5 - - - - - - - ' +
+        'b5 - - - - - - -  e6 - - - - - - -  e6 - - - - - - -  d#6 - - - - - - -' },
+    ],
+  };
+  SONGS.finale2 = Object.assign({}, SONGS.finale, { bpm: 178 });
   SONGS.ending = Object.assign({}, SONGS.title, { bpm: 112 });
 
   let ctx = null, master, musicBus, sfxBus, noiseBuf;
@@ -540,6 +564,10 @@
     },
     boom: t => { kick(t, sfxBus, 1.4); noise(t, 0.5, 'lowpass', 300, 0.6, sfxBus); },
     // 打倒 Boss 的勝利小曲（3.2.24 Ken 指定，原創旋律，約 2.7 秒）：三連音往上衝 → 兩小句 → 最後一個長音配和弦
+    // 最後一擊前的慢動作：兩下很慢、很重的心跳（3.2.46）
+    slowBeat: t => {
+      for (const at of [0, 0.62]) { kick(t + at, sfxBus, 1.2); tone('triangle', 110, t + at, 0.18, 0.35, sfxBus, 60); noise(t + at, 0.14, 'lowpass', 400, 0.5, sfxBus); }
+    },
     victory: t => {
       [['e5', 0, 0.11], ['g5', 0.12, 0.11], ['c6', 0.24, 0.3], ['b5', 0.58, 0.11], ['c6', 0.72, 0.11], ['d6', 0.86, 0.3],
        ['e6', 1.2, 0.3], ['d6', 1.52, 0.11], ['e6', 1.66, 0.11], ['g6', 1.8, 0.9]]
