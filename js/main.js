@@ -454,10 +454,15 @@
     if (view.fadeCur > 0) { g.fillStyle = `rgba(8,6,16,${view.fadeCur})`; g.fillRect(0, 0, MW, MH); }
     // 最終決戰：聚光燈（只照兩人，四周變暗）、Boss 血少時畫面邊緣一陣陣閃紅
     if (view.spot) {
-      const px = (view.spot.x + 0.5) * TILE, py = (view.spot.y + 0.5) * TILE;
+      // 慢慢暗下來（0.9 秒），打完再慢慢亮回來（0.8 秒）（3.2.50 Ken 指定：原本一下子就暗了）
+      const sp = view.spot, a = Math.min(1, (t - sp.t0) / 900) * (sp.out ? Math.max(0, 1 - (t - sp.out) / 800) : 1);
+      if (sp.out && t - sp.out > 800) view.spot = null;
+      g.save(); g.globalAlpha = a;
+      const px = (sp.x + 0.5) * TILE, py = (sp.y + 0.5) * TILE;
       const gr = g.createRadialGradient(px, py, TILE * 1.6, px, py, TILE * 6);
       gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,0.72)');
       g.fillStyle = gr; g.fillRect(0, 0, MW, MH);
+      g.restore();
     }
     if (view.danger) {
       const a = 0.18 + 0.17 * Math.sin(t / 160);
@@ -992,7 +997,7 @@
       await sleep(420);
     }
     const lastHero = seq.map(e => e.who).lastIndexOf('hero');
-    if (finale) view.spot = { x: (st.x + cx) / 2, y: (st.y + cy) / 2 };
+    if (finale) view.spot = { x: (st.x + cx) / 2, y: (st.y + cy) / 2, t0: now() };
     for (const [si, e] of seq.entries()) {
       if (lastBlow && si === lastHero) {   // 最後一擊：音樂抽掉只剩心跳、時間變慢
         MT.Audio.play('none'); sfx('slowBeat');
@@ -1031,7 +1036,7 @@
       }
     }
     // 結算
-    if (finale) { view.spot = null; view.danger = false; }
+    if (finale) { if (view.spot) view.spot.out = now(); view.danger = false; }   // 聚光燈慢慢退掉
     $('#hHp').textContent = hudVal('hp');
     if (c.damage > 0) floatText(st.x, st.y, '-' + c.damage, '#ff6a6a', 18);
     sfx('kill');
