@@ -328,7 +328,9 @@ function potential(st, ahead = true) {
   const gv = ahead === 'all' ? GV : GVN || 6, ev = ahead === 'all' ? GV : GVN || 8;
   // 老手知道真結局要三頁日記＋失落的音符（19F 金門後面），會留金鑰匙去拿：每樣算 TE 點生命（3.2.55）
   const te = ahead === 'all' ? (st.pages.length + (st.items.note ? 1 : 0)) * TE : 0;
-  return te + st.hp - dmg - short * 4000 + st.keys.y * kv('y', 150) + st.keys.b * kv('b', 450) + st.keys.r * kv('r', 900) + st.gold * gv + st.exp * ev + (st.items.chisel || 0) * 300 * z;
+  // 音符還沒拿：手上留一把金鑰匙另外加分，不然一路上會把金鑰匙花在別的金門，到 19F 才發現打不開
+  const keep = ahead === 'all' && !st.items.note && st.keys.r > 0 ? TE : 0;
+  return te + keep + st.hp - dmg - short * 4000 + st.keys.y * kv('y', 150) + st.keys.b * kv('b', 450) + st.keys.r * kv('r', 900) + st.gold * gv + st.exp * ev + (st.items.chisel || 0) * 300 * z;
 }
 
 function newRun(opt) {

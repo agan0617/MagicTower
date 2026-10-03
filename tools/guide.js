@@ -23,7 +23,8 @@ const NPC_NAME = c => MT.t('npc_' + c) !== 'npc_' + c ? MT.t('npc_' + c) : MT.t(
 
 console.error(`高手（寬度 ${width}）跑路線中…`);
 const t0 = Date.now();
-const run = S.solveStrong({ width, log: true });
+const ai = process.argv.indexOf('--ahead'), ahead = ai > 0 ? (process.argv[ai + 1] === 'all' ? 'all' : Number(process.argv[ai + 1]) > 0) : undefined;   // --ahead all：知道整座塔的老手路線（3.2.55）
+const run = S.solveStrong({ width, log: true, ahead });
 if (!run.done) { console.error('高手沒通關，攻略產生不了'); process.exit(1); }
 const log = S.logList(run.st);
 console.error(`通關，分數 ${run.score}，${log.length} 筆紀錄，${((Date.now() - t0) / 1000).toFixed(0)} 秒`);
