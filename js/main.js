@@ -311,11 +311,18 @@
     }
     // 多蕾跟在旁邊
     if (view.fairy) {
-      const fx = x * TILE + 26 + Math.cos(t / 500) * 6, fy = y * TILE - 22 + Math.sin(t / 260) * 5;
-      g.save(); g.globalAlpha = 0.5; g.fillStyle = '#fff6b0';
+      // 告別中：越飄越高、越來越透明，飄得越來越慢
+      const lv = view.fairyLeave, lk = lv ? Math.min(1, (t - lv.t0) / lv.dur) : 0, rise = (1 - Math.pow(1 - lk, 2)) * TILE * 1.6;
+      const fx = x * TILE + 26 + Math.cos(t / 500) * 6 * (1 - lk), fy = y * TILE - 22 + Math.sin(t / 260) * 5 - rise;
+      if (lv) {
+        g.save(); g.globalAlpha = 1 - lk;
+        if (Math.random() < 0.35) view.fx.push({ kind: 'spark', x: fx + 12, y: fy + 14, vx: (x * TILE + TILE / 2 - fx - 12) / 900, vy: (y * TILE + TILE / 2 - fy - 14) / 900, t0: t, life: 900, color: '#fff6b0' });   // 光點飄向阿爾特
+      }
+      g.save(); g.globalAlpha = 0.5 * (1 - lk); g.fillStyle = '#fff6b0';
       g.beginPath(); g.arc(fx + 12, fy + 14, 14, 0, Math.PI * 2); g.fill(); g.restore();
       g.drawImage(MT.sprite('fairy', null, 2, Math.cos(t / 500) < 0), fx, fy);
-      if (Math.random() < 0.15) view.fx.push({ kind: 'spark', x: fx + 12, y: fy + 26, vx: (Math.random() - 0.5) * 0.4, vy: 0.4, t0: t, life: 600, color: '#fff6b0' });
+      if (lv) g.restore();
+      else if (Math.random() < 0.15) view.fx.push({ kind: 'spark', x: fx + 12, y: fy + 26, vx: (Math.random() - 0.5) * 0.4, vy: 0.4, t0: t, life: 600, color: '#fff6b0' });
     }
   }
 
@@ -700,6 +707,14 @@
             await sleep(700); break;
           }
           case 'sparkle': sparkle(c[1], c[2], 40); notes(c[1], c[2], 8); break;
+          case 'fairyFarewell': {   // 多蕾告別：3.6 秒慢慢上飄淡出，光點往阿爾特身上飄，最後一顆落下時「叮」
+            view.fairyLeave = { t0: now(), dur: 3600 };
+            await sleep(3600);
+            view.fairy = false; view.fairyLeave = null;
+            sfx('chime'); sparkle(st.x, st.y, 18, ['#fff6b0', '#ffe066', '#ffffff']);
+            await sleep(1400);
+            break;
+          }
           case 'fairy':
             view.fairy = c[1];
             if (c[1]) { sfx('fly'); sparkle(st.x, st.y - 0.5, 14, ['#fff6b0', '#ffe066', '#ffffff', '#ff9ccc']); await sleep(250); }

@@ -106,6 +106,21 @@
     ],
   };
   SONGS.finale2 = Object.assign({}, SONGS.finale, { bpm: 178 });
+  // 多蕾告別（3.2.47 Ken 指定）：慢版、只剩音樂盒的音色，A 小調下行，最後停在一個長音
+  SONGS.farewell = {
+    bpm: 72,
+    tracks: [
+      { layer: 'base', inst: 'bell', vol: 0.16, notes:
+        'a5 - - - e5 - - -  f5 - - - c5 - - -  d5 - - - a4 - - -  b4 - - - e5 - - - ' +
+        'a5 - c6 - b5 - a5 -  g5 - - - e5 - - -  f5 - e5 - d5 - c5 -  b4 - - - - - - -' },
+      { layer: 'base', inst: 'bell', vol: 0.06, notes:
+        'c5 - e5 - a5 - e5 -  a4 - c5 - f5 - c5 -  f4 - a4 - d5 - a4 -  g#4 - b4 - e5 - b4 - ' +
+        'c5 - e5 - a5 - e5 -  c5 - e5 - g5 - e5 -  a4 - c5 - f5 - c5 -  g#4 - b4 - e5 - - -' },
+      { layer: 'base', inst: 'bass', vol: 0.12, notes:
+        'a2 - - - - - - -  f2 - - - - - - -  d2 - - - - - - -  e2 - - - - - - - ' +
+        'a2 - - - - - - -  c3 - - - - - - -  d2 - - - - - - -  e2 - - - - - - -' },
+    ],
+  };
   SONGS.ending = Object.assign({}, SONGS.title, { bpm: 112 });
 
   let ctx = null, master, musicBus, sfxBus, noiseBuf;
@@ -564,6 +579,8 @@
     },
     boom: t => { kick(t, sfxBus, 1.4); noise(t, 0.5, 'lowpass', 300, 0.6, sfxBus); },
     // 打倒 Boss 的勝利小曲（3.2.24 Ken 指定，原創旋律，約 2.7 秒）：三連音往上衝 → 兩小句 → 最後一個長音配和弦
+    // 多蕾最後一顆光點落在阿爾特身上的那一聲（3.2.47）：清亮的「叮——」帶一點泛音
+    chime: t => { tone('sine', freq('e6'), t, 1.8, 0.16, sfxBus); tone('sine', freq('b6'), t + 0.02, 1.4, 0.06, sfxBus); tone('triangle', freq('e5'), t, 1.2, 0.05, sfxBus); },
     // 最後一擊前的慢動作：兩下很慢、很重的心跳（3.2.46）
     slowBeat: t => {
       for (const at of [0, 0.62]) { kick(t + at, sfxBus, 1.2); tone('triangle', 110, t + at, 0.18, 0.35, sfxBus, 60); noise(t + at, 0.14, 'lowpass', 400, 0.5, sfxBus); }
