@@ -2937,7 +2937,7 @@
     $('#title').hidden = false; $('#stage').classList.add('under');
     $('#dialog').hidden = true;
     renderTitle();
-    MT.Audio.play('title', ['base', 'drums', 'strings', 'winds', 'lead']);
+    MT.Audio.play('tower', ['base', 'drums', 'strings', 'winds', 'lead']);   // 標題畫面放塔裡的曲子（全部樂器到齊的版本；3.2.52 Ken 指定，原本是 title）
     MT.Sync.pull().then(() => { if (mode === 'title') renderTitle(); });
   }
   $('#tContinue').addEventListener('click', () => { MT.Audio.init(); const a = latestAuto(); if (a) startGame(MT.unpack(a.data)); });
