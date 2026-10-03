@@ -4,7 +4,7 @@
 
 **直接玩**：https://agan0617.github.io/MagicTower/
 
-<p align="center"><img src="docs/screenshot.png" alt="6F 遊戲畫面：怪物腳下是這一戰的生命損失，發金光的是呱呱商人" width="380"></p>
+<p align="center"><img src="docs/screenshot.png" alt="1F 遊戲畫面：上方資訊列是生命、攻擊、防禦、鑰匙、等級經驗與金幣，地圖上是怪物、門、鑰匙和各種道具" width="380"></p>
 
 ## 故事
 
