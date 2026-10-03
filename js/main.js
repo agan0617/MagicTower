@@ -140,11 +140,15 @@
     return out[0] || null;
   }
   // 走一步、上下樓之後呼叫：有講就回傳 true（呼叫端停下自動走路）
+  // 危險、不知道會吃大虧的才停下來講（吸血、夾擊、共鳴、回音地板）；其他的只在上方跳一行小提示、不打斷（3.2.41 Ken 指定）
+  const HINT_STOP = ['sp:drain', 'sp:pincer', 'sp:aura', 'echo'];
   async function nearHints() {
     const h = nearNews();
     if (!h) return false;
-    await tutHint(...h);
-    return true;
+    if (HINT_STOP.includes(h[0])) { await tutHint(...h); return true; }
+    st.flags['tut:' + h[0]] = 1;
+    if (!veteran()) toast(h[0] === 'shop' ? MT.t('thLiteShop') : MT.t('thLite', h[2]));
+    return false;
   }
   // 舊存檔第一次讀進來：去過的樓層上已經見過的東西、開過門撿過道具，都當作講過了，不要一口氣補講
   function tutCatchUp() {
