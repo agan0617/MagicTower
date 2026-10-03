@@ -233,7 +233,8 @@ input[type=text], input[type=password] { width: 100%; padding: 10px 12px; border
 .tutPicBox { display: flex; justify-content: center; margin-bottom: 10px; }
 .tutPic { display: block; max-width: 100%; height: auto; border-radius: 6px; box-shadow: 0 0 0 2px #2a2648, 0 6px 20px -6px #000; }
 .tutText { margin: 0 0 10px; line-height: 1.7; white-space: pre-line; }
-.tutEx { font-size: 14px; color: #d8d0f0; background: var(--panel2); border-radius: 8px; padding: 8px 10px; }
+.tutRed { color: #ff5a5a; font-weight: 700; }
+.tutHi { color: #ffe066; }
 .tutRow { display: flex; gap: 12px; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--line); }
 .tutRow:has(+ .tutNav), .tutPage > .tutRow:last-child { border-bottom: 0; }
 .tutRow img { width: 40px; height: 40px; flex: none; background: #2a2648; border-radius: 8px; }

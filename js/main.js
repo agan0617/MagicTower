@@ -1625,12 +1625,7 @@
     { pic: () => tutScene(['.. .. ## .. .. Yk', '.. .. ## .. ## ..', '@@ .. .. .. ## ..'],
       { dir: 'side', route: [[0, 2], [1, 2], [2, 2], [3, 2], [3, 1], [3, 0], [4, 0], [5, 0]], goal: [5, 0], cross: [4, 2] }) },
     { pic: () => tutScene(['@@ gs rs bt sk ab'], { dir: 'side', dmg: true }),
-      after: () => {
-        const k = MT.calc(TUT_ST, 'gs'), m = MT.MONSTERS.gs;
-        const ex = MT.t('tut_3x', { hp: TUT_ST.hp, atk: TUT_ST.atk, def: TUT_ST.def, name: MT.monName('gs'), mhp: m.hp, matk: m.atk, mdef: m.def,
-          hit: k.heroHit, turns: k.turns, acts: k.monActs, mhit: k.monHit, dmg: k.damage });
-        return `<p class="tutText tutEx">${esc(ex)}</p>` + tutRow(img('book', null, 'big'), MT.itemName('book'), MT.t('tut_3b'));
-      } },
+      after: () => (st && st.items.book ? tutRow(img('book', null, 'big'), MT.itemName('book'), MT.t('tut_3b')) : '') },   // 圖鑑那列拿到才顯示（Ken 指定）
     { pic: () => tutScene(['Yk Bk Rk ## Gt ##', 'Yd Bd Rd .. sk ..']) },
     { pic: () => tutScene(['at df hp HP s1 a1'], { labels: [[0, 0, '+' + ZV('at'), '#ffae6a'], [1, 0, '+' + ZV('df'), '#7ac8ff'], [2, 0, '+' + ZV('hp'), '#ff7a7a'],
       [3, 0, '+' + ZV('HP'), '#ff7a7a'], [4, 0, '+' + MT.ITEMS.s1.value, '#ffae6a'], [5, 0, '+' + MT.ITEMS.a1.value, '#7ac8ff']] }) },
@@ -1644,6 +1639,8 @@
     { after: () => [['lens', 'look'], ['porter', 'npc'], ['harp', 'skill'], ['page', 'save'], ['goldnote', 'rate']]   // 特殊道具的用法拿到才看得到（圖鑑的收藏品分頁），不寫在這裡
       .map(([sp, k]) => tutRow(img(sp, null, 'big'), '', MT.t('tut_t_' + k))).join('') },
   ];
+  // 教學內文：??? 畫成紅色（跟地圖上打不動的標示一樣），**…** 畫成重點色
+  const tutFmt = s => esc(s).replace(/\?\?\?/g, '<span class="tutRed">???</span>').replace(/\*\*(.+?)\*\*/g, '<b class="tutHi">$1</b>');
   let tutGo = null;   // 教學開著時的翻頁（鍵盤左右鍵用）
   // 選單、標題畫面、資訊列的「？」都開得了（教學的圖和例子不看目前這局）；startPage＝直接翻到第幾頁；
   // single＝遇到機制時彈出的那一頁：只看這頁，底下只有「關閉」（Ken 指定）
@@ -1659,7 +1656,7 @@
         const P = TUT_PAGES[page];
         // 內容放在 tutPage 裡（太長就自己捲），翻頁列固定在面板底部：每頁一樣大，「下一頁」不會跑位置（Ken 指定）
         body.innerHTML = `<div class="tutPage"><h3 class="tutH">${esc(MT.t('tut_' + i + 't'))}</h3>${P.pic ? `<div class="tutPicBox">${P.pic()}</div>` : ''}`
-          + `<p class="tutText">${esc(MT.t('tut_' + i, { at: MT.t('name_at'), df: MT.t('name_df'), hp: MT.t('name_hp'), HP: MT.t('name_HP') }))}</p>${P.after ? P.after() : ''}</div>`
+          + `<p class="tutText">${tutFmt(MT.t('tut_' + i, { at: MT.t('name_at'), df: MT.t('name_df'), hp: MT.t('name_hp'), HP: MT.t('name_HP') }))}</p>${P.after ? P.after() : ''}</div>`
           + (single ? `<div class="tutNav"><span></span><button class="btn primary" data-close>${esc(MT.t('tut_close'))}</button></div>`
             : `<div class="tutNav"><button class="btn" data-d="-1" ${page ? '' : 'disabled'}>${esc(MT.t('tut_prev'))}</button><span class="tutDots">${dots}</span>`
             + `<button class="btn primary" data-d="1">${esc(MT.t(page === n - 1 ? 'tut_done' : 'tut_next'))}</button></div>`);

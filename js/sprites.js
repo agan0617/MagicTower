@@ -1174,8 +1174,9 @@
   const HERO_HEAD = {
     down: ['.....y.yy.y.....', '....kyyyyyyk....', '....knnnnnnk....', '...knnNnnNnnk...', '...knssssssnk...',
       '...kssksskssk...', '...kssssssssk...', '....kssmmssk....', '...kkkkkkkkkk...'],
-    up: ['.....y.yy.y.....', '....kyyyyyyk....', '....knnnnnnk....', '...knnnnnnnnk...', '...knnnnnnnnk...',
-      '...knnNnnNnnk...', '...knnnnnnnnk...', '....knnnnnnk....', '...kkkkkkkkkk...'],
+    // 背影：後腦杓中間一個髮旋（3.2.11 以前是照正面瀏海的兩撮深色，背面看像兩隻眼睛）
+    up: ['.....y.yy.y.....', '....kyyyyyyk....', '....knnnnnnk....', '...knnnNNnnnk...', '...knnnnnNnnk...',
+      '...knnnnnnnnk...', '...knnnnnnnnk...', '....knnnnnnk....', '...kkkkkkkkkk...'],
     side: ['.....y.yy.y.....', '....kyyyyyyk....', '....knnnnnnk....', '...knnnnnNnnk...', '...knnnnsssk....',
       '...knnnsskskk...', '...knnnssssssk..', '....knnsssmsk...', '....kkkkkkkk....'],
   };

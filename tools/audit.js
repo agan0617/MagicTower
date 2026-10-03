@@ -161,7 +161,7 @@ const roots = f => {
   for (const f of floors) {
     const m = st.maps[f];
     const r = flood(m, roots(f), (c, a, b) => !blocks(c) && !isGate(c) && !auraCell(f, a, b));
-    const free = [...r].map(k => k.split(',').map(Number)).map(([a, b]) => m[b][a]).filter(t => MT.isItem(t));
+    const free = [...r].map(k => k.split(',').map(Number)).map(([a, b]) => m[b][a]).filter(t => MT.isItem(t) && t !== 'Mb');   // 怪物圖鑑擋在 1F 必經的路上、一定會撿，不是取捨，不算
     if (free.length > 3 && !MT.NOFLY[f]) rows.push(`${MT.floorName(f)} ${free.length} 個：${free.join(' ')}`);
   }
   report('免費道具 ≤ 3', rows);
