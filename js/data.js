@@ -62,11 +62,11 @@
     rc: { hp: 500, atk: 150, def: 190, gold: 45, exp: 35, sprite: 'resonator', sp: ['magic', 'aura'], aura: 80 },
     K4: { hp: 6000, atk: 340, def: 185, gold: 200, exp: 150, size: 2, sprite: 'conductor', sp: ['boss', 'magic'] },     // 18F 回音指揮
     M1: { hp: 9999, atk: 350, def: 200, gold: 0, exp: 0, size: 3, sprite: 'maestroBig', sp: ['boss', 'invincible'], onBump: 'maestroDrum' },
-    M2: { hp: 5000, atk: 450, def: 200, gold: 0, exp: 0, size: 3, sprite: 'maestroBig', sp: ['boss'], onDeath: 'maestroPhase2' },
+    M2: { hp: 4500, atk: 450, def: 200, gold: 0, exp: 0, size: 3, sprite: 'maestroBig', sp: ['boss'], onDeath: 'maestroPhase2' },
     // 二階段「失控的指揮家」（3.2.44 Ken 指定）：面具裂一半、攻擊很高防禦很低——攻擊夠的人很快打完，攻擊不夠的會被拖垮；
     // 身上有失落的音符（真結局路線）時換成 M4：音符發光讓他慢一拍
-    M3: { hp: 4000, atk: 560, def: 140, gold: 0, exp: 0, size: 3, sprite: 'maestroBig', pal: 'maestroRage', sp: ['boss'], onDeath: 'ending' },
-    M4: { hp: 3500, atk: 520, def: 140, gold: 0, exp: 0, size: 3, sprite: 'maestroBig', pal: 'maestroRage', sp: ['boss'], onDeath: 'ending' },
+    M3: { hp: 3000, atk: 560, def: 140, gold: 0, exp: 0, size: 3, sprite: 'maestroBig', pal: 'maestroRage', sp: ['boss'], onDeath: 'ending' },
+    M4: { hp: 2600, atk: 520, def: 140, gold: 0, exp: 0, size: 3, sprite: 'maestroBig', pal: 'maestroRage', sp: ['boss'], onDeath: 'ending' },
   };
 
   // 同區域的數值：[1區, 2區, 3區, 4區]
@@ -166,8 +166,11 @@
      S 比真人型最好的一次還高、要到高手的水準（高手寬度 4 回音、寬度 12 都還拿得到） */
   // 3.2.43 改照 Ken 實玩定：模擬玩家明顯比真人弱（Ken 3.2.42 真結局 18507，模擬完美高手最好約 13000），
   // 用模擬訂的 S 8000 對真人太鬆。先訂 S 16000／A 11000／B 6000，之後照實玩回饋再調
+  // 3.2.55 模擬改良（會跳過不划算的怪、不囤資源、會去拿真結局）後，在 3.2.42 上能打到 Ken 的 19027，
+  // 改回照模擬定（各 48 局）：一般真人通關 68%、中位數約 1400 → B 1300 讓 B≈C；
+  // 高手真人通關 85%、中位數約 15800 → A 15000 讓 A≈B；S 18000＋真結局只有高手的前 15%（Ken 指定的目標見 DESIGN.md）
   MT.LEFTOVER = 1.3;   // 通關時剩下的金幣、鑰匙、經驗值換算成分數的加成（3.2.43）
-  MT.RATING = { S: 16000, A: 11000, B: 6000 };
+  MT.RATING = { S: 18000, A: 15000, B: 1300 };
 
   MT.START = { floor: 1, x: 5, y: 14, hp: 1000, atk: 10, def: 10, gold: 0, keys: { y: 1, b: 0, r: 0 } };
 
@@ -277,7 +280,7 @@
       '## sw ## ## DG DG DG ## ## bb ##',
       '## sw ## ## DG DG DG ## ## bb ##',
       '## Yd ## .. .. .. .. .. ## Yd ##',
-      '## .. .. .. ## .. ## .. .. .. ##',
+      '## Yk .. .. ## .. ## .. .. .. ##',   // (1,6) 銅鑰匙：1～4F 把鑰匙花光的人到 5F 還有一把能開補給房（3.2.55）
       '## ## ## ## ## .. ## ## ## Yd ##',
       'Yk sk .. bt Yd .. Yd mg .. sk Yk',
       'hp ## ## ## ## .. ## ## ## ## hp',

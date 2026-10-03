@@ -14,6 +14,7 @@ if (si >= 0) S.setSkills([args[si + 1]]);
 const verbose = args.includes('-v');
 const num = (k, d) => { const i = args.indexOf(k); return i >= 0 ? Number(args[i + 1]) : d; };
 const noise = num('--noise', 0), nRuns = num('--runs', 1), seed0 = num('--seed', 1);
+const ai = args.indexOf('--ahead'), ahead = ai >= 0 ? (args[ai + 1] === 'all' ? 'all' : args[ai + 1] === '1') : null;   // --ahead all＝看整座塔（老手）、1／0＝看不看下一層
 
 function line(name, r, ms) {
   const st = r.st;
@@ -21,7 +22,7 @@ function line(name, r, ms) {
   const sk = st.skill ? `${st.skill.type} Lv${st.skill.lv}` : '-';
   return `${name.padEnd(6)} ${where.padEnd(8)} 分數 ${String(r.score == null ? '-' : r.score).padStart(6)} ${r.grade || ' '}  HP ${st.hp} 攻 ${st.atk} 防 ${st.def} Lv ${st.lv} 金 ${st.gold} 經驗 ${st.exp} 鑰 ${st.keys.y}/${st.keys.b}/${st.keys.r} 技能 ${sk}  擊倒 ${st.kills}  (${(ms / 1000).toFixed(1)}s)`;
 }
-const runs = { weak: () => S.solveWeak(), mid: () => S.solveMid(), human: seed => S.solveHuman({ width: width || 4, noise, seed }), strong: () => S.solveStrong({ width: width || 12 }) };
+const runs = { weak: () => S.solveWeak(), mid: () => S.solveMid(), human: seed => S.solveHuman({ width: width || 4, noise, seed, ahead }), strong: () => S.solveStrong({ width: width || 12, ahead }) };
 const dist = [];
 for (const k of only ? [only] : ['weak', 'mid', 'human', 'strong']) for (let seed = seed0; seed < seed0 + (k === 'human' ? nRuns : 1); seed++) {
   const t0 = Date.now();

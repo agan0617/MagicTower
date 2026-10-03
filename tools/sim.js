@@ -234,9 +234,71 @@ function stairNeed(st, f) {
   return null;
 }
 
-// ahead：連還沒去過的下一層的怪也算進去（新手／一般／高手都偷看一層；真人型 human 不偷看，只算去過的樓層）
+// ahead：連還沒去過的下一層的怪也算進去（新手／一般／高手都偷看一層；真人型 human 不偷看，只算去過的樓層）；
+// 'all'＝整座塔剩下的怪都算（玩過一次、知道後面有什麼的人，3.2.50 起用來模擬像 Ken 那樣的老手）
+const GV = process.env.MT_GV != null ? +process.env.MT_GV : 1;   // 老手眼中一金幣／一經驗值多少生命（3 會囤到通關、0 會亂花，1 最像 Ken）
+const GVN = +process.env.MT_GVN || 0;   // 沒看過整座塔的人眼中金幣／經驗的價值（0＝照舊 6／8）
+const TE = process.env.MT_TE != null ? +process.env.MT_TE : 2500;
+const CAP = +process.env.MT_CAP || 3000;   // 一隻怪最多算多少傷害
+
+/* 這隻怪值不值得打（3.2.55）：拿開局的地圖算「把這格堵住，會少走到哪些格子」＝牠守著的東西。
+   守著樓梯、NPC、劇情道具（日記、圖鑑、鑿子…）＝必經，傷害照算；
+   只守著愛心、寶石、鑰匙、別的怪＝支線，以後的成本最多算到「那堆東西值多少」，
+   太貴的就等於不打（不然模擬會把每隻怪都當成遲早要付的帳，幾乎全清；Ken 實際玩是沒好處的怪不打） */
+const GUARD = process.env.MT_GUARD !== '0';
+const PT = +process.env.MT_PT || 200;   // 一點攻／防約等於多少生命
+let guardMap = null;
+function guardValues() {
+  if (guardMap) return guardMap;
+  guardMap = {};
+  const st0 = MT.newGame(), D4 = [[0, -1], [0, 1], [-1, 0], [1, 0]];
+  for (let f = 0; f <= MT.TOP; f++) {
+    const m = st0.maps[f];
+    if (!m) continue;
+    const entries = [];
+    for (let y = 0; y < MT.H; y++) for (let x = 0; x < MT.W; x++) if (m[y][x] === 'UU' || m[y][x] === 'DD') entries.push([x, y]);
+    if (f === MT.START.floor) entries.push([MT.START.x, MT.START.y]);
+    const reach = (bx, by) => {
+      const seen = new Set(), q = [];
+      for (const [x, y] of entries) if (!(x === bx && y === by)) { seen.add(y * 100 + x); q.push([x, y]); }
+      while (q.length) {
+        const [x, y] = q.pop();
+        for (const [dx, dy] of D4) {
+          const nx = x + dx, ny = y + dy, k = ny * 100 + nx;
+          if (nx < 0 || ny < 0 || nx >= MT.W || ny >= MT.H || seen.has(k) || m[ny][nx] === '##' || (nx === bx && ny === by)) continue;
+          seen.add(k); q.push([nx, ny]);
+        }
+      }
+      return seen;
+    };
+    const all = reach(-1, -1), g = {};
+    for (let y = 0; y < MT.H; y++) for (let x = 0; x < MT.W; x++) {
+      if (!MT.isMonster(m[y][x])) continue;
+      const r = reach(x, y);
+      let v = 0;
+      for (const k of all) {
+        if (r.has(k)) continue;
+        const t = m[Math.floor(k / 100)][k % 100];
+        if (t === '..' || MT.DOORS[t]) continue;
+        if (t === 'UU' || t === 'DD' || MT.isNpc(t)) { v = Infinity; break; }
+        if (MT.isMonster(t)) { const mm = MT.MONSTERS[t]; if (mm.boss || mm.onDeath) { v = Infinity; break; } v += ((mm.gold || 0) + (mm.exp || 0)) * 3; continue; }
+        const it = MT.ITEMS[t];
+        if (!it) continue;   // 裂牆、暗牆、地板機關
+        if (it.kind === 'hp') v += MT.zoneValue(it.zone, f);
+        else if ((it.kind === 'atk' || it.kind === 'def') && it.zone) v += MT.zoneValue(it.zone, f) * PT;
+        else if (it.kind === 'key') v += { y: 150, b: 450, r: 900 }[it.key];
+        else { v = Infinity; break; }
+      }
+      const mm = MT.MONSTERS[m[y][x]];
+      if (mm.boss || mm.onDeath) v = Infinity;
+      g[y * 100 + x] = v + ((mm.gold || 0) + (mm.exp || 0)) * 3;
+    }
+    guardMap[f] = g;
+  }
+  return guardMap;
+}
 function potential(st, ahead = true) {
-  const top = Math.min(MT.TOP, maxFloor(st) + (ahead ? 1 : 0));
+  const top = ahead === 'all' ? MT.TOP : Math.min(MT.TOP, maxFloor(st) + (ahead ? 1 : 0));
   let dmg = 0;
   for (let f = 1; f <= top; f++) {
     const m = st.maps[f], seen = new Set();
@@ -247,7 +309,8 @@ function potential(st, ahead = true) {
       const mm = MT.MONSTERS[t];
       if ((mm.sp || []).includes('invincible')) continue;
       const c = MT.calc(st, t);
-      const cap = 3000 * MT.zoneOf(f);
+      let cap = CAP * MT.zoneOf(f);
+      if (GUARD && ahead === 'all') { const gv0 = guardValues()[f]; const gw = gv0 && gv0[y * 100 + x]; if (gw != null) cap = Math.min(cap, gw); }
       dmg += c.damage == null ? cap : Math.min(c.damage, cap);
     }
   }
@@ -261,7 +324,11 @@ function potential(st, ahead = true) {
     const need = stairNeed(st, mf);
     if (need) short = Math.max(0, need.y - st.keys.y) + Math.max(0, need.b - st.keys.b) * 2 + Math.max(0, need.r - st.keys.r) * 4;
   }
-  return st.hp - dmg - short * 4000 + st.keys.y * kv('y', 150) + st.keys.b * kv('b', 450) + st.keys.r * kv('r', 900) + st.gold * 6 + st.exp * 8 + (st.items.chisel || 0) * 300 * z;
+  // 看整座塔的老手（ahead＝'all'）：手上的金幣、經驗值估得比較低（各 3），傾向早點換成能力（3.2.53：不然會囤到通關）
+  const gv = ahead === 'all' ? GV : GVN || 6, ev = ahead === 'all' ? GV : GVN || 8;
+  // 老手知道真結局要三頁日記＋失落的音符（19F 金門後面），會留金鑰匙去拿：每樣算 TE 點生命（3.2.55）
+  const te = ahead === 'all' ? (st.pages.length + (st.items.note ? 1 : 0)) * TE : 0;
+  return te + st.hp - dmg - short * 4000 + st.keys.y * kv('y', 150) + st.keys.b * kv('b', 450) + st.keys.r * kv('r', 900) + st.gold * gv + st.exp * ev + (st.items.chisel || 0) * 300 * z;
 }
 
 function newRun(opt) {
@@ -344,7 +411,7 @@ function solveStrong(opt = {}) {
         const g = sig(s2);
         if (seen.has(g)) continue;
         seen.add(g);
-        s2._p = potential(s2);
+        s2._p = potential(s2, opt.ahead == null ? true : opt.ahead);
         next.push(s2);
       }
     }
@@ -392,7 +459,7 @@ function solveHuman(opt = {}) {
         const g = sig(s2);
         if (seen.has(g)) continue;
         seen.add(g);
-        s2._p = potential(s2, false) + (noise ? (rng() - 0.5) * noise : 0);
+        s2._p = potential(s2, opt.ahead == null ? false : opt.ahead) + (noise ? (rng() - 0.5) * noise : 0);
         next.push(s2);
       }
     }
