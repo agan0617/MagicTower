@@ -503,14 +503,6 @@
   }
   const shake = (ms, amp) => { view.shake = amp || 8; view.shakeUntil = now() + ms; };
   const flash = (color, dur) => { view.flash = { color: color || '#fff', t0: now(), dur: dur || 450 }; };
-  // 鏡頭推近：把地圖畫布以某格為中心放大（at＝{x,y} 格座標，null＝回到原本）；外框裁掉超出的部分
-  function zoomMap(at, scale, ms) {
-    const cv = $('#map');
-    $('#mapWrap').style.overflow = scale > 1 ? 'hidden' : '';
-    if (at) cv.style.transformOrigin = `${(at.x + 0.5) / W * 100}% ${(at.y + 0.5) / H * 100}%`;
-    cv.style.transition = `transform ${ms}ms cubic-bezier(.2,.8,.2,1)`;
-    cv.style.transform = scale > 1 ? `scale(${scale})` : '';
-  }
 
   /* ───────── HUD ───────── */
   /* 屬性增加時先在地圖上跳「+N」（鑰匙是鑰匙圖），再飛進上面的資訊列，飛到了數字才加上去（Ken 指定）。
@@ -982,7 +974,7 @@
       if (c.monHit > 0 || c.reflect > 0) dead = monTurn(); else seq.push({ who: 'idle' });
       if (seq.length > 4000) break;
     }
-    // 最終 Boss（指揮家兩階段）：演得久一點、聚光燈、血少時畫面邊緣閃紅，二階段最後一擊慢動作＋鏡頭推近（3.2.46 Ken 指定）
+    // 最終 Boss（指揮家兩階段）：演得久一點、聚光燈、血少時畫面邊緣閃紅，二階段最後一擊慢動作（3.2.46 Ken 指定；鏡頭推近 3.2.48 拿掉，效果不好）
     const finale = ['M2', 'M3', 'M4'].includes(ev.tile), lastBlow = ev.tile === 'M3' || ev.tile === 'M4';
     const heroGap0 = boss ? (finale ? 240 : 200) : 130, monGap0 = heroGap0 * 0.85;   // 雙方一來一往要看得出來
     const cap = (boss ? (finale ? 14 : 8) : 4) * (heroGap0 + monGap0);
@@ -1000,11 +992,10 @@
       await sleep(420);
     }
     const lastHero = seq.map(e => e.who).lastIndexOf('hero');
-    if (finale) { view.spot = { x: (st.x + cx) / 2, y: (st.y + cy) / 2 }; zoomMap(view.spot, 1.18, 500); }
+    if (finale) view.spot = { x: (st.x + cx) / 2, y: (st.y + cy) / 2 };
     for (const [si, e] of seq.entries()) {
-      if (lastBlow && si === lastHero) {   // 最後一擊：音樂抽掉只剩心跳、時間變慢、鏡頭推到兩人中間
+      if (lastBlow && si === lastHero) {   // 最後一擊：音樂抽掉只剩心跳、時間變慢
         MT.Audio.play('none'); sfx('slowBeat');
-        zoomMap({ x: (st.x + cx) / 2, y: (st.y + cy) / 2 }, 2.1, 900);
         await sleep(1300);
       }
       if (e.who === 'hero') {
@@ -1040,7 +1031,7 @@
       }
     }
     // 結算
-    if (finale) { view.spot = null; view.danger = false; zoomMap(null, 1, 700); }
+    if (finale) { view.spot = null; view.danger = false; }
     $('#hHp').textContent = hudVal('hp');
     if (c.damage > 0) floatText(st.x, st.y, '-' + c.damage, '#ff6a6a', 18);
     sfx('kill');
