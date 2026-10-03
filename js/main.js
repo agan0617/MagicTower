@@ -1617,7 +1617,7 @@
     return `<img class="px tutPic" src="${c.toDataURL()}" alt="">`;
   }
   // 圖示＋說明一列（怪物特技、小技巧那兩頁）
-  const tutRow = (pic, head, text) => `<div class="tutRow">${pic}<div><b>${esc(head)}</b>${head && text ? '<br>' : ''}<span class="small">${esc(text)}</span></div></div>`;
+  const tutRow = (pic, head, text) => `<div class="tutRow">${pic}<div><b>${esc(head)}</b>${head && text ? '<br>' : ''}<span class="small">${tutFmt(text)}</span></div></div>`;
   const ZV = k => MT.ZONE_VALUES[MT.ITEMS[k].zone][0];
   // 每頁：pic 標題下的示意圖、after 說明文字後面的補充（例子、一列一列的圖示說明）；文字是 i18n 的 tut_<頁>t（標題）、tut_<頁>
   const TUT_PAGES = [
