@@ -1863,6 +1863,7 @@
   let forgeBeat = -1;   // 打鐵鋪那幕上一次響鐵砧聲的拍子
   // 國王進門那幕：王子敲鐵的時間點（毫秒），跟國王的腳步聲（754／1131／1508）錯開，聽起來是噹、步、噹、步；國王站定前轉身
   const FORGE_KING_HITS = [150, 560, 940, 1320], FORGE_KING_TURN = 1500;
+  const MEET_WALK = 1400;   // 遇見多蕾那幕：王子從左邊走進場的時間（毫秒）
   // 鎚子敲下後跳出的「噹」：age＝敲下後幾毫秒，先放大一下再往上飄著淡掉
   function clangPop(age, x, y) {
     if (age < 0 || age > 900) return;
@@ -2418,7 +2419,13 @@
       cg.fillStyle = '#4a3a3a'; cg.fillRect(0, SIZE - 90, SIZE, 90);
       // 先是阿爾特第一次看到塔：嚇得往後一縮、頭上冒驚嘆號、冷汗直流（1.2 秒）。
       // 接著多蕾出場：先是一點光，四周的光點往它聚過去、越來越亮，然後「啵」地彈出來（約 1.3 秒）
-      const raw = t - cineT0, st = raw - 1200;
+      // 一開始先從左邊走進場（MEET_WALK 毫秒，3.2.17 Ken 指定），走到定點抬頭看到塔才嚇到
+      const raw = t - cineT0 - MEET_WALK, st = raw - 1200;
+      if (raw < 0) {
+        const k = 1 + raw / MEET_WALK, foot = Math.floor((t - cineT0) / 140) % 2 ? 'A' : 'B';
+        bigSprite(MT.heroSprite('side', foot, 0, '', ''), null, -130 + 220 * k, SIZE - 90 - 128 - (foot === 'A' ? 4 : 0), 8);
+        return;
+      }
       const fx = 300, fy = SIZE - 300 + Math.sin(t / 250) * 12, fc = [fx + 56, fy + 56];
       const shown = st >= 1300;
       const flinch = raw < 350 ? Math.sin(raw / 350 * Math.PI) : 0;
@@ -2623,10 +2630,10 @@
       cineNext();
     });
   }
-  let cineFull = '';
+  let cineFull = '', cineShowName = null;
   function cineNext() {
     if (endScreen) return;
-    if (typing) { clearInterval(typing); typing = null; $('#cineBody').textContent = cineFull; return; }
+    if (typing) { clearInterval(typing); typing = null; if (cineShowName) cineShowName(); $('#cineBody').textContent = cineFull; return; }
     const s = cineQueue.shift();
     if (!s) { endCine(); return; }
     if (s.scene) { cineScene = s.scene; cineT0 = now(); cinePose = null; }
@@ -2644,14 +2651,16 @@
     cineFull = text;
     const tb = $('#cineText');
     tb.classList.toggle('speech', !!s.speaker);
-    $('#cineName').textContent = s.speaker ? MT.t('speaker_' + s.speaker) : '';
-    $('#cineName').hidden = !s.speaker;
+    // 名字跟台詞一起出來：有 delay 的那步（等角色走進來、冒出來）先不顯示是誰在講（3.2.17 Ken 指定）
+    const showName = () => { $('#cineName').textContent = s.speaker ? MT.t('speaker_' + s.speaker) : ''; $('#cineName').hidden = !s.speaker; cineShowName = null; };
+    if (s.delay) { $('#cineName').hidden = true; cineShowName = showName; } else showName();
     const el = $('#cineBody');
     el.textContent = '';
     clearInterval(typing);
     const chars = Array.from(text);
     let i = 0;
     const type = () => {
+      if (cineShowName) cineShowName();
       typing = setInterval(() => {
         i++; el.textContent = chars.slice(0, i).join('');
         if (s.speaker && !s.dots && i % 3 === 1) MT.Audio.voice(s.speaker);   // 每個角色自己的聲音；無言那句不出聲
@@ -2689,7 +2698,9 @@
       sfx: [['heartbeat', 0], ...[300, 960, 1620, 2280, 2940, 3600].map(ms => ['whisper', ms]), ['eyesOpen', 4000]] },
     { scene: 'maestro', text: 'pro_5', sfx: [['shadowRise', 0], ['silence', 1600]] },   // 從影子裡長出來；1.6 秒舉起指揮棒，聲音全被吸走
     { scene: 'tower', text: 'pro_6', delay: 2400, sfx: 'towerRise', sfxAt: 600 },     // 塔 0.6 秒開始往上長
-    { scene: 'meet', text: 'pro_7', speaker: 'doremi', delay: 2700, sfx: [['startle', 120], ['fairyPop', 1200]] },   // 頭上冒「！」；1.2 秒起光點聚過去、2.2 秒多蕾彈出來
+    // 先走進場（腳步聲對準每一步）；站定後頭上冒「！」；1.2 秒起光點聚過去、2.2 秒多蕾彈出來，彈出來後名字和台詞才出現
+    { scene: 'meet', text: 'pro_7', speaker: 'doremi', delay: MEET_WALK + 2700,
+      sfx: [...[140, 420, 700, 980, 1260].map(ms => ['footstep', ms]), ['startle', MEET_WALK + 120], ['fairyPop', MEET_WALK + 1200]] },
     { text: 'pro_8', speaker: 'tink' },
     { text: 'pro_9', speaker: 'doremi' },
     { text: 'pro_10', speaker: 'tink', pose: 'heroSideGuilty' },
