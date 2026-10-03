@@ -469,13 +469,7 @@
     tallyDef: t => tone('sine', freq('b5'), t, 0.14, 0.12, sfxBus),
     tallyGold: t => { tone('square', freq('b6'), t, 0.07, 0.05, sfxBus); tone('square', freq('e7'), t + 0.07, 0.2, 0.05, sfxBus); },
     // ── 戰鬥 ──
-    hitBig: t => {   // 打 Boss：同攻擊但更沉、多一層低頻
-      const v = 0.94 + Math.random() * 0.12;
-      noise(t, 0.06, 'bandpass', 2600 * v, 0.35, sfxBus, 1.5);
-      noise(t + 0.03, 0.14, 'bandpass', 800 * v, 0.8, sfxBus, 1);
-      kick(t + 0.03, sfxBus, 1.1);
-      tone('square', 160 * v, t + 0.03, 0.14, 0.1, sfxBus, 60);
-    },
+    hitBig: t => { noise(t, 0.12, 'bandpass', 1000, 0.6, sfxBus, 1); tone('square', 180, t, 0.12, 0.12, sfxBus, 70); kick(t, sfxBus, 0.9); },
     reflect: t => { tone('sine', 2637, t, 0.18, 0.1, sfxBus, 3136); noise(t, 0.05, 'bandpass', 4500, 0.2, sfxBus, 3); },
     drain: t => {
       const o = ctx.createOscillator(), g = ctx.createGain(), lfo = ctx.createOscillator(), lg = ctx.createGain();
@@ -502,23 +496,9 @@
       noise(t, 0.06, 'highpass', 6000, 0.12, sfxBus);
       tone('sawtooth', 140, t, 0.1, 0.06, sfxBus, 90);
     },
-    // 戰鬥（3.2.16 Ken 指定重做）：每一下音高隨機飄 ±8%，連打不會像同一聲在重播
-    // 攻擊：鎚子揮下的「咻」＋打中的「啪」＋一點硬物的餘音
-    hit: t => {
-      const v = 0.92 + Math.random() * 0.16;
-      noise(t, 0.05, 'bandpass', 3200 * v, 0.35, sfxBus, 1.5);
-      noise(t + 0.03, 0.07, 'bandpass', 1100 * v, 0.8, sfxBus, 1.2);
-      kick(t + 0.03, sfxBus, 0.55);
-      tone('triangle', 1700 * v, t + 0.03, 0.06, 0.08, sfxBus, 1200 * v);
-    },
-    // 受擊：悶悶的一記「咚」＋往下掉的低音，聽起來是自己痛
-    hurt: t => {
-      const v = 0.92 + Math.random() * 0.16;
-      kick(t, sfxBus, 0.9);
-      noise(t, 0.14, 'lowpass', 700 * v, 0.55, sfxBus);
-      tone('square', 210 * v, t, 0.14, 0.07, sfxBus, 85 * v);
-      noise(t + 0.01, 0.05, 'bandpass', 900 * v, 0.3, sfxBus, 3);
-    },
+    // 攻擊、受擊：3.2.16 重做過，Ken 聽了要換回原本的（3.2.18）
+    hit: t => { noise(t, 0.08, 'bandpass', 1400, 0.5, sfxBus, 1); tone('square', 240, t, 0.08, 0.1, sfxBus, 110); },
+    hurt: t => { tone('sawtooth', 160, t, 0.12, 0.15, sfxBus, 80); },
     // 打倒：「噗」地消散＋一串往上的亮音（原本是往下掉的音階，聽起來像輸了）
     kill: t => {
       noise(t, 0.28, 'bandpass', 1600, 0.45, sfxBus, 0.7);
