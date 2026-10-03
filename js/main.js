@@ -407,6 +407,12 @@
       if (code === 'Ec') drawEcho(x, y, t);
       else if (code !== '##' && code !== '..' && code !== 'Hw' && code !== 'Cw') drawTile(code, x, y, t);
     }
+    // 劇本 fadeOut：那個人慢慢變透明、往上飄、散出光點
+    if (view.fadeTile) {
+      const f = view.fadeTile, k = Math.min(1, (t - f.t0) / f.dur);
+      g.save(); g.globalAlpha = 1 - k; g.translate(0, -k * TILE * 0.4); drawTile(f.code, f.x, f.y, t); g.restore();
+      if (k < 1 && Math.random() < 0.3) view.fx.push({ kind: 'spark', x: f.x * TILE + Math.random() * TILE, y: f.y * TILE + Math.random() * TILE, vx: 0, vy: -0.04, t0: t, life: 900, color: '#d9b8ff' });
+    }
     // 開門：門往上淡出
     if (view.doorFade) {
       const d = view.doorFade, k = (t - d.t0) / 220;
@@ -704,6 +710,14 @@
             await sleep(700); break;
           }
           case 'sparkle': sparkle(c[1], c[2], 40); notes(c[1], c[2], 8); break;
+          case 'fadeOut': {   // 地圖上某一格的人慢慢變透明、往上飄著消失，飄出光點（ms 毫秒）
+            const [, fx, fy, ms] = c, code = MT.tile(st, st.floor, fx, fy);
+            MT.setTile(st, st.floor, fx, fy, '..');
+            view.fadeTile = { code, x: fx, y: fy, t0: now(), dur: ms };
+            await sleep(ms);
+            view.fadeTile = null;
+            break;
+          }
           case 'fairyFarewell': {   // 多蕾告別：3.6 秒慢慢上飄淡出，光點往阿爾特身上飄，最後一顆落下時「叮」
             view.fairyLeave = { t0: now(), dur: 3600 };
             await sleep(3600);
@@ -2717,7 +2731,7 @@
       bigSprite('frog', null, SIZE - 60, SIZE - 90, 3, true);
     },
   };
-  const SCENE_FADEIN = { festival: 2800, festivalTrue: 2800 };   // 這些場景開頭從黑畫面淡入（毫秒）
+  const SCENE_FADEIN = { festival: 5000, festivalTrue: 5000 };   // 這些場景開頭從黑畫面淡入（毫秒；3.2.51 Ken 指定改 5 秒）
   function cineRender() {
     requestAnimationFrame(cineRender);
     if (mode !== 'cine' || !cineScene) return;
@@ -2981,13 +2995,13 @@
     const r = MT.rating(st);
     const newBest = MT.Sync.saveBest(Object.assign({}, r, { playMs: st.playMs, steps: st.steps, kills: st.kills }));
     await playCine(trueEnd ? [
-      { scene: 'festivalTrue', text: 'et_1', music: 'ending', delay: 2400 },   // 畫面淡入得差不多才出字
+      { scene: 'festivalTrue', text: 'et_1', music: 'ending', delay: 4400 },   // 畫面淡入得差不多才出字
       { text: 'et_2', keep: true },
       { text: 'et_3', keep: true },
       { text: 'et_4', keep: true },
       { text: 'ed_true_end', keep: true },
     ] : [
-      { scene: 'festival', text: 'ed_1', music: 'ending', delay: 2400 },
+      { scene: 'festival', text: 'ed_1', music: 'ending', delay: 4400 },
       { text: 'ed_2', keep: true },
       { text: 'ed_3', keep: true },
       { text: 'ed_end', keep: true },

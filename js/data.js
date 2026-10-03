@@ -825,6 +825,7 @@
       ['say', 'shadow', 'end_3'],
       ['say', 'tink', 'end_4'],
       ['branch', 'trueEnd', 'trueEndTalk'],  // 三頁日記＋失落的音符都到手 → 真結局的對話
+      ['fadeOut', 5, 1, 2600],   // 另一個阿爾特講完最後一句，慢慢淡掉（3.2.51 Ken 指定）
       ['flash', '#fff'],
       ['layer', 'lead'],
       ['ending'],
