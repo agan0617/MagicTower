@@ -131,7 +131,9 @@
   };
 
   /* 經驗值換等級（節拍之神）：等級共用，越後面越貴；進階版（L2）每級給得比較多 */
-  MT.levelCost = st => MT.LEVEL.base + MT.LEVEL.step * (st.lv - 1);
+  // 升到下一級的花費：base＋step×(等級−1)，過了 knee 級之後每級再多漲 late（前期不變、後期靠升級補救越來越貴）
+  MT.lvCost = lv => { const L = MT.LEVEL; return L.base + L.step * (lv - 1) + Math.max(0, lv - (L.knee || Infinity)) * (L.late || 0); };
+  MT.levelCost = st => MT.lvCost(st.lv);
   MT.buyLevel = function (st, id) {
     const cost = MT.levelCost(st);
     if (st.exp < cost) return false;
@@ -435,7 +437,7 @@
     let gold = st.gold + st.keys.y * K.y + st.keys.b * K.b + st.keys.r * K.r, n = st.shops.shop3 || 0, bonus = 0;
     for (let p = S3.base + S3.step * n; gold >= p; p += S3.step) { gold -= p; bonus += S3.hp; }
     let exp = st.exp, lv = st.lv;
-    for (let c = MT.LEVEL.base + MT.LEVEL.step * (lv - 1); exp >= c; c += MT.LEVEL.step) { exp -= c; bonus += MT.LEVEL.L2.hp; }
+    for (let c = MT.lvCost(lv); exp >= c; c = MT.lvCost(++lv)) { exp -= c; bonus += MT.LEVEL.L2.hp; }
     const score = st.hp + bonus;
     const trueEnd = MT.isTrueEnding(st);
     const grade = score >= R.S && trueEnd ? 'S' : score >= R.A ? 'A' : score >= R.B ? 'B' : 'C';
