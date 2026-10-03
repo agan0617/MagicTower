@@ -1631,8 +1631,8 @@
       + stat('hp', ic('heart'), 'hp', S0.hp) + stat('atk', ic('gemSword', 'gemRed'), 'atk', S0.atk)
       + stat('def', ic('gemShield', 'gemBlue'), 'def', S0.def)
       + `<div class="hk"><span class="${f('keys')}">${key('Yk')}<b>${S0.keys.y}</b></span><span class="${f('keys')}">${key('Bk')}<b>${S0.keys.b}</b></span><span class="${f('keys')}">${key('Rk')}<b>${S0.keys.r}</b></span>`
-      + `<span class="hgold${f('gold')}">${ic('coin')}<b>${S0.gold}</b><small>${esc(MT.t('gold'))}</small></span>`
-      + `<span class="hlv${f('lv')}"><b>Lv1</b><small>EXP 0</small></span></div><span class="tutQ">?</span></div>`;
+      + `<span class="hres"><span class="hgold${f('gold')}">${ic('coin')}<b>${S0.gold}</b><small>${esc(MT.t('gold'))}</small></span>`
+      + `<span class="hlv${f('lv')}"><b>Lv1</b><small>EXP 0</small></span></span></div><span class="tutQ">?</span></div>`;
   };
   // 每頁：pic 標題下的示意圖、after 說明文字後面的補充（例子、一列一列的圖示說明）；文字是 i18n 的 tut_<頁>t（標題）、tut_<頁>
   const TUT_PAGES = [
