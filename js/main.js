@@ -1535,7 +1535,8 @@
       <button class="btn" data-a="saves">${esc(MT.t('saveTitle'))}</button>
       <button class="btn" data-a="tutorial">${esc(MT.t('tutorial'))}</button>
       <button class="btn" data-a="settings">${esc(MT.t('settings'))}</button>
-      <button class="btn" data-a="title">${esc(MT.t('backTitle'))}</button></div>`, body => {
+      <button class="btn" data-a="title">${esc(MT.t('backTitle'))}</button></div>
+      <p class="muted small ver">${esc(versionText())}</p>`, body => {   // 版號放選單和標題畫面（3.2.32 Ken 指定，原本在設定）
       body.querySelectorAll('[data-a]').forEach(b => b.addEventListener('click', () => {
         const a = b.dataset.a; closeModal();
         if (a === 'saves') openSaves();
@@ -1557,8 +1558,7 @@
       <label class="lab">${esc(MT.t('language'))}</label><div class="row">${langs}</div>
       <label class="lab" for="vMusic">${esc(MT.t('musicVol'))}</label><input type="range" id="vMusic" min="0" max="1" step="0.05" value="${settings.music}">
       <label class="lab" for="vSfx">${esc(MT.t('sfxVol'))}</label><input type="range" id="vSfx" min="0" max="1" step="0.05" value="${settings.sfx}">
-      <p class="muted small">${esc(MT.t('controls'))}</p>
-      <p class="muted small ver">${esc(versionText())}</p>`, body => {
+      <p class="muted small">${esc(MT.t('controls'))}</p>`, body => {
       body.querySelectorAll('[data-l]').forEach(b => b.addEventListener('click', () => {
         MT.setLang(b.dataset.l); MT.LS.set('lang', b.dataset.l);
         closeModal(); renderStaticText(); openSettings();
@@ -1886,8 +1886,7 @@
   // 國王進門那幕：王子敲鐵的時間點（毫秒），跟國王的腳步聲（754／1131／1508）錯開，聽起來是噹、步、噹、步；國王站定前轉身
   const FORGE_KING_HITS = [150, 560, 940, 1320], FORGE_KING_TURN = 1500;
   const MEET_WALK = 1400;   // 遇見多蕾那幕：王子從左邊走進場的時間（毫秒）
-  const MAESTRO_LAUGH = 2300;   // 黑衣人升到最高點、開始笑的時間（毫秒）
-  const MAESTRO_LAUGH_TEXT = { zh: '呵呵呵…', en: 'Heh heh…', ja: 'フフフ…' };
+  const MAESTRO_LAUGH = 2300;   // 黑衣人升到最高點、嘴裂開開始笑的時間（毫秒）
   // 鎚子敲下後跳出的「噹」：age＝敲下後幾毫秒，先放大一下再往上飄著淡掉
   function clangPop(age, x, y) {
     if (age < 0 || age > 900) return;
@@ -2053,26 +2052,14 @@
     cg.strokeStyle = '#efeadc'; cg.lineWidth = 4;
     cg.beginPath(); cg.moveTo(hand[0], hand[1]); cg.lineTo(tip[0], tip[1]); cg.stroke();
     cg.globalAlpha = 1;
-    cg.drawImage(MT.sprite('maestro', null, sc), cx - fw / 2, fy);
+    // 面具：升起時沒有嘴，到最高點後嘴一格格裂開成笑臉（細縫 → 嘴角上翹 → 咧開）
+    const face = lt < 0 ? 'maestroBlank' : lt < 280 ? 'maestroSmile1' : lt < 620 ? 'maestro' : 'maestroSmile3';
+    cg.drawImage(MT.sprite(face, null, sc), cx - fw / 2, fy);
     // 面具眼洞的紅光一明一暗
     const glow = 0.35 + 0.35 * Math.sin(t / 260);
     cg.globalCompositeOperation = 'lighter'; cg.fillStyle = `rgba(255,58,106,${glow * e})`;
     for (const ex of [6, 9]) { cg.beginPath(); cg.arc(cx - fw / 2 + (ex + 0.5) * sc, fy + 4.5 * sc, 14, 0, Math.PI * 2); cg.fill(); }
     cg.globalCompositeOperation = 'source-over';
-    // 笑聲的字：一個一個從面具旁邊冒出來往上飄
-    if (lt > 0 && lt < 2600) {
-      const word = MAESTRO_LAUGH_TEXT[MT.getLang()] || MAESTRO_LAUGH_TEXT.en;
-      cg.textAlign = 'center'; cg.font = 'bold 26px serif'; cg.lineWidth = 4; cg.lineJoin = 'round';
-      for (let i = 0; i < 3; i++) {
-        const a = lt - i * 300; if (a < 0) continue;
-        const q = Math.min(1, a / 2000), side = i % 2 ? 1 : -1;
-        cg.globalAlpha = Math.min(1, a / 150) * (1 - q);
-        cg.strokeStyle = '#0c0914'; cg.fillStyle = '#c9a4ff';
-        const x = cx + side * (fw / 2 + 30 + i * 8), y = fy + 30 - q * 70 - i * 6;
-        cg.strokeText(word, x, y); cg.fillText(word, x, y);
-      }
-      cg.globalAlpha = 1;
-    }
     return { tip, lift };
   }
 
@@ -2677,6 +2664,7 @@
     if (typing) { clearInterval(typing); typing = null; if (cineShowName) cineShowName(); $('#cineBody').textContent = cineFull; return; }
     const s = cineQueue.shift();
     if (!s) { endCine(); return; }
+    if (s.scene && s.scene !== cineScene) MT.Audio.cutSfx();   // 換幕（含略過）：上一幕還沒放完的音效收掉，不拖到下一幕
     if (s.scene) { cineScene = s.scene; cineT0 = now(); cinePose = null; }
     if (s.pose) cinePose = s.pose;
     cineDots = s.dots ? now() : 0;
@@ -2714,6 +2702,7 @@
   }
   function endCine() {
     clearInterval(typing); typing = null;
+    MT.Audio.cutSfx(); cineScene = null;   // 過場結束（含整段略過）：還沒放完的音效不帶進遊戲
     $('#cine').hidden = true; $('#stage').classList.remove('under');
     const r = cineDone; cineDone = null; cineQueue = [];
     if (r) r();
@@ -2847,6 +2836,7 @@
     $('#tBest').hidden = !best;
     if (best) { $('#tBest').textContent = MT.t('rateBest', { g: best.data.grade, score: best.data.score }); $('#tBest').dataset.g = best.data.grade; }
     renderCloudChip();
+    $('#tVer').textContent = versionText();
   }
   function showTitle() {
     mode = 'title'; st = null; busy = 0;

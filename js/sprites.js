@@ -332,6 +332,23 @@
       '..Vvwkww', '..Vvwwkk', '..Vvvwww', '.Vvvvvvw', 'Vvvvvvvv', 'Vvvvvvvv',
       'Vvvvvvvv', '.Vvvvvvv', '..Vvvvvv', '...Vvvvv',
     ] },
+    // 序章從影子裡升起時的面具（3.2.32 Ken 指定）：一開始沒有嘴巴，升到最高點後嘴才一格格裂開成笑臉
+    // Blank 沒嘴 → Smile1 一條細縫 → Smile2 嘴角往上翹（＝平常的 maestro）→ Smile3 咧到兩頰、張開
+    maestroBlank: { sym: true, rows: [
+      '.....V.V', '....Vvvv', '...Vvvvv', '..Vvvwww', '..Vvwkxw', '..Vvwwww',
+      '..Vvwwww', '..Vvwwww', '..Vvvwww', '.Vvvvvvw', 'Vvvvvvvv', 'Vvvvvvvv',
+      'Vvvvvvvv', '.Vvvvvvv', '..Vvvvvv', '...Vvvvv',
+    ] },
+    maestroSmile1: { sym: true, rows: [
+      '.....V.V', '....Vvvv', '...Vvvvv', '..Vvvwww', '..Vvwkxw', '..Vvwwww',
+      '..Vvwwww', '..Vvwwkk', '..Vvvwww', '.Vvvvvvw', 'Vvvvvvvv', 'Vvvvvvvv',
+      'Vvvvvvvv', '.Vvvvvvv', '..Vvvvvv', '...Vvvvv',
+    ] },
+    maestroSmile3: { sym: true, rows: [
+      '.....V.V', '....Vvvv', '...Vvvvv', '..Vvvwww', '..Vvwkxw', '..Vvkwww',
+      '..Vvwkww', '..Vvwkkk', '..Vvvwkk', '.Vvvvvvw', 'Vvvvvvvv', 'Vvvvvvvv',
+      'Vvvvvvvv', '.Vvvvvvv', '..Vvvvvv', '...Vvvvv',
+    ] },
     // 面具裂開後：底下是阿爾特自己的臉
     maestroBare: { sym: true, rows: [
       '.....V.V', '....Vvvv', '...Vvvvv', '..Vvnnnn', '..Vnnsss', '..Vvssks',

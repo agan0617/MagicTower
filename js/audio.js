@@ -133,6 +133,15 @@
     },
     setLayers(layers) { wantLayers = layers.slice(); applyLayers(); },
 
+    // 把已經排好、還沒放完的音效全部收掉（3.2.32 Ken 指定：略過過場時心跳等聲音會拖到下一幕）：
+    // 換一條新的音效匯流排，舊的那條快速淡出後拔掉，接在上面的聲音就一起停了
+    cutSfx() {
+      if (!ctx) return;
+      const old = sfxBus;
+      sfxBus = ctx.createGain(); sfxBus.gain.value = vol.sfx; sfxBus.connect(master);
+      old.gain.setTargetAtTime(0, ctx.currentTime, 0.02);
+      setTimeout(() => { try { old.disconnect(); } catch (e) { /* 已經斷了 */ } }, 300);
+    },
     sfx(name) { if (ctx) try { SFX[name] && SFX[name](ctx.currentTime); } catch (e) { /* 音效失敗不影響遊戲 */ } },
     // 對話打字的「嘟嘟」聲：每個角色一種聲音（見 VOICES），沒列到的用預設
     voice(speaker) { if (ctx) try { voiceBlip(VOICES[speaker] || VOICES.default, ctx.currentTime); } catch (e) { /* 同上 */ } },

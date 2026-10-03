@@ -181,6 +181,7 @@ html[lang=en] #tTitle { font-size: clamp(40px, 12vmin, 76px); letter-spacing: 2p
 .muted { color: var(--muted); }
 .small { font-size: 13px; line-height: 1.55; }
 .ver { text-align: right; }
+#tVer { margin: 2px 0 0; font-size: 11px; color: var(--muted); text-align: center; }   /* 標題畫面最下面的版號 */
 .lab { display: block; margin: 14px 0 6px; font-size: 14px; color: var(--muted); }
 input[type=range] { width: 100%; accent-color: var(--accent); }
 input[type=text], input[type=password] { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--line); background: #0f0e22; color: var(--ink); font-size: 15px; }
