@@ -75,8 +75,8 @@ blockquote { margin: 10px 0; padding: 6px 14px; border-left: 3px solid var(--acc
 <main>
 <header class="top">
   <h1>魔塔：失落的旋律　遊戲設計文件</h1>
-  <div class="meta">依 3.2.22 撰寫　·　2026-10-03</div>
-  <div class="note">3.0.0 是關卡全面改版：20 層＋隱藏層 B1、經驗值與等級、三選一技能、大型 Boss、路上 NPC、暗牆與裂牆。3.0.2～3.0.5：序章加兩幕過場、加生命的道具改成愛心、標題畫面與選單加圖文教學。3.0.6 音效優化，3.0.7 最終 Boss 加強。<b>3.1.0：第 3 區加回音地板、第 4 區加共鳴水晶（跟位置有關的機制），新增真人型自動玩家並照它重定評價門檻。</b>3.1.1～3.2.22：樓梯不再擋路、進塔前第一人稱推開塔門與 1F 淡入、遇到才教＋資訊列「？」、收藏品圖鑑、有功能的 NPC 發金光、王子腳下光圈與箭頭、節拍之神改成鈴鐺、教學不再劇透（真結局條件、評價規則、道具用途與位置）。關卡設計規則與平衡流程另見 repo 根目錄的 <code>DESIGN.md</code>。</div>
+  <div class="meta">依 3.2.23 撰寫　·　2026-10-03</div>
+  <div class="note">3.0.0 是關卡全面改版：20 層＋隱藏層 B1、經驗值與等級、三選一技能、大型 Boss、路上 NPC、暗牆與裂牆。3.0.2～3.0.5：序章加兩幕過場、加生命的道具改成愛心、標題畫面與選單加圖文教學。3.0.6 音效優化，3.0.7 最終 Boss 加強。<b>3.1.0：第 3 區加回音地板、第 4 區加共鳴水晶（跟位置有關的機制），新增真人型自動玩家並照它重定評價門檻。</b>3.1.1～3.2.23：樓梯不再擋路、進塔前第一人稱推開塔門與 1F 淡入、遇到才教＋資訊列「？」、收藏品圖鑑、有功能的 NPC 發金光、王子腳下光圈與箭頭、節拍之神改成鈴鐺、教學不再劇透（真結局條件、評價規則、道具用途與位置）。關卡設計規則與平衡流程另見 repo 根目錄的 <code>DESIGN.md</code>。</div>
 </header>
 
 <!-- ───────────── 1 ───────────── -->
@@ -90,7 +90,7 @@ blockquote { margin: 10px 0; padding: 6px 14px; border-left: 3px solid var(--acc
 <tr><td>語言</td><td class="wrap">繁體中文／English／日本語（介面與全部劇情）</td></tr>
 <tr><td>設計目標</td><td class="wrap">「會玩和不會玩要有明顯差距」：每一扇門、每一個房間都是取捨，怪物依打法分類（高攻、高防、高血、魔法、吸血、連擊、夾擊、破甲、共鳴），技能三選一讓同一張地圖有不同的最佳路線；後兩區各加一種走位機制（回音地板、共鳴），地圖不只是開門順序題。用自動玩家驗證：新手卡在 3F、一般卡在 5F、真人型八成通關（沒過的全卡在 4F，通關分數中位數約 14100）、高手通關約 17500～21800 分</td></tr>
 <tr><td>目標體驗</td><td class="wrap">「手機上單手點一點就能玩的經典魔塔」＋「一個青春期王子跟自己和解的短篇故事」。音樂隨劇情一層層回來（低音→鼓→和聲→笛→主旋律）；沿路的 NPC 與多蕾帶來幽默橋段；所有音樂、美術由程式產生，無任何外部素材</td></tr>
-<tr><td>版本</td><td class="wrap">網頁版 3.2.22（<code>index.html</code> 的 <code>MT.VERSION</code>、<code>sw.js</code> 的 <code>mt-3.2.22</code>）；存檔格式 v3（<code>MT.SAVE_V = 3</code>，2.x 存檔讀不了）</td></tr>
+<tr><td>版本</td><td class="wrap">網頁版 3.2.23（<code>index.html</code> 的 <code>MT.VERSION</code>、<code>sw.js</code> 的 <code>mt-3.2.23</code>）；存檔格式 v3（<code>MT.SAVE_V = 3</code>，2.x 存檔讀不了）</td></tr>
 </table></div>
 
 <!-- ───────────── 2 ───────────── -->
@@ -462,7 +462,7 @@ S：分數 ≥ 20000 且真結局　A：≥ 16000　B：≥ 12000　其餘 C</co
 
 <h3>6.5 離線快取（<code>sw.js</code>）</h3>
 <ul>
-<li>僅在 https 下註冊 service worker；快取名 <code>mt-3.2.22</code>，安裝時以 <code>cache: 'reload'</code> 預先快取全部檔案（繞過 GitHub Pages 的 10 分鐘 HTTP 快取，避免新頁配舊 js）</li>
+<li>僅在 https 下註冊 service worker；快取名 <code>mt-3.2.23</code>，安裝時以 <code>cache: 'reload'</code> 預先快取全部檔案（繞過 GitHub Pages 的 10 分鐘 HTTP 快取，避免新頁配舊 js）</li>
 <li>讀取策略：先回快取秒開、背景抓新版更新快取，下次開啟生效；非同源（GitHub API）不快取；啟用時刪掉舊版快取</li>
 <li>Android App 外殼也是開線上網址，一樣靠這個離線</li>
 </ul>
@@ -577,8 +577,9 @@ S：分數 ≥ 20000 且真結局　A：≥ 16000　B：≥ 12000　其餘 C</co
 <tr><td>3.2.20</td><td>2026-10-03</td><td class="wrap">（Ken 指定）教學第 1 頁講到資訊列時直接畫出來：文字下面一條跟遊戲同一套樣式的資訊列示意（<code>tutHud</code>，樓層、生命、攻擊、防禦、金幣、三種鑰匙、等級經驗，數字用 <code>MT.START</code> 開局值；<code>.tutHud</code> 固定直式兩排，不吃橫向版面的改排），文字改成「畫面上方的資訊列（就是下面這條）會顯示…」（三語）</td></tr>
 <tr><td>3.2.21</td><td>2026-10-03</td><td class="wrap">（Ken 指定）推開塔門那幕（<code>gate</code>）的心跳換成專用的 <code>gateHeart</code>：「怦—咚」從 0.78 秒一下越跳越急到 0.48 秒一下、越來越大聲，一路跳到門撞上牆（約 4.3 秒）。原本共用的 <code>heartbeat</code> 只有 40～150Hz 低頻，手機喇叭幾乎放不出來，新的多疊 100～400Hz 的悶響</td></tr>
 <tr><td>3.2.22</td><td>2026-10-03</td><td class="wrap">（Ken 指定）預設音量（音樂、音效）80% → 100%（只影響沒動過音量滑桿的人，動過的照存的值）；標題曲 <code>title</code> 整首音量倍率 0.5（<code>SONGS.title.gain</code>，序章用到同一首時也是一半）。王子吼完「吵死了」那段（<code>forgeShadow</code>）的心跳 <code>heartbeat</code> 也疊上 100～400Hz 的悶響（同 <code>gateHeart</code>），手機喇叭聽得到；節奏不變</td></tr>
+<tr><td>3.2.23</td><td>2026-10-03</td><td class="wrap">（Ken 指定）教學第 6 頁也畫資訊列示意：<code>tutHud(['gold', 'lv'])</code> 只亮金幣與等級／經驗並框起來（<code>.tutOn</code>），其他格變暗（<code>.tutDim</code>）；文字改成「…顯示在畫面上方的資訊列（下圖框起來的地方）」（三語）</td></tr>
 </table></div>
-<p class="muted">2026-09-30 首版至 2026-10-03 的 3.2.22。</p>
+<p class="muted">2026-09-30 首版至 2026-10-03 的 3.2.23。</p>
 
 </main>
 </body>

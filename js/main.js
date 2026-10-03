@@ -1620,14 +1620,16 @@
   const tutRow = (pic, head, text) => `<div class="tutRow">${pic}<div><b>${esc(head)}</b>${head && text ? '<br>' : ''}<span class="small">${tutFmt(text)}</span></div></div>`;
   const ZV = k => MT.ZONE_VALUES[MT.ITEMS[k].zone][0];
   // 第 1 頁的資訊列示意（3.2.20 Ken 指定：講「畫面上方」要直接畫出來）：跟真的資訊列同一套樣式，數字用開局的值
-  const tutHud = () => {
+  // focus：只亮這幾格、其他變暗（第 6 頁只亮金幣和等級經驗，3.2.23）
+  const tutHud = focus => {
     const S0 = MT.START, ic = (n, p) => `<img class="px" src="${icon(n, p)}" alt="">`, key = c => ic(MT.ITEMS[c].sprite, MT.ITEMS[c].pal);
-    const stat = (cls, img, label, v) => `<div class="hs ${cls}"><span class="hl">${img}<span>${esc(MT.t(label))}</span></span><b>${v}</b></div>`;
-    return `<div class="tutHud"><div class="hf"><b>1F</b></div>`
+    const f = k => (!focus ? '' : focus.includes(k) ? ' tutOn' : ' tutDim');
+    const stat = (cls, img, label, v) => `<div class="hs ${cls}${f(cls)}"><span class="hl">${img}<span>${esc(MT.t(label))}</span></span><b>${v}</b></div>`;
+    return `<div class="tutHud"><div class="hf${f('floor')}"><b>1F</b></div>`
       + stat('hp', ic('heart'), 'hp', S0.hp) + stat('atk', ic('gemSword', 'gemRed'), 'atk', S0.atk)
       + stat('def', ic('gemShield', 'gemBlue'), 'def', S0.def) + stat('gold', ic('coin'), 'gold', S0.gold)
-      + `<div class="hk"><span>${key('Yk')}<b>${S0.keys.y}</b></span><span>${key('Bk')}<b>${S0.keys.b}</b></span><span>${key('Rk')}<b>${S0.keys.r}</b></span>`
-      + `<span class="hlv"><b>Lv1</b><small>EXP 0</small></span></div></div>`;
+      + `<div class="hk"><span class="${f('keys')}">${key('Yk')}<b>${S0.keys.y}</b></span><span class="${f('keys')}">${key('Bk')}<b>${S0.keys.b}</b></span><span class="${f('keys')}">${key('Rk')}<b>${S0.keys.r}</b></span>`
+      + `<span class="hlv${f('lv')}"><b>Lv1</b><small>EXP 0</small></span></div></div>`;
   };
   // 每頁：pic 標題下的示意圖、after 說明文字後面的補充（例子、一列一列的圖示說明）；文字是 i18n 的 tut_<頁>t（標題）、tut_<頁>
   const TUT_PAGES = [
@@ -1640,7 +1642,7 @@
     { pic: () => tutScene(['Yk Bk Rk ## Gt ##', 'Yd Bd Rd .. sk ..']) },
     { pic: () => tutScene(['at df hp HP s1 a1'], { labels: [[0, 0, '+' + ZV('at'), '#ffae6a'], [1, 0, '+' + ZV('df'), '#7ac8ff'], [2, 0, '+' + ZV('hp'), '#ff7a7a'],
       [3, 0, '+' + ZV('HP'), '#ff7a7a'], [4, 0, '+' + MT.ITEMS.s1.value, '#ffae6a'], [5, 0, '+' + MT.ITEMS.a1.value, '#7ac8ff']] }) },
-    { after: () => [['Sh', 'tut_altar', 'a'], ['Mk', 'frog', 'b'], ['L1', 'level_L1', 'c']]
+    { after: () => tutHud(['gold', 'lv']) + [['Sh', 'tut_altar', 'a'], ['Mk', 'frog', 'b'], ['L1', 'level_L1', 'c']]
       .map(([code, head, k]) => tutRow(img(...spriteFor(code), 'big'), MT.t(head), MT.t('tut_6' + k))).join('') },
     { after: () => [['bb', 'first'], ['dw', 'double'], ['mg', 'magic'], ['mi', 'pierce'], ['vb', 'drain'], ['pg', 'pincer'], ['rc', 'aura'], ['K1', 'boss']].map(([code, s]) => {
       const m = MT.MONSTERS[code];

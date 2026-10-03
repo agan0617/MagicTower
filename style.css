@@ -242,6 +242,8 @@ input[type=text], input[type=password] { width: 100%; padding: 10px 12px; border
 .tutHud .hs b { font-size: 17px; }
 .tutHud .hs .hl img { width: 14px; height: 14px; }
 .tutHud .hk { grid-column: 2 / 6; grid-row: 2; justify-content: flex-start; }
+.tutHud .tutDim { opacity: 0.3; }
+.tutHud .tutOn { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
 .tutHi { color: #ffe066; }
 .tutRow { display: flex; gap: 12px; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--line); }
 .tutRow:has(+ .tutNav), .tutPage > .tutRow:last-child { border-bottom: 0; }
