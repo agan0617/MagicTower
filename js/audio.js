@@ -17,6 +17,7 @@
   /* 曲子：bpm、每拍兩格（八分音符）；每軌一個 layer，塔裡依找回的樂器開關 */
   const SONGS = {
     title: {
+      gain: 0.5,   // 整首的音量倍率（3.2.22 Ken 指定：預設音量改 100% 後，標題曲壓到一半）
       bpm: 138,
       tracks: [
         { layer: 'lead', inst: 'lead', vol: 0.17, notes:
@@ -83,7 +84,7 @@
   SONGS.ending = Object.assign({}, SONGS.title, { bpm: 112 });
 
   let ctx = null, master, musicBus, sfxBus, noiseBuf;
-  const vol = { music: 0.8, sfx: 0.8 };
+  const vol = { music: 1, sfx: 1 };
   let cur = null;        // { name, song, layerGains, step, nextTime, timer }
   let wantLayers = ['base'];
 
@@ -141,7 +142,7 @@
     if (!cur) return;
     for (const x of cur.tracks) {
       const on = cur.name !== 'tower' || x.t.layer === 'base' || wantLayers.includes(x.t.layer);
-      const v = on ? x.t.vol : 0;
+      const v = on ? x.t.vol * (cur.song.gain || 1) : 0;
       if (instant) x.gain.gain.value = v;
       else x.gain.gain.setTargetAtTime(v, ctx.currentTime, 0.6);
     }
@@ -556,6 +557,10 @@
       for (let i = 0; i < 8; i++) {
         if (i) at += (950 - i * 70) / 1000;
         kick(at, sfxBus, 1.1); kick(at + 0.16, sfxBus, 0.75);
+        // 3.2.22：同 gateHeart 多疊 100～400Hz 的悶響，手機喇叭才聽得到（Ken 同意）
+        const p = 0.6 + 0.4 * i / 7;
+        tone('triangle', 120, at, 0.14, 0.3 * p, sfxBus, 70); noise(at, 0.1, 'lowpass', 420, 0.45 * p, sfxBus);
+        tone('triangle', 100, at + 0.16, 0.12, 0.2 * p, sfxBus, 62); noise(at + 0.16, 0.08, 'lowpass', 360, 0.3 * p, sfxBus);
       }
       const o = ctx.createOscillator(), g = ctx.createGain();
       o.type = 'sawtooth'; o.frequency.setValueAtTime(48, t); o.frequency.linearRampToValueAtTime(62, t + 6);

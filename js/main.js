@@ -27,7 +27,7 @@
   g.imageSmoothingEnabled = false;
 
   /* ───────── 設定 ───────── */
-  const settings = Object.assign({ music: 0.8, sfx: 0.8 }, MT.LS.get('settings', {}));
+  const settings = Object.assign({ music: 1, sfx: 1 }, MT.LS.get('settings', {}));   // 預設音量 100%（3.2.22 Ken 指定）
   MT.setLang(MT.LS.get('lang', MT.detectLang()));
   MT.Audio.setVolume('music', settings.music);
   MT.Audio.setVolume('sfx', settings.sfx);
