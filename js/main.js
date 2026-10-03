@@ -1636,7 +1636,7 @@
       const tag = MT.t('sp_' + s, { p: Math.round((m.drain || 0) * 100), n: m.aura || 0 }).replace(/\s*[（(].*$/, '');   // 括號裡的說明下面另外寫
       return tutRow(img(m.sprite, m.pal, 'big'), tag, MT.t('tut_sp_' + s, { n: m.aura || 0 }));
     }).join('') + tutRow(echoImg(), MT.t('name_Ec'), MT.t('tut_echo')) },
-    { after: () => [['lens', 'look'], ['porter', 'npc'], ['harp', 'skill'], ['page', 'save'], ['goldnote', 'rate']]   // 特殊道具的用法拿到才看得到（圖鑑的收藏品分頁），不寫在這裡
+    { after: () => [['lens', 'look'], ['porter', 'npc'], ['harp', 'skill'], ['goldnote', 'rate'], ['page', 'save']]   // 特殊道具的用法拿到才看得到（圖鑑的收藏品分頁），不寫在這裡；存檔放最後（Ken 指定）
       .map(([sp, k]) => tutRow(img(sp, null, 'big'), '', MT.t('tut_t_' + k))).join('') },
   ];
   // 教學內文：??? 畫成紅色（跟地圖上打不動的標示一樣），**…** 畫成重點色
