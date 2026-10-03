@@ -25,7 +25,7 @@
     ab: { hp: 20, atk: 26, def: 15, gold: 6, exp: 4, sprite: 'beetle', pal: 'beetle' },                // 高防：攻擊 16 才打得動
     sw: { hp: 130, atk: 46, def: 10, gold: 6, exp: 5, sprite: 'skeleton', pal: 'warrior' },            // 高血
     bb: { hp: 50, atk: 66, def: 8, gold: 8, exp: 5, sprite: 'bat', pal: 'bigbat', sp: ['first'] },
-    K1: { hp: 420, atk: 58, def: 14, gold: 40, exp: 30, size: 2, sprite: 'skelking', sp: ['boss'] },   // 3F 骷髏館長
+    K1: { hp: 420, atk: 58, def: 14, gold: 40, exp: 30, size: 2, sprite: 'skelking', sp: ['boss'], onDeath: 'k1Chisel' },   // 3F 骷髏館長（打倒掉第一把鑿子，3.2.40）
     DG: { hp: 900, atk: 78, def: 20, gold: 80, exp: 60, size: 3, sprite: 'drumgolemBig', sp: ['boss'], onDeath: 'drumGet' },
     // 第 2 區
     ks: { hp: 300, atk: 75, def: 10, gold: 8, exp: 6, sprite: 'slime', pal: 'black' },                  // 高血
@@ -160,7 +160,7 @@
      寬度 1～2、noise 500／2000、各 12 個種子）的通關分數分佈定：B＝約後 1/4 的線、A＝約前 1/4 的線，
      S 比真人型最好的一次還高、要到高手的水準（高手寬度 4 回音、寬度 12 都還拿得到） */
   // 3.2.38 照兩種真人型各 40 局重訂（Ken 的目標：一般真人通關 ~60%、A 少數、B≈C；高手真人通關 90～95%、S 極少、A≈B、C 少；完美高手 S 且跟高手有差距）
-  MT.RATING = { S: 8000, A: 5800, B: 1500 };
+  MT.RATING = { S: 8000, A: 5600, B: 2500 };
 
   MT.START = { floor: 1, x: 5, y: 14, hp: 1000, atk: 10, def: 10, gold: 0, keys: { y: 1, b: 0, r: 0 } };
 
@@ -243,13 +243,13 @@
       'at .. sk .. Yd .. .. .. Yd .. bb',
       '## ## ## ## ## .. DD ## ## ## hp',
     ],
-    // 4F 音叉祭壇：祭壇在中間；受傷的士兵（送防禦）；第一把鑿子；右下大蝙蝠（先攻）守的寶庫；
+    // 4F 音叉祭壇：祭壇在中間；受傷的士兵（送防禦）；右下大蝙蝠（先攻）守的寶庫；
     // 中央走廊往上的凹槽多一把銅鑰匙（3.2.29：真人型 40 局有 9 局在這層鑰匙用光卡死，加了之後剩 0）
     [
       'DD .. Yk Yd .. .. .. .. Yk sw df',
       '.. bb .. ## ## Sh ## ## .. ## ab',
       '## Yd ## ## .. .. .. ## Yd ## at',
-      'Ch .. sw ## .. ## .. ## .. .. ..',
+      '.. .. sw ## .. ## .. ## .. .. ..',
       '.. at .. ## .. ## mg ## hp ## ..',
       '## ## .. ## sk ## Yk ## ## ## Bd',
       'N2 .. .. .. .. .. .. .. .. .. ..',
@@ -607,6 +607,13 @@
       ['say', 'doremi', 'book_2'],
       ['say', 'tink', 'book_3'],
       ['fairy', false],
+    ],
+    // 3F 骷髏館長倒下時掉出第一把鑿子（3.2.40 Ken 指定，原本放在 4F 左邊地上）
+    k1Chisel: [
+      ['give', 'chisel', 1],
+      ['sfx', 'item'],
+      ['narr', 'chisel_1'],
+      ['say', 'tink', 'chisel_2'],
     ],
     chiselGet: [
       ['sfx', 'item'],
