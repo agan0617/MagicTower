@@ -1646,11 +1646,18 @@
       [3, 0, '+' + ZV('HP'), '#ff7a7a'], [4, 0, '+' + MT.ITEMS.s1.value, '#ffae6a'], [5, 0, '+' + MT.ITEMS.a1.value, '#7ac8ff']] }) },
     { after: () => tutHud(['gold', 'lv']) + [['Sh', 'tut_altar', 'a'], ['Mk', 'frog', 'b'], ['L1', 'level_L1', 'c']]
       .map(([code, head, k]) => tutRow(img(...spriteFor(code), 'big'), MT.t(head), MT.t('tut_6' + k))).join('') },
-    { after: () => [['bb', 'first'], ['dw', 'double'], ['mg', 'magic'], ['mi', 'pierce'], ['vb', 'drain'], ['pg', 'pincer'], ['rc', 'aura'], ['K1', 'boss']].map(([code, s]) => {
-      const m = MT.MONSTERS[code];
-      const tag = MT.t('sp_' + s, { p: Math.round((m.drain || 0) * 100), n: m.aura || 0 }).replace(/\s*[（(].*$/, '');   // 括號裡的說明下面另外寫
-      return tutRow(img(m.sprite, m.pal, 'big'), tag, MT.t('tut_sp_' + s, { n: m.aura || 0 }));
-    }).join('') + tutRow(echoImg(), MT.t('name_Ec'), MT.t('tut_echo')) },
+    // 怪物特技、回音地板：遇到過（走到附近、多蕾講過，旗標 tut:sp:*／tut:echo）才解鎖說明，沒遇到的是剪影＋？？？（3.2.30 Ken 指定，不劇透後面的怪）；
+    // 通關過的老玩家全部看得到；Boss 那列一律顯示
+    { after: () => {
+      const known = k => veteran() || !!(st && st.flags['tut:' + k]);
+      const locked = pic => `<div class="tutRow"><span class="colSil">${pic}</span><div><b>${esc(MT.t('colUnknown'))}</b><br><span class="small">${esc(MT.t('tut_locked'))}</span></div></div>`;
+      return [['bb', 'first'], ['dw', 'double'], ['mg', 'magic'], ['mi', 'pierce'], ['vb', 'drain'], ['pg', 'pincer'], ['rc', 'aura'], ['K1', 'boss']].map(([code, s]) => {
+        const m = MT.MONSTERS[code];
+        if (s !== 'boss' && !known('sp:' + s)) return locked(img(m.sprite, m.pal, 'big'));
+        const tag = MT.t('sp_' + s, { p: Math.round((m.drain || 0) * 100), n: m.aura || 0 }).replace(/\s*[（(].*$/, '');   // 括號裡的說明下面另外寫
+        return tutRow(img(m.sprite, m.pal, 'big'), tag, MT.t('tut_sp_' + s, { n: m.aura || 0 }));
+      }).join('') + (known('echo') ? tutRow(echoImg(), MT.t('name_Ec'), MT.t('tut_echo')) : locked(echoImg()));
+    } },
     { after: () => [['lens', 'look'], ['porter', 'npc'], ['harp', 'skill'], ['goldnote', 'rate'], ['page', 'save']]   // 特殊道具的用法拿到才看得到（圖鑑的收藏品分頁），不寫在這裡；存檔放最後（Ken 指定）
       .map(([sp, k]) => tutRow(img(sp, null, 'big'), '', MT.t('tut_t_' + k))).join('') },
   ];
