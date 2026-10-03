@@ -1248,9 +1248,11 @@
     const rows = HERO_HEAD[dir].concat(HERO_BODY[dir], legs);
     const pick = (table, key) => { const t = table[dir === 'up' ? 'down' : dir]; return t && t[key] && (dir === 'up' ? mirror(t[key]) : t[key]); };
     if (tier >= 2 && dir !== 'up') overlay(rows, HERO_CAPE[dir], true);
-    overlay(rows, pick(HERO_SHIELD, shield));
+    // 手跟著腳擺（3.2.27 Ken 指定）：抬左腳那格拿武器的手往上 1 格、抬右腳那格拿盾的手往上 1 格，站著踏步時兩手一上一下
+    const lift = (o, on) => (o && on ? Object.fromEntries(Object.entries(o).map(([r, s]) => [Number(r) - 1, s])) : o);
+    overlay(rows, lift(pick(HERO_SHIELD, shield), foot === 'B'));
     if (tier >= 2 && dir === 'up') overlay(rows, HERO_CAPE.up);
-    overlay(rows, pick(HERO_WEAPON, sword || 'hammer'));
+    overlay(rows, lift(pick(HERO_WEAPON, sword || 'hammer'), foot === 'A'));
     S[name] = { rows, pal: 'hero' + tier };
     return name;
   };
