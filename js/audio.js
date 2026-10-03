@@ -61,6 +61,7 @@
       ],
     },
     boss: {
+      gain: 0.8,   // 3.2.31 Ken 指定：Boss 層（5F／10F／15F／20F 共用這首）音量 80%
       bpm: 152,
       tracks: [
         { layer: 'lead', inst: 'lead', vol: 0.14, notes:
@@ -385,6 +386,19 @@
       o.type = 'sine'; o.frequency.setValueAtTime(41, t); o.frequency.linearRampToValueAtTime(55, t + 2.1);
       og.gain.setValueAtTime(0.0001, t); og.gain.linearRampToValueAtTime(0.4, t + 2.0); og.gain.exponentialRampToValueAtTime(0.001, t + 2.5);
       o.connect(og); og.connect(sfxBus); o.start(t); o.stop(t + 2.6);
+    },
+    // 黑衣人升到最高點後的笑聲（3.2.31 Ken 指定）：低沉的「呵、呵、呵…」一聲比一聲低，帶一點氣音和回音
+    evilLaugh: t => {
+      const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 650; bp.Q.value = 1.4; bp.connect(sfxBus);
+      for (let i = 0; i < 6; i++) {
+        const at = t + i * 0.2 + (i > 2 ? 0.08 : 0), f0 = 150 - i * 9, v = 0.5 - i * 0.05;
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.type = 'sawtooth'; o.frequency.setValueAtTime(f0 * 1.15, at); o.frequency.exponentialRampToValueAtTime(f0 * 0.85, at + 0.16);
+        g.gain.setValueAtTime(0.0001, at); g.gain.linearRampToValueAtTime(v, at + 0.02); g.gain.exponentialRampToValueAtTime(0.001, at + 0.17);
+        o.connect(g); g.connect(bp); o.start(at); o.stop(at + 0.2);
+        noise(at, 0.12, 'bandpass', 1200, 0.18 * v, sfxBus, 1);                 // 氣音
+        tone('sawtooth', f0 * 0.85, at + 0.45, 0.14, 0.04, sfxBus, f0 * 0.7);    // 遠遠的回音
+      }
     },
     // 指揮棒一舉：一段旋律剛起頭就被拉走——音一個個往下滑、越來越悶，最後被一陣風聲吸成一片寂靜
     silence: t => {

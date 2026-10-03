@@ -1886,6 +1886,8 @@
   // 國王進門那幕：王子敲鐵的時間點（毫秒），跟國王的腳步聲（754／1131／1508）錯開，聽起來是噹、步、噹、步；國王站定前轉身
   const FORGE_KING_HITS = [150, 560, 940, 1320], FORGE_KING_TURN = 1500;
   const MEET_WALK = 1400;   // 遇見多蕾那幕：王子從左邊走進場的時間（毫秒）
+  const MAESTRO_LAUGH = 2300;   // 黑衣人升到最高點、開始笑的時間（毫秒）
+  const MAESTRO_LAUGH_TEXT = { zh: '呵呵呵…', en: 'Heh heh…', ja: 'フフフ…' };
   // 鎚子敲下後跳出的「噹」：age＝敲下後幾毫秒，先放大一下再往上飄著淡掉
   function clangPop(age, x, y) {
     if (age < 0 || age > 900) return;
@@ -1984,7 +1986,10 @@
     const k = Math.min(1, st / 2200), e = 1 - Math.pow(1 - k, 3);          // 從影子裡長出來
     const lift = Math.min(1, Math.max(0, (st - 1600) / 900));             // 舉起指揮棒
     const cx = SIZE / 2, sc = 10, fw = 16 * sc;
-    const fy = 96 + (1 - e) * 150 + Math.sin(t / 900) * 5;               // 身體左上角
+    // 升到最高點（MAESTRO_LAUGH 毫秒）之後才開始笑：身體一抖一抖，笑完慢慢停（3.2.31 Ken 指定）
+    const lt = st - MAESTRO_LAUGH, laughing = lt > 0 && lt < 1800;
+    const shake = laughing ? -Math.abs(Math.sin(lt / 95)) * 7 * (1 - lt / 1800) : 0;
+    const fy = 96 + (1 - e) * 150 + Math.sin(t / 900) * 5 + shake;       // 身體左上角
     const footY = SIZE - 40;
     drawSky(t, '#05040c', '#170c24');
     // 身後一圈病態的紫光，讓純黑的剪影浮出來
@@ -2054,6 +2059,20 @@
     cg.globalCompositeOperation = 'lighter'; cg.fillStyle = `rgba(255,58,106,${glow * e})`;
     for (const ex of [6, 9]) { cg.beginPath(); cg.arc(cx - fw / 2 + (ex + 0.5) * sc, fy + 4.5 * sc, 14, 0, Math.PI * 2); cg.fill(); }
     cg.globalCompositeOperation = 'source-over';
+    // 笑聲的字：一個一個從面具旁邊冒出來往上飄
+    if (lt > 0 && lt < 2600) {
+      const word = MAESTRO_LAUGH_TEXT[MT.getLang()] || MAESTRO_LAUGH_TEXT.en;
+      cg.textAlign = 'center'; cg.font = 'bold 26px serif'; cg.lineWidth = 4; cg.lineJoin = 'round';
+      for (let i = 0; i < 3; i++) {
+        const a = lt - i * 300; if (a < 0) continue;
+        const q = Math.min(1, a / 2000), side = i % 2 ? 1 : -1;
+        cg.globalAlpha = Math.min(1, a / 150) * (1 - q);
+        cg.strokeStyle = '#0c0914'; cg.fillStyle = '#c9a4ff';
+        const x = cx + side * (fw / 2 + 30 + i * 8), y = fy + 30 - q * 70 - i * 6;
+        cg.strokeText(word, x, y); cg.fillText(word, x, y);
+      }
+      cg.globalAlpha = 1;
+    }
     return { tip, lift };
   }
 
@@ -2718,7 +2737,7 @@
     // 心跳＋腦海裡的聲音一陣陣耳語（對準那些話出現），影子睜眼那一刻一記低音
     { scene: 'forgeShadow', text: 'pro_4c', delay: 900,
       sfx: [['heartbeat', 0], ...[300, 960, 1620, 2280, 2940, 3600].map(ms => ['whisper', ms]), ['eyesOpen', 4000]] },
-    { scene: 'maestro', text: 'pro_5', sfx: [['shadowRise', 0], ['silence', 1600]] },   // 從影子裡長出來；1.6 秒舉起指揮棒，聲音全被吸走
+    { scene: 'maestro', text: 'pro_5', sfx: [['shadowRise', 0], ['silence', 1600], ['evilLaugh', MAESTRO_LAUGH]] },   // 從影子裡長出來；1.6 秒舉起指揮棒，聲音全被吸走
     { scene: 'tower', text: 'pro_6', delay: 2400, sfx: 'towerRise', sfxAt: 600 },     // 塔 0.6 秒開始往上長
     // 先走進場（腳步聲對準每一步）；站定後頭上冒「！」；1.2 秒起光點聚過去、2.2 秒多蕾彈出來，彈出來後名字和台詞才出現
     { scene: 'meet', text: 'pro_7', speaker: 'doremi', delay: MEET_WALK + 2700,
