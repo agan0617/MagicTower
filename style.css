@@ -38,7 +38,7 @@ button { font: inherit; color: inherit; }
 }
 #stage.under { visibility: hidden; }
 /* 新遊戲進塔：地圖從黑淡入（畫布上做），資訊列與下方按鈕晚一點浮出來 */
-#stage.enter #hud, #stage.enter #bar { animation: stageIn 1.4s ease 1.2s both; }
+#stage.enter #hud, #stage.enter #bar { animation: stageIn 2.1s ease 1.8s both; }
 @keyframes stageIn { from { opacity: 0; } to { opacity: 1; } }
 #stage { position: relative; }
 #hud {

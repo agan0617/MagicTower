@@ -1779,6 +1779,7 @@
   cg.imageSmoothingEnabled = false;
   let cineScene = null, cineT0 = 0, cineQueue = [], cineDone = null;   // cineT0＝這個場景開始的時間，給有時間軸的演出用
   let cinePose = null;   // 劇本那一步指定的阿爾特表情（pose），換場景時清掉
+  let cineDots = 0;      // 劇本那一步標了 dots（無言）時的開始時間；頭上冒「…」泡泡＋一大滴汗，下一步就收掉
 
   const stars = Array.from({ length: 70 }, (_, i) => [(i * 97) % SIZE, (i * 53) % 300, (i % 3) + 1]);
   function drawTown(t, day) {
@@ -1863,6 +1864,19 @@
   const LAUGH_TEXT = { zh: '哈哈', en: 'HA HA', ja: 'ハハ' };
   const CLANG_TEXT = { zh: '噹！', en: 'CLANG!', ja: 'カーン！' };
   let forgeBeat = -1;   // 打鐵鋪那幕上一次響鐵砧聲的拍子
+  // 國王進門那幕：王子敲鐵的時間點（毫秒），跟國王的腳步聲（754／1131／1508）錯開，聽起來是噹、步、噹、步；國王站定前轉身
+  const FORGE_KING_HITS = [150, 560, 940, 1320], FORGE_KING_TURN = 1500;
+  // 鎚子敲下後跳出的「噹」：age＝敲下後幾毫秒，先放大一下再往上飄著淡掉
+  function clangPop(age, x, y) {
+    if (age < 0 || age > 900) return;
+    const s = 1 + 0.35 * Math.max(0, 1 - age / 120), word = CLANG_TEXT[MT.getLang()] || CLANG_TEXT.en;
+    cg.globalAlpha = Math.min(1, (900 - age) / 350);
+    cg.textAlign = 'center'; cg.lineWidth = 5; cg.lineJoin = 'round';
+    cg.font = `900 ${Math.round(40 * s)}px sans-serif`;
+    cg.strokeStyle = '#1b1a26'; cg.fillStyle = '#ffe066';
+    cg.strokeText(word, x, y - age / 900 * 40); cg.fillText(word, x, y - age / 900 * 40);
+    cg.globalAlpha = 1;
+  }
   const choir = Array.from({ length: 10 }, (_, i) => ({ x: [70, 120, 170, 358, 408, 458][i % 6] + (i >= 6 ? 25 : 0), row: i >= 6 ? 1 : 0, robe: i % 2 }));
   const audience = Array.from({ length: 11 }, (_, i) => ({ x: 20 + i * 49 + (i % 2) * 8, h: 30 + (i * 7) % 12 }));
   function drawRehearsal(t, st, laughing, sprite) {
@@ -2217,14 +2231,22 @@
       bigSprite('heroSideSulk', null, 150, SIZE - 250 + (hit ? 6 : 0), 8);
       if (hit) for (let i = 0; i < 8; i++) { cg.fillStyle = ['#ffd84a', '#ff9a2e'][i % 2]; cg.fillRect(300 + Math.cos(i + t / 100) * 40, SIZE - 190 - Math.abs(Math.sin(i * 3 + t / 90)) * 50, 5, 5); }
       cg.fillStyle = 'rgba(255,140,40,0.15)'; cg.beginPath(); cg.arc(330, SIZE - 160, 140 + Math.sin(t / 200) * 10, 0, Math.PI * 2); cg.fill();
+      // 每敲一下跳一個「噹」，左右交替；上一下的還沒散完，下一下就接上
+      for (const b of [beat - (hit ? 0 : 1), beat - (hit ? 2 : 3)]) clangPop(t - b * 400, 348 + ((b >> 1) % 2 ? 44 : -44), SIZE - 215);
     },
-    // 前一晚：先從黑畫面淡入夜裡的打鐵鋪，國王從右邊走進來唸王子
+    // 前一晚：先從黑畫面淡入夜裡的打鐵鋪，王子背對門口還在敲鐵；國王從右邊走進來，站定時王子才停手轉過身
     forgeKing: t => {
       const st = t - cineT0;
       drawForgeNight(t);
       const k = Math.min(1, Math.max(0, (st - 500) / 1100)), e = 1 - Math.pow(1 - k, 2);
       const step = k > 0 && k < 1 ? Math.abs(Math.sin(st / 120)) * 8 : 0;
-      bigSprite('heroSideSulk', null, 170, SIZE - 250, 8);
+      if (st < FORGE_KING_TURN) {
+        const last = FORGE_KING_HITS.filter(h => h <= st).pop(), age = last === undefined ? -1 : st - last;
+        bigSprite('heroSideSulk', null, 170, SIZE - 250 + (age >= 0 && age < 160 ? 6 : 0), 8, true);
+        if (age >= 0 && age < 300) for (let i = 0; i < 8; i++) { cg.globalAlpha = 1 - age / 300; cg.fillStyle = ['#ffd84a', '#ff9a2e'][i % 2]; cg.fillRect(130 + Math.cos(i + t / 100) * 40, SIZE - 190 - Math.abs(Math.sin(i * 3 + t / 90)) * 50, 5, 5); }
+        cg.globalAlpha = 1;
+      } else bigSprite('heroSideSulk', null, 170, SIZE - 250, 8);
+      FORGE_KING_HITS.forEach((h, i) => clangPop(st - h, 100 + (i % 2 ? 40 : -40), SIZE - 215));
       bigSprite('bard', null, SIZE + 10 - (SIZE + 10 - 330) * e, SIZE - 250 - step, 8);
       const dark = 1 - Math.min(1, st / 900);
       if (dark > 0) { cg.fillStyle = `rgba(6,4,12,${dark})`; cg.fillRect(0, 0, SIZE, SIZE); }
@@ -2419,6 +2441,20 @@
         cg.fillRect(hx + 66, hy + 32 + p * 22, 7, 10); cg.fillRect(hx + 68, hy + 27 + p * 22, 3, 5);
         cg.globalAlpha = 1;
       }
+      if (cineDots) {                                                          // 無言：頭上的泡泡裡「・・・」一顆一顆冒，後腦杓滑下一大滴汗
+        const d = t - cineDots, bx = hx + 132, by = hy - 54;
+        cg.fillStyle = '#f4f1ff'; cg.strokeStyle = '#1b1a26'; cg.lineWidth = 4;
+        cg.beginPath(); cg.ellipse(bx, by, 50, 26, 0, 0, Math.PI * 2); cg.fill(); cg.stroke();
+        cg.beginPath(); cg.arc(bx - 46, by + 32, 7, 0, Math.PI * 2); cg.fill(); cg.stroke();
+        cg.beginPath(); cg.arc(bx - 58, by + 46, 4, 0, Math.PI * 2); cg.fill(); cg.stroke();
+        cg.fillStyle = '#1b1a26';
+        for (let i = 0; i < Math.min(3, Math.floor(d / 400) + 1); i++) cg.fillRect(bx - 26 + i * 22, by - 4, 9, 9);
+        if (d > 1300) {
+          const q = Math.min(1, (d - 1300) / 900), sx = hx + 10, sy = hy + 8 + q * 26;
+          cg.fillStyle = '#aef4ff'; cg.strokeStyle = '#1b1a26'; cg.lineWidth = 3;
+          cg.beginPath(); cg.moveTo(sx, sy - 22); cg.quadraticCurveTo(sx + 13, sy, sx, sy + 8); cg.quadraticCurveTo(sx - 13, sy, sx, sy - 22); cg.fill(); cg.stroke();
+        }
+      }
       if (st < 0) return;
       if (st < 1000) {
         const k = st / 1000;
@@ -2598,6 +2634,7 @@
     if (!s) { endCine(); return; }
     if (s.scene) { cineScene = s.scene; cineT0 = now(); cinePose = null; }
     if (s.pose) cinePose = s.pose;
+    cineDots = s.dots ? now() : 0;
     if (s.music) MT.Audio.play(s.music, ['base', 'drums', 'strings', 'lead']);
     // sfx：一個音效名（sfxAt＝幾毫秒後才響），或 [[名稱, 毫秒], …] 一串對準畫面時間軸的音效；換場景就不再響
     if (s.sfx) {
@@ -2620,9 +2657,9 @@
     const type = () => {
       typing = setInterval(() => {
         i++; el.textContent = chars.slice(0, i).join('');
-        if (s.speaker && i % 3 === 1) MT.Audio.voice(s.speaker);   // 每個角色自己的聲音
+        if (s.speaker && !s.dots && i % 3 === 1) MT.Audio.voice(s.speaker);   // 每個角色自己的聲音；無言那句不出聲
         if (i >= chars.length) { clearInterval(typing); typing = null; }
-      }, 32);
+      }, s.dots ? 300 : 32);                                                   // 無言的「…」一個一個慢慢冒
     };
     // delay：等畫面演完（例如國王走進來）才開始打字；這段時間點一下就直接顯示全文
     if (s.delay) typing = setTimeout(type, s.delay); else type();
@@ -2647,7 +2684,8 @@
     { scene: 'firstStrike', text: 'pro_3t', sfx: 'clang', sfxAt: 1500, delay: 2300 },
     { scene: 'forge', text: 'pro_3a', music: 'title' },
     { text: 'pro_3b', speaker: 'smith' },
-    { scene: 'forgeKing', text: 'pro_4', speaker: 'bard', delay: 1600, sfx: [['footstep', 754], ['footstep', 1131], ['footstep', 1508]] },   // 對準國王一步一步落地
+    { scene: 'forgeKing', text: 'pro_4', speaker: 'bard', delay: 1600,
+      sfx: [['footstep', 754], ['footstep', 1131], ['footstep', 1508], ...FORGE_KING_HITS.map(ms => ['anvil', ms])] },   // 對準國王一步一步落地，中間夾著王子的敲鐵聲
     { scene: 'forgeRage', text: 'pro_4b', speaker: 'tink', music: 'none', sfx: 'boom' },
     // 心跳＋腦海裡的聲音一陣陣耳語（對準那些話出現），影子睜眼那一刻一記低音
     { scene: 'forgeShadow', text: 'pro_4c', delay: 900,
@@ -2659,7 +2697,8 @@
     { text: 'pro_9', speaker: 'doremi' },
     { text: 'pro_10', speaker: 'tink', pose: 'heroSideGuilty' },
     { text: 'pro_11', speaker: 'doremi' },
-    { text: 'pro_12', speaker: 'tink', pose: 'heroSideSulk' },
+    { text: 'pro_11b', speaker: 'tink', pose: 'heroSideSulk', dots: true },   // 被叫「小鐵」先無言一拍，才回嘴
+    { text: 'pro_12', speaker: 'tink' },
     // 第一人稱推開塔門：心跳一路響；2.0 秒開一條縫、2.9 秒整扇推開、4.2 秒撞上牆；演完才出字
     { scene: 'gate', text: 'pro_13', music: 'none', delay: 4600,
       sfx: [['heartbeat', 0], ['doorCreak', 2000], ['doorGroan', 2900], ['doorThud', 4200]] },
@@ -2797,13 +2836,13 @@
     renderHud();
     playMusic(musicFor());
     if (fresh) {
-      // 推開塔門之後：畫面從全黑慢慢亮起來（2 秒），資訊列和下方按鈕晚一點才浮出來；亮完才出樓層字卡和開場對話（Ken 指定）
+      // 推開塔門之後：畫面從全黑慢慢亮起來（3 秒），資訊列和下方按鈕晚一點才浮出來；亮完才出樓層字卡和開場對話（Ken 指定）
       const id = MT.stepTrigger(st);
       view.fade = view.fadeCur = view.fadeTo = 1;
       const stage = $('#stage');
-      stage.classList.add('enter'); setTimeout(() => stage.classList.remove('enter'), 3000);
+      stage.classList.add('enter'); setTimeout(() => stage.classList.remove('enter'), 4500);
       busy++;
-      fade(0, 2000).then(() => {
+      fade(0, 3000).then(() => {
         busy = Math.max(0, busy - 1);
         view.banner = { text: MT.floorName(st.floor), t0: now() }; view.arrowUntil = now() + 2800;
         if (id) setTimeout(() => runScript(id).then(autosave), 900); else autosave();
