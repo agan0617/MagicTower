@@ -801,6 +801,7 @@
       ['narr', 'p2_0'],
       ['sfx', 'heartbeat'], ['wait', 900],
       ['phase2'],
+      ['fadeIn', ['M3', 'M4'], 2400],   // 失控的指揮家慢慢浮現（3.2.53 Ken 指定）
       ['say', 'maestro', 'p2_1'],
       ['branch', 'hasNote', 'noteGlow'],
       ['fairy', true],

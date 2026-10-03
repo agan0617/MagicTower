@@ -405,6 +405,11 @@
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
       const code = m[y][x];
       if (code === 'Ec') drawEcho(x, y, t);
+      else if (view.fadeIn && view.fadeIn.codes.includes(code)) {   // 劇本 fadeIn：這種怪慢慢浮現（失控的指揮家）
+        const k = Math.min(1, (t - view.fadeIn.t0) / view.fadeIn.dur);
+        if (k >= 1) view.fadeIn = null;
+        g.save(); g.globalAlpha = k; drawTile(code, x, y, t); g.restore();
+      }
       else if (code !== '##' && code !== '..' && code !== 'Hw' && code !== 'Cw') drawTile(code, x, y, t);
     }
     // 劇本 fadeOut：那個人慢慢變透明、往上飄、散出光點
@@ -710,6 +715,11 @@
             await sleep(700); break;
           }
           case 'sparkle': sparkle(c[1], c[2], 40); notes(c[1], c[2], 8); break;
+          case 'fadeIn': {   // 這幾種怪慢慢浮現出來（ms 毫秒），等浮現完才往下
+            view.fadeIn = { codes: c[1], t0: now(), dur: c[2] };
+            await sleep(c[2]);
+            break;
+          }
           case 'fadeOut': {   // 地圖上某一格的人慢慢變透明、往上飄著消失，飄出光點（ms 毫秒）
             const [, fx, fy, ms] = c, code = MT.tile(st, st.floor, fx, fy);
             MT.setTile(st, st.floor, fx, fy, '..');
@@ -2995,13 +3005,13 @@
     const r = MT.rating(st);
     const newBest = MT.Sync.saveBest(Object.assign({}, r, { playMs: st.playMs, steps: st.steps, kills: st.kills }));
     await playCine(trueEnd ? [
-      { scene: 'festivalTrue', text: 'et_1', music: 'ending', delay: 4400 },   // 畫面淡入得差不多才出字
+      { scene: 'festivalTrue', text: 'et_1', music: 'ending', delay: 3000 },   // 畫面淡入得差不多才出字
       { text: 'et_2', keep: true },
       { text: 'et_3', keep: true },
       { text: 'et_4', keep: true },
       { text: 'ed_true_end', keep: true },
     ] : [
-      { scene: 'festival', text: 'ed_1', music: 'ending', delay: 4400 },
+      { scene: 'festival', text: 'ed_1', music: 'ending', delay: 3000 },
       { text: 'ed_2', keep: true },
       { text: 'ed_3', keep: true },
       { text: 'ed_end', keep: true },
