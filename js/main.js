@@ -984,6 +984,8 @@
     if (ev.gold) flyGain('gold', ev.gold, cx, cy, 180);   // 放大、G 緊貼數字，飛進資訊列才加上去（Ken 指定）
     renderHud();
     await sleep(boss ? 800 : 160);
+    // 打倒 Boss：背景音樂停下來，放一段勝利小曲，放完才接後面（3.2.24 Ken 指定）；最終 Boss 直接進結局，不放
+    if (boss && ev.tile !== 'M2') { MT.Audio.play('none'); sfx('victory'); await sleep(2700); }
     busy--;
     if (ev.opened && ev.opened.length) {
       sfx('gate'); shake(500, 4);

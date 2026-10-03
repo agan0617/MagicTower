@@ -516,6 +516,15 @@
       tone('triangle', freq('c4'), t + 0.32, 0.8, 0.3);
     },
     boom: t => { kick(t, sfxBus, 1.4); noise(t, 0.5, 'lowpass', 300, 0.6, sfxBus); },
+    // 打倒 Boss 的勝利小曲（3.2.24 Ken 指定，原創旋律，約 2.7 秒）：三連音往上衝 → 兩小句 → 最後一個長音配和弦
+    victory: t => {
+      [['e5', 0, 0.11], ['g5', 0.12, 0.11], ['c6', 0.24, 0.3], ['b5', 0.58, 0.11], ['c6', 0.72, 0.11], ['d6', 0.86, 0.3],
+       ['e6', 1.2, 0.3], ['d6', 1.52, 0.11], ['e6', 1.66, 0.11], ['g6', 1.8, 0.9]]
+        .forEach(([n, at, d]) => tone('square', freq(n), t + at, d, 0.11, sfxBus));
+      [['c3', 0, 0.5], ['f3', 0.58, 0.55], ['g3', 1.16, 0.55], ['c3', 1.8, 1.0]].forEach(([n, at, d]) => tone('triangle', freq(n), t + at, d, 0.3, sfxBus));
+      ['c5', 'e5', 'g5'].forEach(n => tone('sine', freq(n), t + 1.8, 0.9, 0.06, sfxBus));
+      [0, 0.58, 1.16, 1.8].forEach(at => noise(t + at, 0.12, 'highpass', 6000, 0.12, sfxBus));
+    },
     harp: t => arp('sine', ['c5', 'e5', 'g5', 'b5', 'd6', 'f6', 'a6', 'c7'], t, 0.045, 0.6, 0.18),
     page: t => noise(t, 0.3, 'bandpass', 3000, 0.25, sfxBus, 0.5),
     nohit: t => { tone('sine', 110, t, 0.2, 0.4, sfxBus, 60); noise(t, 0.1, 'lowpass', 400, 0.3, sfxBus); },
