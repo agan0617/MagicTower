@@ -2481,8 +2481,8 @@
         cg.beginPath(); cg.arc(bx - 58, by + 46, 4, 0, Math.PI * 2); cg.fill(); cg.stroke();
         cg.fillStyle = '#1b1a26';
         for (let i = 0; i < Math.min(3, Math.floor(d / 400) + 1); i++) cg.fillRect(bx - 26 + i * 22, by - 4, 9, 9);
-        if (d > 1300) {
-          const q = Math.min(1, (d - 1300) / 900), sx = hx + 10, sy = hy + 8 + q * 26;
+        {                                                                      // 汗跟「・・・」同時開始（3.2.33 Ken 指定，原本晚 1.3 秒）
+          const q = Math.min(1, d / 1200), sx = hx + 10, sy = hy + 8 + q * 26;
           cg.fillStyle = '#aef4ff'; cg.strokeStyle = '#1b1a26'; cg.lineWidth = 3;
           cg.beginPath(); cg.moveTo(sx, sy - 22); cg.quadraticCurveTo(sx + 13, sy, sx, sy + 8); cg.quadraticCurveTo(sx - 13, sy, sx, sy - 22); cg.fill(); cg.stroke();
         }
