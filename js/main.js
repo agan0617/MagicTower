@@ -2712,11 +2712,15 @@
       bigSprite('frog', null, SIZE - 60, SIZE - 90, 3, true);
     },
   };
+  const SCENE_FADEIN = { festival: 2800, festivalTrue: 2800 };   // 這些場景開頭從黑畫面淡入（毫秒）
   function cineRender() {
     requestAnimationFrame(cineRender);
     if (mode !== 'cine' || !cineScene) return;
     const t = now();
     cg.save(); SCENES[cineScene](t); cg.restore();
+    // 結局畫面從全黑慢慢亮起來（3.2.49 Ken 指定：原本直接出現，沒有感覺）
+    const fin = SCENE_FADEIN[cineScene], ft = t - cineT0;
+    if (fin && ft < fin) { cg.fillStyle = `rgba(0,0,0,${1 - ft / fin})`; cg.fillRect(0, 0, SIZE, SIZE); }
   }
   requestAnimationFrame(cineRender);
 
@@ -2972,13 +2976,13 @@
     const r = MT.rating(st);
     const newBest = MT.Sync.saveBest(Object.assign({}, r, { playMs: st.playMs, steps: st.steps, kills: st.kills }));
     await playCine(trueEnd ? [
-      { scene: 'festivalTrue', text: 'et_1', music: 'ending' },
+      { scene: 'festivalTrue', text: 'et_1', music: 'ending', delay: 2400 },   // 畫面淡入得差不多才出字
       { text: 'et_2', keep: true },
       { text: 'et_3', keep: true },
       { text: 'et_4', keep: true },
       { text: 'ed_true_end', keep: true },
     ] : [
-      { scene: 'festival', text: 'ed_1', music: 'ending' },
+      { scene: 'festival', text: 'ed_1', music: 'ending', delay: 2400 },
       { text: 'ed_2', keep: true },
       { text: 'ed_3', keep: true },
       { text: 'ed_end', keep: true },
