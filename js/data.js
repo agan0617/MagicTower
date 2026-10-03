@@ -62,7 +62,11 @@
     rc: { hp: 500, atk: 150, def: 190, gold: 45, exp: 35, sprite: 'resonator', sp: ['magic', 'aura'], aura: 80 },
     K4: { hp: 6000, atk: 340, def: 185, gold: 200, exp: 150, size: 2, sprite: 'conductor', sp: ['boss', 'magic'] },     // 18F 回音指揮
     M1: { hp: 9999, atk: 350, def: 200, gold: 0, exp: 0, size: 3, sprite: 'maestroBig', sp: ['boss', 'invincible'], onBump: 'maestroDrum' },
-    M2: { hp: 9000, atk: 450, def: 200, gold: 0, exp: 0, size: 3, sprite: 'maestroBig', sp: ['boss'], onDeath: 'ending' },
+    M2: { hp: 5000, atk: 450, def: 200, gold: 0, exp: 0, size: 3, sprite: 'maestroBig', sp: ['boss'], onDeath: 'maestroPhase2' },
+    // 二階段「失控的指揮家」（3.2.44 Ken 指定）：面具裂一半、攻擊很高防禦很低——攻擊夠的人很快打完，攻擊不夠的會被拖垮；
+    // 身上有失落的音符（真結局路線）時換成 M4：音符發光讓他慢一拍
+    M3: { hp: 4000, atk: 560, def: 140, gold: 0, exp: 0, size: 3, sprite: 'maestroBig', pal: 'maestroRage', sp: ['boss'], onDeath: 'ending' },
+    M4: { hp: 3500, atk: 520, def: 140, gold: 0, exp: 0, size: 3, sprite: 'maestroBig', pal: 'maestroRage', sp: ['boss'], onDeath: 'ending' },
   };
 
   // 同區域的數值：[1區, 2區, 3區, 4區]
@@ -790,13 +794,32 @@
       ['music', 'boss'],
       ['say', 'maestro', 'md_7'],
     ],
+    // 第一階段倒下：面具裂開一半、聲音被吸回去，站起來變成失控的指揮家（3.2.44）
+    maestroPhase2: [
+      ['music', 'none'],
+      ['sfx', 'boom'], ['shake', 700], ['flash', '#fff'], ['wait', 600],
+      ['narr', 'p2_0'],
+      ['sfx', 'heartbeat'], ['wait', 900],
+      ['phase2'],
+      ['say', 'maestro', 'p2_1'],
+      ['branch', 'hasNote', 'noteGlow'],
+      ['fairy', true],
+      ['say', 'doremi', 'p2_2'],
+      ['say', 'tink', 'p2_3'],
+      ['fairy', false],
+      ['music', 'boss'],
+    ],
+    noteGlow: [
+      ['sfx', 'harp'], ['flash', '#ffd84a'],
+      ['narr', 'p2_note'],
+    ],
     ending: [
       ['music', 'none'],
       ['wait', 500],
       ['say', 'maestro', 'end_1'],
       ['say', 'tink', 'end_2'],
       // 面具裂開：舞台中央換成沒戴面具的指揮家（＝阿爾特自己的臉）
-      ['sfx', 'boom'], ['flash', '#fff'], ['swap', 'M2', '..'], ['set', 5, 1, 'Mz'],
+      ['sfx', 'boom'], ['flash', '#fff'], ['swap', 'M3', '..'], ['swap', 'M4', '..'], ['set', 5, 1, 'Mz'],
       ['narr', 'end_2b'],
       ['fairy', true],
       ['say', 'shadow', 'end_3'],

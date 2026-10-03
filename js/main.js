@@ -703,7 +703,7 @@
             if (c[2] === 'M2') { flash('#ffd84a', 600); sparkle(5, 1, 30); }
             break;
           case 'branch':
-            if (c[1] === 'trueEnd' && MT.isTrueEnding(st)) await runScript(c[2]);
+            if ((c[1] === 'trueEnd' && MT.isTrueEnding(st)) || (c[1] === 'hasNote' && st.items.note)) await runScript(c[2]);
             break;
           case 'ending':
             MT.applyCmd(st, c);
@@ -1001,7 +1001,7 @@
     renderHud();
     await sleep(boss ? 800 : 160);
     // 打倒 Boss：背景音樂停下來，放一段勝利小曲，放完才接後面（3.2.24 Ken 指定）；最終 Boss 直接進結局，不放
-    if (boss && ev.tile !== 'M2') { MT.Audio.play('none'); sfx('victory'); await sleep(2700); }
+    if (boss && !['M2', 'M3', 'M4'].includes(ev.tile)) { MT.Audio.play('none'); sfx('victory'); await sleep(2700); }   // 指揮家：一階段接二階段、二階段接結局，都不放勝利小曲
     busy--;
     if (ev.opened && ev.opened.length) {
       sfx('gate'); shake(500, 4);
@@ -2945,17 +2945,27 @@
     mode = 'cine';
     $('#cine').hidden = false; $('#stage').classList.add('under');
     $('#cineName').hidden = true;
+    cineQueue = []; endScreen = true;   // 演出期間點畫面不會跳掉
+    $('#cineSkip').hidden = true;
+    // 收尾演出（3.2.45 Ken 指定：原本最後一句講完就突然跳評價）：文字框收起來，畫面中央慢慢浮出「The End」，
+    // 停一下再淡出，評價框才從上方滑進來；評價字母最後「噹」一聲蹦出來
+    $('#cineText').classList.add('hide');
+    const theEnd = document.createElement('div');
+    theEnd.className = 'theEnd'; theEnd.textContent = 'The End';
+    $('#cine').appendChild(theEnd);
+    sfx('harp');
+    await sleep(4200);
+    theEnd.remove();
     const rank = `<div class="rank" data-g="${r.grade}"><span class="rankLab">${esc(MT.t('rateTitle'))}</span><span class="rankG">${r.grade}</span>${newBest ? `<span class="rankNew">${esc(MT.t('rateNew'))}</span>` : ''}</div>`
       + `<span class="small">${esc(MT.t('rateCalc', { hp: r.hp, bonus: r.bonus, score: r.score }))}</span><br>`
-      + (r.bonus ? `<span class="small">${esc(MT.t('rateBonusHint'))}</span><br>` : '')
-      + (r.needTrue ? `<span class="small rankWarn">${esc(MT.t('rateNeedTrue'))}</span><br>` : '');
-    // 回到標題的按鈕放在評價下面（3.2.43 Ken 指定：原本在最下面，手機上被切掉看不到）；最下面是開發者資訊
-    $('#cineBody').innerHTML = `<b>${esc(MT.story('ed_thanks'))}</b><br>${rank}<button class="btn primary" id="endBack">${esc(MT.t('endAgain'))}</button><br>`
+      + (r.needTrue ? `<span class="small rankWarn">${esc(MT.t('rateNeedTrue'))}</span><br>` : '');   // 換算說明不寫在破關畫面（3.2.45 Ken 指定）
+    // 回到標題的按鈕放在評價下面、水平置中；最下面是開發者資訊
+    $('#cineBody').innerHTML = `<b>${esc(MT.story('ed_thanks'))}</b><br>${rank}<div class="endBtns"><button class="btn primary" id="endBack">${esc(MT.t('endAgain'))}</button></div>`
       + `<span class="small">${esc(MT.t(trueEnd ? 'endTrue' : 'endNormal'))}　${esc(MT.t('endStats', { t: tstr, s: st.steps, k: st.kills }))}</span><br>${trueEnd ? '' : `<span class="small">${esc(MT.story('ed_hint'))}</span><br>`}`
       + `<span class="small credits">${esc(MT.t('credits'))}</span>`;
     $('#cine').classList.add('ending');
-    cineQueue = []; endScreen = true;
-    $('#cineSkip').hidden = true;
+    $('#cineText').classList.remove('hide');
+    setTimeout(() => { sfx('clang'); flash(r.grade === 'S' ? '#ffd84a' : '#ffffff', 350); }, 650);   // 評價字母蹦出來那一下（CSS 動畫 0.65 秒時落定）
     $('#endBack').addEventListener('click', e => { e.stopPropagation(); endScreen = false; $('#cineSkip').hidden = false; $('#cine').hidden = true; $('#cine').classList.remove('ending'); showTitle(); });
   }
 

@@ -427,6 +427,8 @@
       case 'leave': if (st.talkAt) MT.setTile(st, st.floor, st.talkAt[0], st.talkAt[1], '..'); break;
       // 這層所有 c[1] 換成 c[2]（大型怪物整塊換）
       case 'swap': for (const row of st.maps[st.floor]) for (let x = 0; x < W; x++) if (row[x] === c[1]) row[x] = c[2]; break;
+      // 最終 Boss 二階段：在原本 3×3 的位置放失控的指揮家（有失落的音符就是弱一點的 M4）
+      case 'phase2': { const code = st.items.note ? 'M4' : 'M3'; for (let y = 0; y < 3; y++) for (let x = 4; x < 7; x++) MT.setTile(st, st.floor, x, y, code); break; }
       case 'layer': if (!st.layers.includes(c[1])) st.layers.push(c[1]); break;
       case 'ending': st.done = true; break;
     }

@@ -39,6 +39,7 @@
     doorB: { 1: '#d6deea', 2: '#7c8698' },
     doorR: { 1: '#ffd23a', 2: '#b07a10' },
   };
+  PALS.maestroRage = { V: '#e0384a', x: '#ffd84a' };   // 失控的指揮家：紅色輪廓、金色的眼（3.2.44）
   PALS.gemRed = { 1: '#f0584c', 2: '#9a2228', 3: '#ffd0c8' };
   PALS.gemBlue = { 1: '#4aa0ff', 2: '#1f4fa8', 3: '#d8f0ff' };
   // 鎮民：衣服亮／暗、頭髮
