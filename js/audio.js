@@ -540,6 +540,17 @@
       }
     },
     // 序章吼完之後的心跳：八下「咚、咚」一下比一下快，底下墊一條慢慢變大的低音（節奏同 main.js 的 HEART_MS）
+    // 推開塔門時的心跳（3.2.21 Ken 指定）：「怦—咚」一下比一下快、一下比一下大聲，一路跳到門撞上牆。
+    // 原本的 heartbeat 只有 40～150Hz 的低頻，手機喇叭幾乎放不出來；這裡多疊 100～400Hz 的悶響，手機也聽得到
+    gateHeart: t => {
+      let at = t + 0.1;
+      for (let i = 0; at < t + 4.3; i++) {
+        const k = Math.min(1, i / 6), p = 0.55 + 0.45 * k;
+        kick(at, sfxBus, 1.0 * p); tone('triangle', 120, at, 0.14, 0.32 * p, sfxBus, 70); noise(at, 0.1, 'lowpass', 420, 0.5 * p, sfxBus);
+        kick(at + 0.17, sfxBus, 0.7 * p); tone('triangle', 100, at + 0.17, 0.12, 0.22 * p, sfxBus, 62); noise(at + 0.17, 0.08, 'lowpass', 360, 0.35 * p, sfxBus);
+        at += 0.78 - 0.3 * k;                                             // 0.78 秒一下，越來越急，最後 0.48 秒一下
+      }
+    },
     heartbeat: t => {
       let at = t + 0.15;
       for (let i = 0; i < 8; i++) {

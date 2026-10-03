@@ -2720,7 +2720,7 @@
     { text: 'pro_12', speaker: 'tink' },
     // 第一人稱推開塔門：心跳一路響；2.0 秒開一條縫、2.9 秒整扇推開、4.2 秒撞上牆；演完才出字
     { scene: 'gate', text: 'pro_13', music: 'none', delay: 4600,
-      sfx: [['heartbeat', 0], ['doorCreak', 2000], ['doorGroan', 2900], ['doorThud', 4200]] },
+      sfx: [['gateHeart', 0], ['doorCreak', 2000], ['doorGroan', 2900], ['doorThud', 4200]] },
   ];
 
   /* ───────── 標題畫面 ───────── */
