@@ -81,21 +81,26 @@
   /* 戰鬥試算。勇者先攻，雙方輪流；damage＝勇者這場會損失的生命，null＝打不動。
      怪物特技：first 先攻、double 一回合打兩下、magic 無視防禦、pierce 無視一半防禦、
      drain 開打前吸走勇者目前生命的 m.drain 比例（所以血少的時候去打比較划算）。
-     勇者技能（鑑定後生效）：absorb 每下少受一定比例、reflect 每被打一下就把一定比例彈回去（無視防禦）、
-     double 每回合多打一下。 */
+     勇者技能（鑑定後生效），3.2.66 起三種技能對應三種配點（Ken 指定）：
+       absorb（鐵壁）＝防高型：戰鬥時防禦乘上倍數（防禦越高越賺；魔法攻擊無視防禦，所以擋不了）
+       double（連擊）＝攻高型：每回合多打幾下（按攻擊減怪物防禦算，攻擊越高越賺）
+       reflect（反彈）＝血高型：每被打一下就把一定比例彈回去（無視怪物防禦；挨打換輸出，血厚才撐得住）
+     名稱 3.2.66 起改成鐵壁／連擊／反彈（原本沉穩低音／連音／回音）；代碼沿用 absorb（存檔裡的技能不用轉換）。 */
   MT.SKILL = {
-    absorb: [0, 0.2, 0.35, 0.5],               // 少受的比例
-    reflect: [0, 0.35, 0.6, 0.85],             // 彈回去的比例（以怪物原本那一下算）
-    double: [[], [0.6], [1], [1, 0.5]],        // 每回合額外的攻擊（勇者攻擊力減怪物防禦的倍數）
+    absorb: [1, 1.12, 1.25, 1.4],             // 防禦倍數（3.2.64 以前是「每下少受 20／35／50%」）
+    reflect: [0, 0.5, 0.95, 1.6],             // 彈回去的比例（以那一下實際打到的傷害算）
+    double: [[], [0.6], [1], [1, 0.3]],        // 每回合額外的攻擊（勇者攻擊力減怪物防禦的倍數）
     lvNeed: [0, 0, 12, 22],                    // 升到第 n 級要的勇者等級（第 1 級＝鑑定就有）
     upCost: [0, 0, 50, 100],                   // 升到第 n 級要付老琴師的金幣（3.2.42 Ken 指定：升級要花一點資源才合理；鑑定免費）
   };
   const skillOf = st => (st.skill && st.skill.lv > 0 ? st.skill : null);
+  // 戰鬥時算的防禦：沉穩低音（absorb）乘上倍數
+  MT.battleDef = st => { const sk = skillOf(st); return sk && sk.type === 'absorb' ? Math.floor(st.def * MT.SKILL.absorb[sk.lv]) : st.def; };
   MT.monHitRaw = function (st, m) {
-    const sp = m.sp || [];
+    const sp = m.sp || [], def = MT.battleDef(st);
     if (sp.includes('magic')) return m.atk;
-    if (sp.includes('pierce')) return Math.max(0, m.atk - Math.floor(st.def / 2));
-    return Math.max(0, m.atk - st.def);
+    if (sp.includes('pierce')) return Math.max(0, m.atk - Math.floor(def / 2));
+    return Math.max(0, m.atk - def);
   };
   MT.calc = function (st, code) {
     const m = MT.MONSTERS[code];
@@ -106,7 +111,7 @@
     if (heroHit <= 0) return none;
     const sk = skillOf(st);
     const raw = MT.monHitRaw(st, m);
-    const monHit = sk && sk.type === 'absorb' ? Math.floor(raw * (1 - MT.SKILL.absorb[sk.lv])) : raw;
+    const monHit = raw;
     const reflect = sk && sk.type === 'reflect' && raw > 0 ? Math.ceil(raw * MT.SKILL.reflect[sk.lv]) : 0;
     const strikes = [heroHit].concat(sk && sk.type === 'double' ? MT.SKILL.double[sk.lv].map(k => Math.max(1, Math.floor(heroHit * k))) : []);
     const monStrikes = sp.includes('double') ? 2 : 1;
