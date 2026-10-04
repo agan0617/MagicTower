@@ -99,8 +99,8 @@
      page 是 TUT_PAGES 的索引：3 鑰匙與門、4 撿道具、5 金幣與經驗值、6 怪物特技 */
   // 通關過（有最佳紀錄，跨裝置同步）就是老玩家：再玩一次不用再教（Ken 指定）
   const veteran = () => !!(MT.Sync.best && MT.Sync.best());
-  async function tutHint(key, page, vars) {
-    if (!st || st.flags['tut:' + key] || scripting || veteran()) return;
+  async function tutHint(key, page, vars) {   // 有講出來回傳 true
+    if (!st || st.flags['tut:' + key] || scripting || veteran()) return false;
     st.flags['tut:' + key] = 1;
     busy++;
     view.fairy = true; sfx('fly');
@@ -109,6 +109,7 @@
     view.fairy = false; busy--;
     autosave();
     if (k === 'y') openTutorial(false, page, true);
+    return true;
   }
   /* 走到附近才講（Ken 指定：一到樓層就連講兩個太擠）：英雄周圍 HINT_R 格內有沒看過的怪物特技、回音地板、
      祭壇／商人／節拍之神，一次講一個（危險的先講），講的時候停下腳步 */
@@ -145,7 +146,9 @@
   async function nearHints() {
     const h = nearNews();
     if (!h) return false;
-    if (HINT_STOP.includes(h[0])) { await tutHint(...h); return true; }
+    // 只有真的講了才停下來（3.2.58：老玩家不講，以前照樣回傳 true，自動走路走到一半就無聲停住；
+    // 旗標也沒記，下一步又停）
+    if (HINT_STOP.includes(h[0])) { if (await tutHint(...h)) return true; if (veteran()) st.flags['tut:' + h[0]] = 1; return false; }
     st.flags['tut:' + h[0]] = 1;
     if (!veteran()) toast(h[0] === 'shop' ? MT.t('thLiteShop') : MT.t('thLite', h[2]));
     return false;
@@ -827,7 +830,8 @@
         else if (it.kind === 'note') { sfx('fanfare'); toast(MT.t('got_note')); sparkle(ev.x, ev.y, 30); }
         renderHud();
         if (ev.script) { await sleep(120); await runScript(ev.script); autosave(); return false; }
-        if ((it.kind === 'atk' || it.kind === 'def') && !it.equip && !st.flags['tut:item']) { tutHint('item', 4); return false; }
+        // 老玩家不講就不停（3.2.58：以前撿到寶石都會無聲停住）
+        if ((it.kind === 'atk' || it.kind === 'def') && !it.equip && !st.flags['tut:item'] && !veteran()) { tutHint('item', 4); return false; }
         return true;
       }
       case 'door': {
