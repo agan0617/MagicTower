@@ -22,6 +22,7 @@
       items: { book: 0, fly: 0, drum: 0, harp: 0, flute: 0, note: 0, chisel: 0 },
       pages: [],
       found: {},             // 收藏品圖鑑：代碼 → 在第幾層拿到（-1＝舊存檔補記、不知道哪一層）
+      beaten: {},            // 怪物圖鑑：怪物代碼 → 第一次在第幾層打倒（3.2.64 起圖鑑只列打倒過的）
       equip: { sword: '', shield: '' },
       layers: [],            // 已經找回的樂器：drums／strings／lead
       maps: MT.FLOORS.map(f => (f ? parseFloor(f) : null)),
@@ -239,6 +240,8 @@
       st.gold += m.gold;
       st.exp += m.exp || 0;
       st.kills++;
+      if (!st.beaten) st.beaten = {};
+      if (st.beaten[t] == null) st.beaten[t] = st.floor;
       const at = MT.blockOrigin(st, st.floor, nx, ny);
       MT.clearBlock(st, st.floor, nx, ny);
       ev.at = at;
@@ -474,6 +477,18 @@
       for (const f in open) for (const [x, y] of open[f]) if (st.maps[f] && st.maps[f][y][x] === '##') st.maps[f][y][x] = '..';
       for (const f of [10, 15]) { const m = st.maps[f]; if (m && m[10][5] === 'DD' && m[7][4] === '##') { m[10][5] = '..'; m[7][4] = 'DD'; } }
       st.mapV = 32;
+    }
+    // 3.2.64 怪物圖鑑改成只列打倒過的：舊存檔照「去過的樓層上原本有這隻怪、現在那格沒了」補記
+    if (!st.beaten) {
+      st.beaten = {};
+      for (const f of st.visited) {
+        const orig = MT.FLOORS[f] && parseFloor(MT.FLOORS[f]), cur = st.maps[f];
+        if (!orig || !cur) continue;
+        for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+          const t = orig[y][x];
+          if (MT.MONSTERS[t] && cur[y][x] !== t && st.beaten[t] == null) st.beaten[t] = f;
+        }
+      }
     }
     // 3.2 收藏品圖鑑：舊存檔照「去過的樓層上原本有、現在沒了」補記在哪一層拿到；劇情給的（風之羽、樂器）不知道哪層就記 -1
     if (!st.found) {

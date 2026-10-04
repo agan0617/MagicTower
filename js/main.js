@@ -1476,7 +1476,16 @@
       <div class="ms">${esc(MT.t('hp'))} ${inv ? '???' : m.hp}　${esc(MT.t('atk'))} ${inv ? '???' : m.atk}　${esc(MT.t('def'))} ${inv ? '???' : m.def}　${esc(MT.t('gold'))} ${m.gold}</div>
       <div class="md">${esc(MT.t('dmg'))}：${dmg}${m.exp ? `　<span class="muted">EXP ${m.exp}</span>` : ''}</div></div></div>`;
   }
-  /* 圖鑑：兩個分頁——怪物（這層的怪物）｜收藏品（Ken 指定：特殊物品拿到才知道是什麼，不寫在教學裡） */
+  /* 怪物圖鑑（3.2.64 Ken 指定，跟收藏品一樣）：不分樓層列出全部怪物，打倒過才顯示能力，沒打過的是剪影＋？？？。
+     打不動的劇情 Boss（M1）不列；二階段的指揮家（M3／M4）打倒前不列，免得剪影劇透 */
+  const BOOK_MONS = Object.keys(MT.MONSTERS).filter(k => !(MT.MONSTERS[k].sp || []).includes('invincible'));
+  const bookMons = () => BOOK_MONS.filter(k => !['M3', 'M4'].includes(k) || (st.beaten && st.beaten[k] != null));
+  function bookMonRow(k) {
+    const m = MT.MONSTERS[k], f = st.beaten && st.beaten[k];
+    if (f == null) return `<div class="mon colRow"><span class="colSil">${img(m.sprite, m.pal, 'big')}</span><div class="mi"><div class="mn">${esc(MT.t('colUnknown'))}</div><div class="md muted">${esc(MT.t('monNotYet'))}</div></div></div>`;
+    return monRow(k).replace(/<\/div><\/div>$/, `<div class="md muted">${esc(MT.t('monWhere', { f: MT.floorName(f) }))}</div></div></div>`);
+  }
+  /* 圖鑑：兩個分頁——怪物｜收藏品（Ken 指定：特殊物品拿到才知道是什麼，不寫在教學裡） */
   let bookTab = 'mon';
   function openBook(tab) {
     if (!st || mode !== 'game' || busy) return;
@@ -1485,14 +1494,10 @@
     // 面板固定大小、分頁鈕釘在上面、清單在下面捲：切分頁時按鈕不會跑位置（Ken 指定），切換也不重開面板
     const render = body => {
       const n = MT.COLLECT.filter(k => st.found && st.found[k] != null).length;
-      $('#mTitle').textContent = bookTab === 'mon' ? MT.t('bookTitle') + ' · ' + MT.t('floorN', { n: st.floor }) : MT.t('btnBook');
-      let html;
-      if (bookTab === 'mon') {
-        const seen = [];
-        for (const row of st.maps[st.floor]) for (const c of row) if (MT.MONSTERS[c] && !seen.includes(c)) seen.push(c);
-        html = seen.length ? seen.map(monRow).join('') : `<p class="muted">${esc(MT.t('noMonsters'))}</p>`;
-      } else html = MT.COLLECT.map(colRow).join('');
-      body.innerHTML = `<div class="bookTabs"><button class="btn ${bookTab === 'mon' ? 'primary' : ''}" data-tab="mon">${esc(MT.t('tabMon'))}</button>`
+      const mons = bookMons(), nm = mons.filter(k => st.beaten && st.beaten[k] != null).length;
+      $('#mTitle').textContent = MT.t('btnBook');
+      const html = bookTab === 'mon' ? mons.map(bookMonRow).join('') : MT.COLLECT.map(colRow).join('');
+      body.innerHTML = `<div class="bookTabs"><button class="btn ${bookTab === 'mon' ? 'primary' : ''}" data-tab="mon">${esc(MT.t('tabMon'))} ${nm}／${mons.length}</button>`
         + `<button class="btn ${bookTab === 'col' ? 'primary' : ''}" data-tab="col">${esc(MT.t('tabCol'))} ${n}／${MT.COLLECT.length}</button></div>`
         + `<div class="bookList">${html}</div>`;
       body.querySelectorAll('[data-tab]').forEach(b => b.addEventListener('click', () => { if (b.dataset.tab === bookTab) return; bookTab = b.dataset.tab; sfx('select'); render(body); }));
