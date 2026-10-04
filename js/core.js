@@ -87,15 +87,18 @@
        reflect（反彈）＝血高型：每被打一下就把一定比例彈回去（無視怪物防禦；挨打換輸出，血厚才撐得住）
      名稱 3.2.66 起改成鐵壁／連擊／反彈（原本沉穩低音／連音／回音）；代碼沿用 absorb（存檔裡的技能不用轉換）。 */
   MT.SKILL = {
-    absorb: [1, 1.12, 1.25, 1.4],             // 防禦倍數（3.2.64 以前是「每下少受 20／35／50%」）
-    reflect: [0, 0.5, 0.95, 1.6],             // 彈回去的比例（以那一下實際打到的傷害算）
-    double: [[], [0.6], [1], [1, 0.3]],        // 每回合額外的攻擊（勇者攻擊力減怪物防禦的倍數）
+    absorb: [1, 1.35, 1.5, 1.7],              // 防禦倍數（3.2.64 以前是「每下少受 20／35／50%」）
+    absorbCap: [0, 90, 120, 140],              // 鐵壁加的防禦最多這麼多（3.2.68 Ken 指定：最穩、天花板最低；不讓有效防禦一路衝過最終魔王的攻擊）
+    reflect: [0, 0.8, 1.1, 2.0],              // 彈回去的比例（以那一下實際打到的傷害算）
+    double: [[], [0.1], [0.3], [1, 1]],        // 每回合額外的攻擊（攻擊減怪物防禦的倍數）；3.2.68 前期很弱、滿級多打兩下：撐到後期才爆分（Ken 指定：看技術、上限最高）
+    doubleGuard: 0.93,                         // 連擊＝全力進攻，戰鬥時防禦只算 93%：不會玩的人容易卡（3.2.68）
     lvNeed: [0, 0, 12, 22],                    // 升到第 n 級要的勇者等級（第 1 級＝鑑定就有）
     upCost: [0, 0, 50, 100],                   // 升到第 n 級要付老琴師的金幣（3.2.42 Ken 指定：升級要花一點資源才合理；鑑定免費）
   };
   const skillOf = st => (st.skill && st.skill.lv > 0 ? st.skill : null);
   // 戰鬥時算的防禦：沉穩低音（absorb）乘上倍數
-  MT.battleDef = st => { const sk = skillOf(st); return sk && sk.type === 'absorb' ? Math.floor(st.def * MT.SKILL.absorb[sk.lv]) : st.def; };
+  MT.battleDef = st => { const sk = skillOf(st); return sk && sk.type === 'absorb' ? st.def + Math.min(Math.floor(st.def * (MT.SKILL.absorb[sk.lv] - 1)), MT.SKILL.absorbCap[sk.lv])
+    : sk && sk.type === 'double' ? Math.floor(st.def * MT.SKILL.doubleGuard) : st.def; };
   MT.monHitRaw = function (st, m) {
     const sp = m.sp || [], def = MT.battleDef(st);
     if (sp.includes('magic')) return m.atk;

@@ -10,7 +10,8 @@ const args = process.argv.slice(2);
 const only = args.find(a => ['weak', 'mid', 'human', 'strong'].includes(a));
 const wi = args.indexOf('--width'), width = wi >= 0 ? Number(args[wi + 1]) : null;
 const si = args.indexOf('--skill');
-if (si >= 0) S.setSkills([args[si + 1]]);
+const rotate = si >= 0 && args[si + 1] === 'rotate';   // --skill rotate：每局照種子輪流選三種技能（模擬第一次玩、隨便挑一種的一般玩家，3.2.68）
+if (si >= 0 && !rotate) S.setSkills([args[si + 1]]);
 const verbose = args.includes('-v');
 const num = (k, d) => { const i = args.indexOf(k); return i >= 0 ? Number(args[i + 1]) : d; };
 const noise = num('--noise', 0), nRuns = num('--runs', 1), seed0 = num('--seed', 1);
@@ -26,6 +27,7 @@ const runs = { weak: () => S.solveWeak(), mid: () => S.solveMid(), human: seed =
 const dist = [];
 for (const k of only ? [only] : ['weak', 'mid', 'human', 'strong']) for (let seed = seed0; seed < seed0 + (k === 'human' ? nRuns : 1); seed++) {
   const t0 = Date.now();
+  if (rotate) S.setSkills([['absorb', 'reflect', 'double'][seed % 3]]);
   const r = runs[k](seed);
   if (k === 'human') dist.push(r);
   console.log(line(k === 'human' && nRuns > 1 ? 'human#' + seed : k, r, Date.now() - t0));

@@ -50,23 +50,23 @@
     K3: { hp: 3500, atk: 230, def: 115, gold: 150, exp: 100, size: 2, sprite: 'mirrorKnight', sp: ['boss', 'pierce'] },  // 13F 鏡之騎士
     EM: { hp: 6500, atk: 250, def: 125, gold: 300, exp: 200, size: 3, sprite: 'echoMirror', sp: ['boss', 'double'], onDeath: 'fluteGet' },
     // 第 4 區
-    cv: { hp: 380, atk: 290, def: 150, gold: 45, exp: 35, sprite: 'draculaLord', pal: 'crystalCape', sp: ['drain', 'first'], drain: 0.25 },
-    am: { hp: 320, atk: 160, def: 165, gold: 45, exp: 35, sprite: 'mage', pal: 'purple', sp: ['magic'] },
-    kd: { hp: 800, atk: 300, def: 160, gold: 50, exp: 40, sprite: 'knight', pal: 'crystalK' },
-    cg: { hp: 120, atk: 330, def: 205, gold: 50, exp: 40, sprite: 'golem', pal: 'crystalG' },          // 高防
-    nb: { hp: 420, atk: 260, def: 170, gold: 45, exp: 35, sprite: 'owl', sp: ['double'] },
-    dk: { hp: 360, atk: 320, def: 160, gold: 50, exp: 40, sprite: 'assassin', sp: ['pierce', 'first'] },
-    rg: { hp: 900, atk: 330, def: 190, gold: 70, exp: 50, sprite: 'rest' },
+    cv: { hp: 380, atk: 319, def: 150, gold: 45, exp: 35, sprite: 'draculaLord', pal: 'crystalCape', sp: ['drain', 'first'], drain: 0.25 },
+    am: { hp: 320, atk: 176, def: 165, gold: 45, exp: 35, sprite: 'mage', pal: 'purple', sp: ['magic'] },
+    kd: { hp: 800, atk: 330, def: 160, gold: 50, exp: 40, sprite: 'knight', pal: 'crystalK' },
+    cg: { hp: 120, atk: 363, def: 205, gold: 50, exp: 40, sprite: 'golem', pal: 'crystalG' },          // 高防
+    nb: { hp: 420, atk: 286, def: 170, gold: 45, exp: 35, sprite: 'owl', sp: ['double'] },
+    dk: { hp: 360, atk: 352, def: 160, gold: 50, exp: 40, sprite: 'assassin', sp: ['pierce', 'first'] },
+    rg: { hp: 900, atk: 363, def: 190, gold: 70, exp: 50, sprite: 'rest' },
     // 共鳴水晶（3.1）：周圍八格一直在共振，守在路口當「過路費」。魔法攻擊、防禦高，剛到 16F 打要一千多血，
     // 攻擊堆上去之後只要幾百：現在就打掉，還是先每次經過付一次共鳴，等變強再回來打
-    rc: { hp: 500, atk: 150, def: 190, gold: 45, exp: 35, sprite: 'resonator', sp: ['magic', 'aura'], aura: 80 },
-    K4: { hp: 6000, atk: 340, def: 185, gold: 200, exp: 150, size: 2, sprite: 'conductor', sp: ['boss', 'magic'] },     // 18F 回音指揮
+    rc: { hp: 500, atk: 165, def: 190, gold: 45, exp: 35, sprite: 'resonator', sp: ['magic', 'aura'], aura: 80 },
+    K4: { hp: 6000, atk: 374, def: 185, gold: 200, exp: 150, size: 2, sprite: 'conductor', sp: ['boss', 'magic'] },     // 18F 回音指揮
     M1: { hp: 9999, atk: 350, def: 200, gold: 0, exp: 0, size: 3, sprite: 'maestroBig', sp: ['boss', 'invincible'], onBump: 'maestroDrum' },
-    M2: { hp: 4500, atk: 450, def: 200, gold: 0, exp: 0, size: 3, sprite: 'maestroBig', sp: ['boss'], onDeath: 'maestroPhase2' },
+    M2: { hp: 4800, atk: 500, def: 200, gold: 0, exp: 0, size: 3, sprite: 'maestroBig', sp: ['boss'], onDeath: 'maestroPhase2' },
     // 二階段「失控的指揮家」（3.2.44 Ken 指定）：面具裂一半、攻擊很高防禦很低——攻擊夠的人很快打完，攻擊不夠的會被拖垮；
     // 身上有失落的音符（真結局路線）時換成 M4：音符發光讓他慢一拍
-    M3: { hp: 3000, atk: 560, def: 140, gold: 0, exp: 0, size: 3, sprite: 'maestroBig', pal: 'maestroRage', sp: ['boss'], onDeath: 'ending' },
-    M4: { hp: 2600, atk: 520, def: 140, gold: 0, exp: 0, size: 3, sprite: 'maestroBig', pal: 'maestroRage', sp: ['boss'], onDeath: 'ending' },
+    M3: { hp: 3500, atk: 600, def: 140, gold: 0, exp: 0, size: 3, sprite: 'maestroBig', pal: 'maestroRage', sp: ['boss'], onDeath: 'ending' },
+    M4: { hp: 3000, atk: 560, def: 140, gold: 0, exp: 0, size: 3, sprite: 'maestroBig', pal: 'maestroRage', sp: ['boss'], onDeath: 'ending' },
   };
 
   // 同區域的數值：[1區, 2區, 3區, 4區]
@@ -174,7 +174,7 @@
   // 3.2.56 模擬再改良（老手會留一把金鑰匙拿音符）：高手真人通關 93%、中位數約 17400 → A 17300 讓 A≈B；
   // S 20000＋真結局只有高手的前 13%（Ken 指定的目標見 DESIGN.md）
   MT.LEFTOVER = 1.3;   // 通關時剩下的金幣、鑰匙、經驗值換算成分數的加成（3.2.43）
-  MT.RATING = { S: 20000, A: 16400, B: 7600 };   // 3.2.66：技能改版後重跑各 48 局（一般玩家分數整體變高），A 16400／B 7600 讓高手 A≈B、一般 B≈C
+  MT.RATING = { S: 20000, A: 15200, B: 5000 };   // 3.2.68：技能個性化＋後期加強後重跑（一般 48 局三種技能輪流、高手三種各 24 局），A 15200／B 5000 讓高手 A≈B、一般 B≈C
 
   MT.START = { floor: 1, x: 5, y: 14, hp: 1000, atk: 10, def: 10, gold: 0, keys: { y: 1, b: 0, r: 0 } };
 
@@ -479,7 +479,7 @@
       '## ## ## ## ## Yd ## ## ## ## ##',
       'Yk .. Ec .. st HP st .. .. hp Yk',
     ],
-    // ── 第 4 區：水晶（16～20F） ──
+    // ── 第 4 區：水晶（16～20F） ── 3.2.68 起這區小怪與回音指揮的攻擊都 +10%（Ken 指定：通關率太高）
     // 16F 水晶迴廊：水晶祭壇；占星師（提示暗牆與失落的音符）
     [
       '## ## ## ## .. DD .. ## ## ## ##',
