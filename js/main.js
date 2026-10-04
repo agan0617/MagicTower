@@ -1178,7 +1178,17 @@
     if (x < 0 || y < 0 || x >= W || y >= H) return;
     if (x === st.x && y === st.y) { autoPath = null; clearRoute(); return; }
     const code = st.maps[st.floor][y][x];
-    const cells = code === '##' || code === 'Gt' ? null : findPath(x, y);   // 牆和鐵門不能當終點
+    let cells = code === '##' || code === 'Gt' ? null : findPath(x, y);   // 牆和鐵門不能當終點
+    // 大型怪（2×2、3×3）：點牠身上任何一格都走過去打——挑牠佔的格子裡最近、路上付最少的那格當終點（3.2.57 Ken 指定；
+    // 原本點到中間或背面的格子會因為「走不到那一格」被拒絕）
+    if (MT.isMonster(code) && MT.monSize(code) > 1) {
+      const n = MT.monSize(code), [ox, oy] = MT.blockOrigin(st, st.floor, x, y);
+      for (let by = oy; by < oy + n; by++) for (let bx = ox; bx < ox + n; bx++) {
+        if (bx === x && by === y) continue;
+        const c2 = findPath(bx, by);
+        if (c2 && (!cells || routeToll(c2) < routeToll(cells) || (routeToll(c2) === routeToll(cells) && c2.length < cells.length))) cells = c2;
+      }
+    }
     const refuse = msg => { autoPath = null; clearRoute(); sfx('error'); cross(x, y); if (msg) toast(msg); };
     if (!cells) { refuse(); return; }
     let kind = 'walk';
