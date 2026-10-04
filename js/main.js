@@ -908,7 +908,7 @@
   // 節拍之神：經驗值換等級
   function openLevel(id) {
     const G = MT.LEVEL[id], cost = MT.levelCost(st), poor = st.exp < cost;
-    openModal(MT.t('level_' + id), `<div class="shopTop">${img('metronome', id === 'L2' ? 'metroB' : 'metroA', 'big')}<p>${esc(MT.t('levelText', { lv: st.lv, cost }))}</p></div>
+    openModal(MT.t('level_' + id), `<div class="shopTop">${img(MT.NPCS[id].sprite, MT.NPCS[id].pal, 'big')}<p>${esc(MT.t('levelText', { lv: st.lv, cost }))}</p></div>
       <div class="opts"><button class="btn opt" data-up ${poor ? 'disabled' : ''}>${esc(MT.t('levelUp', { hp: G.hp, atk: G.atk, def: G.def }))}</button></div>
       <p class="muted small">EXP：${st.exp}　Lv ${st.lv}</p><button class="btn" data-x>${esc(MT.t('leave'))}</button>`, body => {
       body.querySelector('[data-up]').addEventListener('click', () => {
@@ -1635,7 +1635,7 @@
     const S = MT.SHOPS[id], price = MT.shopPrice(st, id), poor = st.gold < price;
     const opts = [['hp', 'buyHp', S.hp, 'heartS', null], ['atk', 'buyAtk', S.atk, 'gemSword', 'gemRed'], ['def', 'buyDef', S.def, 'gemShield', 'gemBlue']].map(([k, lab, n, sp, pal]) =>
       `<button class="btn opt" data-k="${k}" ${poor ? 'disabled' : ''}>${img(sp, pal)} ${esc(MT.t(lab, { n }))}</button>`).join('');
-    openModal(MT.t(id), `<div class="shopTop">${img('altar', MT.NPCS[{ shop1: 'Sh', shop2: 'S2', shop3: 'S3' }[id]].pal, 'big')}<p>${esc(MT.t('shopText', { price }))}</p></div>
+    openModal(MT.t(id), `<div class="shopTop">${img(...((n => [n.sprite, n.pal])(MT.NPCS[{ shop1: 'Sh', shop2: 'S2', shop3: 'S3' }[id]])), 'big')}<p>${esc(MT.t('shopText', { price }))}</p></div>
       <div class="opts">${opts}</div><p class="muted small">${esc(MT.t('gold'))}：${st.gold}</p><button class="btn" data-x>${esc(MT.t('leave'))}</button>`, body => {
       body.querySelectorAll('[data-k]').forEach(b => b.addEventListener('click', () => {
         const before = snapStats();

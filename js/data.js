@@ -110,11 +110,11 @@
     Mz: { sprite: 'maestroBare' },          // 結局：面具裂開後的指揮家（＝阿爾特自己），只在結局劇本裡出現
     Sh: { sprite: 'altar', pal: 'stone', shop: 'shop1' },
     S2: { sprite: 'altar', pal: 'mirrorA', shop: 'shop2' },
-    S3: { sprite: 'altar', pal: 'crystal', shop: 'shop3' },
+    S3: { sprite: 'altarHigh', pal: 'crystal', shop: 'shop3' },   // 3.2.69 換成比較華麗的水晶祭壇
     Mk: { sprite: 'frog', shop: 'keys' },
     Mq: { sprite: 'frogCousin', shop: 'keys2' },
     L1: { sprite: 'metronome', pal: 'metroA', level: 'L1' },
-    L2: { sprite: 'metronome', pal: 'metroB', level: 'L2' },
+    L2: { sprite: 'metronomeHigh', pal: 'metroB', level: 'L2' },   // 3.2.69 戴金冠、有翅膀
     Sg: { sprite: 'harpist', sage: true },
     Hs: { sprite: 'harp', choose: true },
     N1: { sprite: 'porter', talk: 'n1', again: 'n1b' },
