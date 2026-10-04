@@ -134,7 +134,7 @@
     monsters: {
       gs: '綠史萊姆', rs: '紅史萊姆', bt: '小蝙蝠', sk: '骷髏兵', mg: '見習巫師', sw: '骷髏戰士', bb: '大蝙蝠', DG: '鼓魔像',
       ks: '黑史萊姆', gd: '塔之衛兵', oc: '獸人', wz: '紅袍巫師', gh: '啞靈', sc: '骷髏隊長', SR: '弦之魔女',
-      vb: '吸血蝙蝠', kn: '黑騎士', am: '大巫師', gl: '石像守衛', rg: '休止符衛士', M1: '靜默指揮家', M2: '靜默指揮家', M3: '失控的指揮家', M4: '失控的指揮家',
+      vb: '吸血鬼', kn: '黑騎士', am: '大巫師', gl: '石像守衛', rg: '休止符衛士', M1: '靜默指揮家', M2: '靜默指揮家', M3: '失控的指揮家', M4: '失控的指揮家',
       ab: '盔甲蟲', dw: '雙刀劍客', pg: '門衛石像', K1: '骷髏館長', K2: '獄卒長', rt: '胖老鼠',
       mi: '碎鏡小鬼', st: '石像守衛', cm: '無聲合唱團員', eh: '回音幽靈', pm: '鏡面守衛', K3: '鏡之騎士', EM: '回音之鏡',
       cv: '水晶吸血鬼', kd: '水晶重騎士', cg: '水晶魔像', nb: '夜梟', dk: '無聲刺客', K4: '回音指揮', rc: '共鳴水晶',
@@ -471,7 +471,7 @@
     monsters: {
       gs: 'Green Slime', rs: 'Red Slime', bt: 'Bat', sk: 'Skeleton', mg: 'Apprentice Mage', sw: 'Skeleton Warrior', bb: 'Giant Bat', DG: 'Drum Golem',
       ks: 'Black Slime', gd: 'Tower Guard', oc: 'Orc', wz: 'Crimson Wizard', gh: 'Mute Ghost', sc: 'Skeleton Captain', SR: 'Siren of Strings',
-      vb: 'Vampire Bat', kn: 'Dark Knight', am: 'Archmage', gl: 'Stone Golem', rg: 'Rest Guard', M1: 'Maestro of Silence', M2: 'Maestro of Silence', M3: 'Maestro Unbound', M4: 'Maestro Unbound',
+      vb: 'Vampire', kn: 'Dark Knight', am: 'Archmage', gl: 'Stone Golem', rg: 'Rest Guard', M1: 'Maestro of Silence', M2: 'Maestro of Silence', M3: 'Maestro Unbound', M4: 'Maestro Unbound',
       ab: 'Armor Beetle', dw: 'Twin-Blade Duelist', pg: 'Gate Statue', K1: 'Skeleton Curator', K2: 'Head Jailer', rt: 'Fat Rat',
       mi: 'Shard Imp', st: 'Stone Golem', cm: 'Silent Chorister', eh: 'Echo Wraith', pm: 'Mirror Guard', K3: 'Mirror Knight', EM: 'Mirror of Echoes',
       cv: 'Crystal Vampire', kd: 'Crystal Heavy Knight', cg: 'Crystal Golem', nb: 'Night Owl', dk: 'Silent Assassin', K4: 'Echo Conductor', rc: 'Resonance Crystal',
@@ -808,7 +808,7 @@
     monsters: {
       gs: 'グリーンスライム', rs: 'レッドスライム', bt: 'コウモリ', sk: 'スケルトン', mg: '見習い魔術師', sw: 'スケルトン戦士', bb: '大コウモリ', DG: 'ドラムゴーレム',
       ks: 'ブラックスライム', gd: '塔の衛兵', oc: 'オーク', wz: '紅の魔術師', gh: '無声の亡霊', sc: 'スケルトン隊長', SR: '弦の魔女',
-      vb: '吸血コウモリ', kn: '暗黒騎士', am: '大魔術師', gl: 'ストーンゴーレム', rg: '休符の衛士', M1: '沈黙の指揮者', M2: '沈黙の指揮者', M3: '暴走する指揮者', M4: '暴走する指揮者',
+      vb: '吸血鬼', kn: '暗黒騎士', am: '大魔術師', gl: 'ストーンゴーレム', rg: '休符の衛士', M1: '沈黙の指揮者', M2: '沈黙の指揮者', M3: '暴走する指揮者', M4: '暴走する指揮者',
       ab: 'ヨロイムシ', dw: '二刀流の剣士', pg: '門番の石像', K1: 'スケルトン館長', K2: '牢番長', rt: 'デブネズミ',
       mi: '鏡のかけら小鬼', st: 'ストーンゴーレム', cm: '無声の合唱団員', eh: 'こだまの亡霊', pm: '鏡の衛兵', K3: '鏡の騎士', EM: 'こだまの鏡',
       cv: '水晶の吸血鬼', kd: '水晶の重騎士', cg: '水晶ゴーレム', nb: '夜フクロウ', dk: '無声の暗殺者', K4: 'こだまの指揮者', rc: '共鳴の水晶',

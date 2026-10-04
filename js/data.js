@@ -24,7 +24,7 @@
     mg: { hp: 40, atk: 14, def: 6, gold: 4, exp: 3, sprite: 'mage', pal: 'blue', sp: ['magic'] },      // 魔法
     ab: { hp: 20, atk: 26, def: 15, gold: 6, exp: 4, sprite: 'beetle', pal: 'beetle' },                // 高防：攻擊 16 才打得動
     sw: { hp: 130, atk: 46, def: 10, gold: 6, exp: 5, sprite: 'skeleton', pal: 'warrior' },            // 高血
-    bb: { hp: 50, atk: 66, def: 8, gold: 8, exp: 5, sprite: 'bat', pal: 'bigbat', sp: ['first'] },
+    bb: { hp: 50, atk: 66, def: 8, gold: 8, exp: 5, sprite: 'vampBat', pal: 'vampire', sp: ['first'] },   // 3.2.67 換成尖牙蝙蝠（Ken 指定）
     K1: { hp: 420, atk: 58, def: 14, gold: 40, exp: 30, size: 2, sprite: 'skelking', sp: ['boss'], onDeath: 'k1Chisel' },   // 3F 骷髏館長（打倒掉第一把鑿子，3.2.40）
     DG: { hp: 900, atk: 78, def: 20, gold: 80, exp: 60, size: 3, sprite: 'drumgolemBig', sp: ['boss'], onDeath: 'drumGet' },
     // 第 2 區
@@ -40,7 +40,7 @@
     K2: { hp: 1800, atk: 125, def: 50, gold: 80, exp: 60, size: 2, sprite: 'jailer', sp: ['boss', 'double'] },   // 8F 獄卒長
     SR: { hp: 3200, atk: 160, def: 65, gold: 150, exp: 120, size: 3, sprite: 'sirenBig', sp: ['boss'], onDeath: 'harpGet' },
     // 第 3 區
-    vb: { hp: 220, atk: 160, def: 75, gold: 25, exp: 18, sprite: 'vampBat', pal: 'vampire', sp: ['drain'], drain: 0.2 },
+    vb: { hp: 220, atk: 160, def: 75, gold: 25, exp: 18, sprite: 'dracula', pal: 'vampCape', sp: ['drain'], drain: 0.2 },
     mi: { hp: 280, atk: 180, def: 85, gold: 26, exp: 18, sprite: 'mirrorImp', sp: ['pierce'] },
     st: { hp: 80, atk: 200, def: 125, gold: 30, exp: 20, sprite: 'golem' },                            // 高防
     cm: { hp: 200, atk: 95, def: 90, gold: 28, exp: 20, sprite: 'chorister', sp: ['magic'] },
@@ -50,7 +50,7 @@
     K3: { hp: 3500, atk: 230, def: 115, gold: 150, exp: 100, size: 2, sprite: 'mirrorKnight', sp: ['boss', 'pierce'] },  // 13F 鏡之騎士
     EM: { hp: 6500, atk: 250, def: 125, gold: 300, exp: 200, size: 3, sprite: 'echoMirror', sp: ['boss', 'double'], onDeath: 'fluteGet' },
     // 第 4 區
-    cv: { hp: 380, atk: 290, def: 150, gold: 45, exp: 35, sprite: 'vampBat', pal: 'crystalBat', sp: ['drain', 'first'], drain: 0.25 },
+    cv: { hp: 380, atk: 290, def: 150, gold: 45, exp: 35, sprite: 'draculaLord', pal: 'crystalCape', sp: ['drain', 'first'], drain: 0.25 },
     am: { hp: 320, atk: 160, def: 165, gold: 45, exp: 35, sprite: 'mage', pal: 'purple', sp: ['magic'] },
     kd: { hp: 800, atk: 300, def: 160, gold: 50, exp: 40, sprite: 'knight', pal: 'crystalK' },
     cg: { hp: 120, atk: 330, def: 205, gold: 50, exp: 40, sprite: 'golem', pal: 'crystalG' },          // 高防
@@ -389,7 +389,7 @@
       'Yk .. .. .. sc HP sc .. .. hp Yk',
     ],
     // ── 第 3 區：鏡之迴廊（11～15F） ──
-    // 11F 鏡之迴廊入口：古老音叉祭壇、鏡中少女（提示老琴師在 12F）、吸血蝙蝠登場（血少的時候再去打）
+    // 11F 鏡之迴廊入口：古老音叉祭壇、鏡中少女（提示老琴師在 12F）、吸血鬼登場（血少的時候再去打）
     [
       '## ## ## ## .. DD .. ## ## ## ##',
       'Yk vb .. .. .. .. .. Yd .. mi HP',
