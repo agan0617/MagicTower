@@ -395,14 +395,14 @@
     return true;
   };
   // 限量鑰匙還剩幾把（沒限量回傳 Infinity）
-  MT.keyStockLeft = (st, shop, what) => { const n = (MT.SHOPS[shop].stock || {})[what]; return n == null ? Infinity : n - (st.shops[shop + ':' + what] || 0); };
+  MT.keyStockLeft = (st, shop, what) => { const n = (MT.KEY_STOCK || {})[what]; return n == null ? Infinity : n - (st.shops['keys:' + what] || 0); };   // 兩個商人合計
   MT.buy = function (st, shop, what) {
     if (shop === 'keys' || shop === 'keys2') {
       const price = MT.SHOPS[shop][what];
       if (price == null || st.gold < price) return false;   // 13F 表哥只收不賣，沒有賣價
       if (MT.keyStockLeft(st, shop, what) <= 0) return false;   // 限量的賣完了
       st.gold -= price; st.keys[what]++;
-      if ((MT.SHOPS[shop].stock || {})[what] != null) st.shops[shop + ':' + what] = (st.shops[shop + ':' + what] || 0) + 1;
+      if ((MT.KEY_STOCK || {})[what] != null) st.shops['keys:' + what] = (st.shops['keys:' + what] || 0) + 1;
       return true;
     }
     const price = MT.shopPrice(st, shop);
@@ -442,7 +442,8 @@
      門檻（MT.RATING）用 tools/solve.js 的新手／一般／高手三種自動玩家的成績定；S 還要真結局 */
   MT.rating = function (st) {
     // 剩下的銅鑰匙照全塔最便宜的賣價換算（13F 表哥 8 金），不然在 13F 買來囤著就能白賺分數
-    const R = MT.RATING, S3 = MT.SHOPS.shop3, K = Object.assign({}, MT.SHOPS.keys, { y: Math.min(MT.SHOPS.keys.y, MT.SHOPS.keys2.y || Infinity) });
+    const R = MT.RATING, S3 = MT.SHOPS.shop3, K = {};
+    for (const c of ['y', 'b', 'r']) K[c] = Math.min(MT.SHOPS.keys[c], MT.SHOPS.keys2[c] || Infinity);   // 照最便宜的賣價（3.2.59 起表哥三種都賣）
     // 照真的去買來算：鑰匙換回金幣，金幣在水晶祭壇一次一次買生命（每買一次漲價），經驗值一級一級升（只算生命）
     let gold = st.gold + st.keys.y * K.y + st.keys.b * K.b + st.keys.r * K.r, n = st.shops.shop3 || 0, bonus = 0;
     for (let p = S3.base + S3.step * n; gold >= p; p += S3.step) { gold -= p; bonus += S3.hp; }

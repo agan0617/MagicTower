@@ -1280,7 +1280,7 @@
       else if (it.kind === 'note') { name = MT.itemName('note'); desc = MT.t('info_note'); }
       else if (it.kind === 'tool') { name = MT.itemName(it.tool); desc = MT.t('info_' + it.tool); }
       else { name = MT.t('name_' + code); desc = MT.t('info_' + it.kind, { n: v }); }
-    } else if (n && (n.shop === 'keys' || n.shop === 'keys2')) { name = MT.t(n.shop === 'keys' ? 'frog' : 'frog2'); const K = MT.SHOPS[n.shop]; desc = n.shop === 'keys' ? MT.t('info_frog', K) : MT.t('info_buyer', Object.assign({ y: K.y }, K.sell)); }
+    } else if (n && (n.shop === 'keys' || n.shop === 'keys2')) { name = MT.t(n.shop === 'keys' ? 'frog' : 'frog2'); const K = MT.SHOPS[n.shop]; desc = n.shop === 'keys' ? MT.t('info_frog', K) : MT.t('info_buyer', { y: K.y, b: K.b, r: K.r, sb: K.sell.b, sr: K.sell.r }); }
     else if (n && n.level) { name = MT.t('level_' + n.level); desc = MT.t('info_level', { cost: MT.levelCost(st), hp: MT.LEVEL[n.level].hp, atk: MT.LEVEL[n.level].atk, def: MT.LEVEL[n.level].def }); }
     else if (n && n.sage) { name = MT.t('speaker_harpist'); desc = MT.t('info_sage_' + MT.sagePreview(st), { cost: st.skill && st.skill.lv < 3 ? MT.SKILL.upCost[st.skill.lv + 1] : 0 }); }
     else if (n && n.choose) { name = MT.t('speaker_harpghost'); desc = MT.t('info_choose'); }
