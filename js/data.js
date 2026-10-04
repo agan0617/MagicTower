@@ -40,7 +40,7 @@
     K2: { hp: 1800, atk: 125, def: 50, gold: 80, exp: 60, size: 2, sprite: 'jailer', sp: ['boss', 'double'] },   // 8F 獄卒長
     SR: { hp: 3200, atk: 160, def: 65, gold: 150, exp: 120, size: 3, sprite: 'sirenBig', sp: ['boss'], onDeath: 'harpGet' },
     // 第 3 區
-    vb: { hp: 220, atk: 160, def: 75, gold: 25, exp: 18, sprite: 'bat', pal: 'vampire', sp: ['drain'], drain: 0.2 },
+    vb: { hp: 220, atk: 160, def: 75, gold: 25, exp: 18, sprite: 'vampBat', pal: 'vampire', sp: ['drain'], drain: 0.2 },
     mi: { hp: 280, atk: 180, def: 85, gold: 26, exp: 18, sprite: 'mirrorImp', sp: ['pierce'] },
     st: { hp: 80, atk: 200, def: 125, gold: 30, exp: 20, sprite: 'golem' },                            // 高防
     cm: { hp: 200, atk: 95, def: 90, gold: 28, exp: 20, sprite: 'chorister', sp: ['magic'] },
@@ -50,7 +50,7 @@
     K3: { hp: 3500, atk: 230, def: 115, gold: 150, exp: 100, size: 2, sprite: 'mirrorKnight', sp: ['boss', 'pierce'] },  // 13F 鏡之騎士
     EM: { hp: 6500, atk: 250, def: 125, gold: 300, exp: 200, size: 3, sprite: 'echoMirror', sp: ['boss', 'double'], onDeath: 'fluteGet' },
     // 第 4 區
-    cv: { hp: 380, atk: 290, def: 150, gold: 45, exp: 35, sprite: 'bat', pal: 'crystalBat', sp: ['drain', 'first'], drain: 0.25 },
+    cv: { hp: 380, atk: 290, def: 150, gold: 45, exp: 35, sprite: 'vampBat', pal: 'crystalBat', sp: ['drain', 'first'], drain: 0.25 },
     am: { hp: 320, atk: 160, def: 165, gold: 45, exp: 35, sprite: 'mage', pal: 'purple', sp: ['magic'] },
     kd: { hp: 800, atk: 300, def: 160, gold: 50, exp: 40, sprite: 'knight', pal: 'crystalK' },
     cg: { hp: 120, atk: 330, def: 205, gold: 50, exp: 40, sprite: 'golem', pal: 'crystalG' },          // 高防
