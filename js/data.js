@@ -653,7 +653,7 @@
       ['fairy', false],
       ['flag', 'bardTalked'],
       // 國王往旁邊牆邊的凹處退一步，讓出走廊
-      ['sfx', 'step'], ['set', 4, 2, '..'], ['set', 5, 2, 'Om'],
+      ['sfx', 'step'], ['set', 4, 2, '..'], ['set', 3, 2, 'Om'],   // 3.2.60 Ken 指定改往左退
       ['narr', 'bard_move'],
     ],
     bardAgain: [['say', 'bard', 'bard_again']],
