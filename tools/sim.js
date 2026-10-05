@@ -247,7 +247,7 @@ const GVN = +process.env.MT_GVN || 0;   // 沒看過整座塔的人眼中金幣�
 const TE = process.env.MT_TE != null ? +process.env.MT_TE : 2500;
 const CAP = +process.env.MT_CAP || 3000;   // 一隻怪最多算多少傷害
 // ahead＝'blind'：老手的判斷力（金幣經驗估價、真結局、找暗牆、怪值不值得打都跟 'all' 一樣），但不知道還沒去過的樓層有什麼。
-// 跟 'all' 比分數＝「知道後面樓層」值多少，用來量跨樓層規劃的深度（strategy-depth，Ken 指定 ≥15%）
+// 跟 'all' 比分數＝「知道後面樓層」值多少，用來量跨樓層規劃的深度（strategy-depth；量法與結論見 DESIGN.md）
 const vet = ahead => ahead === 'all' || ahead === 'blind';
 const KF = process.env.MT_KF !== '0';   // 老手照「留到後面能開哪扇門」估鑰匙（keyFuture）；0＝照舊用固定價
 const KEEP = process.env.MT_KEEP !== '0';   // 老手知道要留一把金鑰匙拿音符；0＝關掉（量基準差距的組成用）
