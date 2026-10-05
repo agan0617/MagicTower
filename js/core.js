@@ -77,6 +77,7 @@
   };
   MT.isItem = t => !!MT.ITEMS[t];
   MT.isNpc = t => !!MT.NPCS[t];
+  MT.hiddenItem = (f, x, y) => (MT.HIDDEN_ITEMS || {})[f + ':' + x + ',' + y] || null;
 
   /* 戰鬥試算。勇者先攻，雙方輪流；damage＝勇者這場會損失的生命，null＝打不動。
      怪物特技：first 先攻、double 一回合打兩下、magic 無視防禦、pierce 無視一半防禦、
@@ -88,13 +89,13 @@
      名稱 3.2.66 起改成鐵壁／連擊／反彈（原本沉穩低音／連音／回音）；代碼沿用 absorb（存檔裡的技能不用轉換）。 */
   MT.SKILL = {
     absorb: [1, 1.35, 1.5, 1.7],              // 防禦倍數（3.2.64 以前是「每下少受 20／35／50%」）
-    absorbCap: [0, 90, 120, 130],              // 鐵壁加的防禦最多這麼多（3.2.68 Ken 指定：最穩、天花板最低；不讓有效防禦一路衝過最終魔王的攻擊）
-    reflect: [0, 0.8, 1.1, 2.0],              // 彈回去的比例（以那一下實際打到的傷害算）
+    absorbCap: [0, 90, 120, 100],              // 鐵壁加的防禦最多這麼多（3.2.68 Ken 指定：最穩、天花板最低；不讓有效防禦一路衝過最終魔王的攻擊。3.2.73 滿級 130→100）
+    reflect: [0, 0.8, 1.1, 3.8],              // 彈回去的比例（以那一下實際打到的傷害算）。3.2.73 滿級 200%→380%，但要 Lv30 才升得到：高手上限在鐵壁與連擊中間
     double: [[], [0.3], [0.6], [1, 1]],        // 每回合額外的攻擊（攻擊減怪物防禦的倍數）
     doubleGuard: 0.9,                          // 連擊＝全力進攻，戰鬥時防禦只算 90%
-    doubleBurst: [1, 0.5], doubleBurstAt: 1.6, // 滿級爆發：攻擊 ≥ 怪物防禦 ×1.6 時再多打這兩下
+    doubleBurst: [1, 1], doubleBurstAt: 1.6,   // 滿級爆發：攻擊 ≥ 怪物防禦 ×1.6 時再多打這兩下（3.2.73 第二下 50%→100%，連擊上限最高）
     lvNeedDouble: [0, 0, 12, 26],              // 連擊升滿級要勇者 Lv26：會規劃、經驗值花得早的人才拿得到爆發
-    lvNeedReflect: [0, 0, 12, 25],             // 反彈升滿級要勇者 Lv25（鐵壁維持 Lv22）：一般玩家用鐵壁最穩、反彈次之
+    lvNeedReflect: [0, 0, 12, 30],             // 反彈升滿級要勇者 Lv30（鐵壁維持 Lv22）：一般玩家多半停在 Lv2，用鐵壁最穩、反彈次之（3.2.73：Lv25→30）
     // 3.2.70（Ken 指定：連擊下限最低、上限最高）：一般玩家常囤經驗值、等級偏低，撐不到滿級；高手拿到爆發後分數最高
     lvNeed: [0, 0, 12, 22],                    // 升到第 n 級要的勇者等級（第 1 級＝鑑定就有）
     upCost: [0, 0, 50, 100],                   // 升到第 n 級要付老琴師的金幣（3.2.42 Ken 指定：升級要花一點資源才合理；鑑定免費）
@@ -235,8 +236,11 @@
     }
     // 暗牆：看起來是牆，其實走得過去；走進去就變成空地
     if (t === 'Hw') {
+      const hidden = MT.hiddenItem(st.floor, nx, ny);
+      st.secrets = (st.secrets || 0) + 1;
+      if (hidden) { MT.setTile(st, st.floor, nx, ny, hidden); return Object.assign(ev, { type: 'secret', x: nx, y: ny }); }   // 牆裡封著道具：牆碎開、道具露出來
       MT.setTile(st, st.floor, nx, ny, '..');
-      st.x = nx; st.y = ny; st.steps++; st.secrets = (st.secrets || 0) + 1;
+      st.x = nx; st.y = ny; st.steps++;
       return Object.assign(ev, { type: 'secret', script: MT.stepTrigger(st) });
     }
 

@@ -174,7 +174,7 @@
   // 3.2.56 模擬再改良（老手會留一把金鑰匙拿音符）：高手真人通關 93%、中位數約 17400 → A 17300 讓 A≈B；
   // S 20000＋真結局只有高手的前 13%（Ken 指定的目標見 DESIGN.md）
   MT.LEFTOVER = 1.3;   // 通關時剩下的金幣、鑰匙、經驗值換算成分數的加成（3.2.43）
-  MT.RATING = { S: 16800, A: 13850, B: 5900 };   // 3.2.70：模擬改成照技能配點後重跑（一般、高手各 192 局），S≈高手前 5%、A＝高手中位數（A≈B）、B＝一般中位數（B≈C）
+  MT.RATING = { S: 20500, A: 15600, B: 5650 };   // 3.2.73：探索型真結局＋技能重調後重跑（每種技能高手約 128 局、一般約 60 局），S≈高手前 6%（還要真結局）、A＝高手中位數（A≈B）、B＝一般中位數（B≈C）
 
   MT.START = { floor: 1, x: 5, y: 14, hp: 1000, atk: 10, def: 10, gold: 0, keys: { y: 1, b: 0, r: 0 } };
 
@@ -461,10 +461,10 @@
       'Ec ## ## ## ## .. ## ## ## ## ..',
       'Yk .. .. .. .. Bk .. Ec .. .. hp',
     ],
-    // 15F 回音之鏡（3×3）：打倒後找回「笛」
+    // 15F 回音之鏡（3×3）：打倒後找回「笛」。3.2.72：日記第三頁藏在右上房間左邊的暗牆後面（第二頁的線索：「鏡子後面」）
     [
-      '## ## ## ## ## UU ## ## ## ## ##',
-      '.. HP .. ## ## Gt ## ## .. HP ..',
+      '## ## ## ## ## UU ## P3 ## ## ##',
+      '.. HP .. ## ## Gt ## Hw .. HP ..',
       '.. .. at ## EM EM EM ## df .. ..',
       '## Yd ## ## EM EM EM ## ## Yd ##',
       'eh .. .. ## EM EM EM ## .. .. eh',
@@ -505,7 +505,7 @@
       'hp Yk .. Yd kd .. dk Yd .. at ..',
       '.. .. .. ## ## Rd ## ## .. .. ..',
       'am ## ## ## at HP df ## ## ## cv',
-      '.. .. P3 .. ## ## ## .. .. .. ..',
+      '.. .. hp .. ## ## ## .. .. .. ..',   // 3.2.72：日記第三頁搬到 15F 暗牆後
       '## ## ## Yd ## Rk ## Yd ## ## ##',
       'df .. cg .. .. rc .. .. nb .. at',
       '.. ## ## ## ## Bd ## ## ## ## ..',
@@ -537,7 +537,7 @@
     // 19F 前廳：失落的音符在金門後面；金盾在最長的連戰走廊盡頭；最後的衛兵
     [
       'DD .. Yk ## HP HP HP ## .. .. UU',
-      '.. dk .. ## at FN df ## .. cv ..',
+      '.. dk .. ## at HP df ## .. cv ..',   // 3.2.72：音符搬到金盾旁的暗牆（4,11），金門房間變成單純的寶物取捨
       '.. .. .. ## ## Rd ## ## Yk .. ..',
       '## Yd ## .. .. .. .. .. ## Yd ##',
       'hp .. .. .. kd rc nb .. Bd .. Yk',
@@ -547,7 +547,7 @@
       'Yk .. cg .. .. N9 .. .. kd .. HP',
       'HP .. .. .. .. rc .. .. .. .. Bk',
       'at df .. .. ## Cw ## .. .. HP Yk',
-      '## ## Yd ## ## .. ## ## Yd ## ##',
+      '## ## Yd ## Hw .. ## ## Yd ## ##',   // 3.2.72：(4,11) 暗牆裡封著失落的音符（MT.HIDDEN_ITEMS）
       '.. .. nb .. ## a3 ## .. am .. ..',
       '.. ## ## ## ## dk ## ## ## ## ..',
       'Yk .. .. .. .. dk .. .. .. .. at',
@@ -573,6 +573,9 @@
   ];
 
   /* 踩到就觸發的劇情（只觸發一次）：floor → "x,y" → 劇本名 */
+  /* 暗牆裡封著道具（3.2.72 Ken 指定：真結局難在探索，不在戰鬥）：撞開這面暗牆時，道具出現在牆的位置。樓層:x,y → 道具代碼 */
+  MT.HIDDEN_ITEMS = { '19:4,11': 'FN' };
+
   MT.TRIGGERS = {
     0: { '5,14': 'b1Enter' },
     1: { '5,14': 'f1Start' },
@@ -659,7 +662,7 @@
     bardAgain: [['say', 'bard', 'bard_again']],
     n2: [['say', 'soldier', 'n2_1'], ['say', 'tink', 'n2_2'], ['say', 'soldier', 'n2_3'], ['sfx', 'gem'], ['stat', 'def', 3], ['say', 'soldier', 'n2_4'], ['leave']],
     page1: [['sfx', 'page'], ['narr', 'page1_title'], ['narr', 'page1'], ['say', 'tink', 'page1_r']],
-    page2: [['sfx', 'page'], ['narr', 'page2_title'], ['narr', 'page2'], ['fairy', true], ['say', 'doremi', 'page2_r'], ['say', 'tink', 'page2_t'], ['fairy', false]],
+    page2: [['sfx', 'page'], ['narr', 'page2_title'], ['narr', 'page2'], ['fairy', true], ['say', 'doremi', 'page2_r'], ['say', 'tink', 'page2_t'], ['say', 'doremi', 'page2_hint'], ['fairy', false]],
     page3: [['sfx', 'page'], ['narr', 'page3_title'], ['narr', 'page3'], ['fairy', true], ['say', 'doremi', 'page3_r'], ['say', 'tink', 'page3_t'], ['say', 'doremi', 'page3_hint'], ['fairy', false]],
     noteGet: [['sfx', 'harp'], ['sparkle', 5, 1], ['narr', 'note_got'], ['fairy', true], ['say', 'doremi', 'note_1'], ['say', 'tink', 'note_2'], ['say', 'doremi', 'note_3'], ['fairy', false]],
     golemIntro: [

@@ -48,7 +48,8 @@ const costly = (st, f, x, y) => MT.pincerAt(st, f, x, y) || MT.auraAt(st, f, x, 
 
 /* 把走得到的免費東西全撿完（跨樓層）：道具、NPC 對話、踩到的劇情。回傳走得到的格子 */
 function collect(st, opt) {
-  const secrets = opt && opt.secrets;
+  // 暗牆：opt.secrets 指定；沒指定時，知道整座塔的老手（ahead＝'all'）會去找，一般玩家不會（3.2.72）
+  const secrets = opt && (opt.secrets != null ? opt.secrets : opt.ahead === 'all');
   for (;;) {
     let changed = false;
     const seen = new Set();
@@ -81,7 +82,7 @@ function collect(st, opt) {
         if (seen.has(k)) continue;
         // 夾擊、共鳴的那格不白走（要付生命，算成 frontier 的「pass」動作）；回音地板 Ec 不是 '..'，本來就不在這裡走
         if (t === '..' || t === 'UU' || t === 'DD') { if (!costly(st, f, nx, ny)) { seen.add(k); q.push([f, nx, ny]); } }
-        else if (t === 'Hw' && secrets) { MT.setTile(st, f, nx, ny, '..'); st.secrets++; changed = true; }
+        else if (t === 'Hw' && secrets) { MT.setTile(st, f, nx, ny, MT.hiddenItem(f, nx, ny) || '..'); st.secrets++; changed = true; }
         else if (MT.isItem(t) && !costly(st, f, nx, ny)) {
           const sf = st.floor; st.floor = f;
           const got = MT.pickup(st, t); MT.setTile(st, f, nx, ny, '..');
