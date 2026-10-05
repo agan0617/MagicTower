@@ -15,7 +15,7 @@ if (si >= 0 && !rotate) S.setSkills([args[si + 1]]);
 const verbose = args.includes('-v');
 const num = (k, d) => { const i = args.indexOf(k); return i >= 0 ? Number(args[i + 1]) : d; };
 const noise = num('--noise', 0), nRuns = num('--runs', 1), seed0 = num('--seed', 1);
-const ai = args.indexOf('--ahead'), ahead = ai >= 0 ? (args[ai + 1] === 'all' ? 'all' : args[ai + 1] === '1') : null;   // --ahead all＝看整座塔（老手）、1／0＝看不看下一層
+const ai = args.indexOf('--ahead'), ahead = ai >= 0 ? (['all', 'blind'].includes(args[ai + 1]) ? args[ai + 1] : args[ai + 1] === '1') : null;   // --ahead all＝看整座塔（老手）、1／0＝看不看下一層
 
 function line(name, r, ms) {
   const st = r.st;

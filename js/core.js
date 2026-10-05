@@ -4,7 +4,13 @@
 
   const W = 11, H = 15;
   const clone = o => JSON.parse(JSON.stringify(o));
-  const parseFloor = rows => rows.map(r => r.split(' '));
+  // 地圖字串→二維陣列。給樓層索引時套 MT.MAP_PATCH（調平衡期間的地圖改動，正式版會直接改回地圖字串）
+  const parseFloor = (rows, f) => {
+    const m = rows.map(r => r.split(' '));
+    const P = MT.MAP_PATCH;
+    if (P && f != null) for (const k in P) { const [ff, xy] = k.split(':'); if (+ff === f) { const [x, y] = xy.split(',').map(Number); m[y][x] = P[k]; } }
+    return m;
+  };
 
   MT.W = W; MT.H = H;
   // 存檔格式版本：2.0.0 地圖由 11×11 加高成 11×15（v2）；3.0.0 改成 20 層、地圖全部重畫（v3），舊存檔讀不了
@@ -25,7 +31,7 @@
       beaten: {},            // 怪物圖鑑：怪物代碼 → 第一次在第幾層打倒（3.2.64 起圖鑑只列打倒過的）
       equip: { sword: '', shield: '' },
       layers: [],            // 已經找回的樂器：drums／strings／lead
-      maps: MT.FLOORS.map(f => (f ? parseFloor(f) : null)),
+      maps: MT.FLOORS.map((f, i) => (f ? parseFloor(f, i) : null)),
       visited: [s.floor],
       flags: {},             // 劇情旗標、觸發過的劇本
       shops: { shop1: 0, shop2: 0, shop3: 0 },
@@ -417,13 +423,16 @@
   };
   // 限量鑰匙還剩幾把（沒限量回傳 Infinity）
   MT.keyStockLeft = (st, shop, what) => { const n = (MT.KEY_STOCK || {})[what]; return n == null ? Infinity : n - (st.shops['keys:' + what] || 0); };   // 兩個商人合計
+  // 這把鑰匙現在賣多少（3.3 鑰匙越買越貴）：定價＋KEY_STEP×已經買過的把數，兩個商人合計、不會重置；沒賣的回傳 null
+  MT.keyBought = (st, what) => st.shops['keys:' + what] || 0;
+  MT.keyPrice = (st, shop, what) => { const base = MT.SHOPS[shop][what]; return base == null ? null : base + ((MT.KEY_STEP || {})[what] || 0) * MT.keyBought(st, what); };
   MT.buy = function (st, shop, what) {
     if (shop === 'keys' || shop === 'keys2') {
-      const price = MT.SHOPS[shop][what];
-      if (price == null || st.gold < price) return false;   // 13F 表哥只收不賣，沒有賣價
+      const price = MT.keyPrice(st, shop, what);
+      if (price == null || st.gold < price) return false;   // 沒賣價＝這家不賣
       if (MT.keyStockLeft(st, shop, what) <= 0) return false;   // 限量的賣完了
       st.gold -= price; st.keys[what]++;
-      if ((MT.KEY_STOCK || {})[what] != null) st.shops['keys:' + what] = (st.shops['keys:' + what] || 0) + 1;
+      st.shops['keys:' + what] = MT.keyBought(st, what) + 1;   // 三色都計數（限量與漲價都靠它）
       return true;
     }
     const price = MT.shopPrice(st, shop);

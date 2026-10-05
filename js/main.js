@@ -1280,7 +1280,7 @@
       else if (it.kind === 'note') { name = MT.itemName('note'); desc = MT.t('info_note'); }
       else if (it.kind === 'tool') { name = MT.itemName(it.tool); desc = MT.t('info_' + it.tool); }
       else { name = MT.t('name_' + code); desc = MT.t('info_' + it.kind, { n: v }); }
-    } else if (n && (n.shop === 'keys' || n.shop === 'keys2')) { name = MT.t(n.shop === 'keys' ? 'frog' : 'frog2'); const K = MT.SHOPS[n.shop]; desc = n.shop === 'keys' ? MT.t('info_frog', K) : MT.t('info_buyer', { y: K.y, b: K.b, r: K.r, sb: K.sell.b, sr: K.sell.r }); }
+    } else if (n && (n.shop === 'keys' || n.shop === 'keys2')) { name = MT.t(n.shop === 'keys' ? 'frog' : 'frog2'); const K = MT.SHOPS[n.shop], P = { y: MT.keyPrice(st, n.shop, 'y'), b: MT.keyPrice(st, n.shop, 'b'), r: MT.keyPrice(st, n.shop, 'r') }; desc = n.shop === 'keys' ? MT.t('info_frog', P) : MT.t('info_buyer', { y: P.y, b: P.b, r: P.r, sb: K.sell.b, sr: K.sell.r }); }
     else if (n && n.level) { name = MT.t('level_' + n.level); desc = MT.t('info_level', { cost: MT.levelCost(st), hp: MT.LEVEL[n.level].hp, atk: MT.LEVEL[n.level].atk, def: MT.LEVEL[n.level].def }); }
     else if (n && n.sage) { name = MT.t('speaker_harpist'); desc = MT.t('info_sage_' + MT.sagePreview(st), { cost: st.skill && st.skill.lv < 3 ? MT.SKILL.upCost[st.skill.lv + 1] : 0 }); }
     else if (n && n.choose) { name = MT.t('speaker_harpghost'); desc = MT.t('info_choose'); }
@@ -1611,14 +1611,15 @@
     if (id === 'keys' || id === 'keys2') {
       const K = MT.SHOPS[id], two = id === 'keys2';
       const opts = [['y', 'buyY'], ['b', 'buyB'], ['r', 'buyR']].filter(([k]) => K[k] != null).map(([k, lab]) => {
-        const left = MT.keyStockLeft(st, id, k);   // 限量的鑰匙標剩幾把、賣完反灰
-        const tail = left === Infinity ? '' : MT.t(left > 0 ? 'stockLeft' : 'soldOut', { n: left });
-        return `<button class="btn opt" data-k="${k}" ${st.gold < K[k] || left <= 0 ? 'disabled' : ''}>${img(...spriteFor(KEY_OF[k]))} ${esc(MT.t(lab, { p: K[k] }) + tail)}</button>`;
+        const left = MT.keyStockLeft(st, id, k), p = MT.keyPrice(st, id, k), step = (MT.KEY_STEP || {})[k] || 0;   // 限量的鑰匙標剩幾把、賣完反灰；會漲價的標漲幅
+        const tail = (left === Infinity ? '' : MT.t(left > 0 ? 'stockLeft' : 'soldOut', { n: left })) + (step && left > 0 ? MT.t('keyStep', { s: step }) : '');
+        return `<button class="btn opt" data-k="${k}" ${st.gold < p || left <= 0 ? 'disabled' : ''}>${img(...spriteFor(KEY_OF[k]))} ${esc(MT.t(lab, { p }) + tail)}</button>`;
       }).join('');
+      const stepNote = Object.values(MT.KEY_STEP || {}).some(s => s > 0) ? `<p class="muted small">${esc(MT.t('frogStep'))}</p>` : '';
       // 表哥另外收購（K.sell）：身上沒有那種鑰匙就反灰
       const sells = K.sell ? `<p class="muted small">${esc(MT.t('sellHead'))}</p><div class="opts">` + Object.keys(K.sell).map(k =>
         `<button class="btn opt" data-s="${k}" ${st.keys[k] > 0 ? '' : 'disabled'}>${img(...spriteFor(KEY_OF[k]))} ${esc(MT.t('sell' + k.toUpperCase(), { p: K.sell[k], n: st.keys[k] }))}</button>`).join('') + '</div>' : '';
-      openModal(MT.t(two ? 'frog2' : 'frog'), `<div class="shopTop">${img(two ? 'frogCousin' : 'frog', null, 'big')}<p>${esc(MT.t(two ? 'frog2Text' : 'frogText'))}</p></div><div class="opts">${opts}</div>${sells}
+      openModal(MT.t(two ? 'frog2' : 'frog'), `<div class="shopTop">${img(two ? 'frogCousin' : 'frog', null, 'big')}<p>${esc(MT.t(two ? 'frog2Text' : 'frogText'))}</p></div>${stepNote}<div class="opts">${opts}</div>${sells}
         <p class="muted small">${esc(MT.t('gold'))}：${st.gold}</p><button class="btn" data-x>${esc(MT.t('leave'))}</button>`, body => {
         body.querySelectorAll('[data-s]').forEach(b => b.addEventListener('click', () => {
           const before = snapStats();
