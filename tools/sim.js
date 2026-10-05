@@ -188,7 +188,7 @@ function actions(st, fr) {
       if (n.choose) { for (const sk of skillChoices) out.push({ kind: 'choose', skill: sk, c }); continue; }
       const shop = n.shop;
       // 鑰匙身上還有就不買（不然沒事做的時候會一直買來囤）
-      if (shop === 'keys' || shop === 'keys2') { for (const w of ['y', 'b', 'r']) if (st.gold >= MT.SHOPS[shop][w] && st.keys[w] < 1) out.push({ kind: 'buy', shop, what: w, c }); continue; }
+      if (shop === 'keys' || shop === 'keys2') { for (const w of ['y', 'b', 'r']) { const p = MT.keyPrice ? MT.keyPrice(st, shop, w) : MT.SHOPS[shop][w]; if (p != null && st.gold >= p && st.keys[w] < 1) out.push({ kind: 'buy', shop, what: w, c }); } continue; }
       // 照技能配點（3.2.70）：選了技能之後偏好那個技能對應的能力——鐵壁堆防、連擊堆攻、反彈堆血（真人會這樣玩；
       // 不這樣的話三種技能只差在公式，個性拉不開）。只買單一能力太極端（一般玩家幾乎全滅），預設改成位能加分
       const pref = BUILD === 'only' && st.skill ? { absorb: ['def'], double: ['atk'], reflect: ['hp'] }[st.skill.type] : null;
@@ -250,6 +250,11 @@ const CAP = +process.env.MT_CAP || 3000;   // 一隻怪最多算多少傷害
 // 跟 'all' 比分數＝「知道後面樓層」值多少，用來量跨樓層規劃的深度（strategy-depth，Ken 指定 ≥15%）
 const vet = ahead => ahead === 'all' || ahead === 'blind';
 const KF = process.env.MT_KF !== '0';   // 老手照「留到後面能開哪扇門」估鑰匙（keyFuture）；0＝照舊用固定價
+const KEEP = process.env.MT_KEEP !== '0';   // 老手知道要留一把金鑰匙拿音符；0＝關掉（量基準差距的組成用）
+// MT_RULE=1：「懂規則的盲高手」（strategy-depth v2）——跟 blind 一樣看不到沒去過的樓層，但知道遊戲規則：
+// 鑰匙會越買越貴、後面區域的房間更值錢（照去過樓層的門後價值乘 ZONE_VALUES 的倍率推）、該留一把金鑰匙。
+// 和 'all' 的差距＝「背地圖」值多少（不該因為改版而放大）；和 blind 的差距＝「懂規則」值多少（改版要拉開的是這個）
+const RULE = process.env.MT_RULE === '1';
 
 /* 這隻怪值不值得打（3.2.55）：拿開局的地圖算「把這格堵住，會少走到哪些格子」＝牠守著的東西。
    守著樓梯、NPC、劇情道具（日記、圖鑑、鑿子…）＝必經，傷害照算；
@@ -405,7 +410,7 @@ function keyFuture(st, c, mf) {
   for (let f = mf + 1; f <= MT.TOP; f++) { if (!D[f]) continue; opp.push(...D[f].doors[c]); supply += D[f].keys[c]; }
   const left = Math.max(0, MT.keyStockLeft(st, 'keys', c));
   if (left !== Infinity) supply += left;
-  const price = Math.min(MT.SHOPS.keys[c], MT.SHOPS.keys2[c] || Infinity);
+  const price = cheapest(st, c);
   opp.sort((a, b) => b - a);
   let v = 0;
   for (let i = 0; i < st.keys[c]; i++) {
@@ -415,6 +420,20 @@ function keyFuture(st, c, mf) {
     v += Math.max(w, 1);   // 至少留一點價值，免得同分時亂花
   }
   return v;
+}
+
+// 兩個商人裡最便宜的「下一把」價格：有 MT.keyPrice（鑰匙越買越貴，strategy-depth）就照它算，沒有就是定價
+const cheapest = (st, c) => Math.min(...['keys', 'keys2'].map(s => (MT.keyPrice ? MT.keyPrice(st, s, c) : MT.SHOPS[s][c]) || Infinity));
+/* 懂規則的盲高手眼中手上 c 色鑰匙的總值（MT_RULE=1）：去過樓層的門後價值平均（主線門不算）乘「下一區／這區」的數值倍率
+   ＝「後面房間大概值這麼多」；商人買得到時仍不超過下一把的價格×5（鑰匙漲價後這個上限會跟著升，才會想把鑰匙留給後面） */
+function ruleKeyValue(st, c, mf) {
+  const D = doorValues();
+  let sum = 0, n = 0;
+  for (const f of st.visited) if (D[f]) for (const v of D[f].doors[c]) if (v !== MAIN) { sum += v; n++; }
+  const z = MT.zoneOf(mf), nz = Math.min(4, z + 1);
+  let prior = n ? sum / n * (MT.ZONE_VALUES.hp[nz - 1] / MT.ZONE_VALUES.hp[z - 1]) : { y: 150, b: 450, r: 900 }[c];
+  if (st.visited.includes(6) && MT.keyStockLeft(st, 'keys', c) > 0) prior = Math.min(prior, cheapest(st, c) * 5);
+  return st.keys[c] * Math.max(prior, 1);
 }
 
 function potential(st, ahead = true) {
@@ -436,7 +455,7 @@ function potential(st, ahead = true) {
   }
   const z = MT.zoneOf(maxFloor(st));
   // 鑰匙的價值：前期（還買不到）照稀缺估，買得到之後不超過「商人賣價×金幣價值」，免得一直買來囤
-  const kv = (c, early) => (st.visited.includes(6) && MT.keyStockLeft(st, 'keys', c) > 0 ? Math.min(early, MT.SHOPS.keys[c] * 5) : early);
+  const kv = (c, early) => (st.visited.includes(6) && MT.keyStockLeft(st, 'keys', c) > 0 ? Math.min(early, (MT.keyPrice ? MT.keyPrice(st, 'keys', c) : MT.SHOPS.keys[c]) * 5) : early);
   // 主線上樓還要的鑰匙不夠：重罰（等於「這條路走不通」）
   let short = 0;
   const mf = maxFloor(st);
@@ -449,11 +468,12 @@ function potential(st, ahead = true) {
   // 老手知道真結局要三頁日記＋失落的音符（19F 金門後面），會留金鑰匙去拿：每樣算 TE 點生命（3.2.55）
   const te = vet(ahead) ? (st.pages.length + (st.items.note ? 1 : 0)) * TE : 0;
   // 音符還沒拿：手上留一把金鑰匙另外加分，不然一路上會把金鑰匙花在別的金門，到 19F 才發現打不開
-  const keep = ahead === 'all' && !st.items.note && st.keys.r > 0 ? TE : 0;
+  const keep = KEEP && (ahead === 'all' || (ahead === 'blind' && RULE)) && !st.items.note && st.keys.r > 0 ? TE : 0;
   const sk = BUILD === 'bias' && st.skill && st.skill.lv > 0 ? st.skill.type : null;
   const lean = sk === 'absorb' ? st.def * BIAS : sk === 'double' ? st.atk * BIAS : sk === 'reflect' ? st.hp * BIAS / 300 : 0;
   // 知道整座塔的老手：鑰匙照「留到後面能開哪扇門」估
   const kval = ahead === 'all' && KF ? ['y', 'b', 'r'].reduce((a, c) => a + keyFuture(st, c, mf), 0)
+    : ahead === 'blind' && RULE ? ['y', 'b', 'r'].reduce((a, c) => a + ruleKeyValue(st, c, mf), 0)
     : st.keys.y * kv('y', 150) + st.keys.b * kv('b', 450) + st.keys.r * kv('r', 900);
   return lean + te + keep + st.hp - dmg - short * 4000 + kval + st.gold * gv + st.exp * ev + (st.items.chisel || 0) * 300 * z;
 }
