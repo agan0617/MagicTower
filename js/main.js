@@ -933,7 +933,7 @@
     const lines = { none: ['sage_none'], activate: ['sage_act1', 'sage_act2_' + (sk && sk.type)], up: ['sage_up', 'sage_up_' + (sk && sk.type)], notyet: ['sage_notyet'], poor: ['sage_poor'], max: ['sage_max'] }[r.r];
     // 鑑定完、升到第 2 級之後：提醒還能再往上練（下一級要的等級和學費）
     if ((r.r === 'activate' || r.r === 'up') && sk.lv < 3) lines.push('sage_next');
-    const nextLv = sk && sk.lv < 3 ? MT.SKILL.lvNeed[sk.lv + 1] : 0, nextCost = sk && sk.lv < 3 ? MT.SKILL.upCost[sk.lv + 1] : 0;
+    const nextLv = sk && sk.lv < 3 ? MT.skillLvNeed(sk)[sk.lv + 1] : 0, nextCost = sk && sk.lv < 3 ? MT.SKILL.upCost[sk.lv + 1] : 0;
     for (const k of lines) {
       const lv = k === 'sage_next' ? nextLv : r.need || (sk && sk.lv), cost = k === 'sage_next' ? nextCost : r.cost;
       await say('harpist', MT.story(k).replace('{lv}', lv).replace('{cost}', cost).replace('{skill}', sk ? MT.t('skill_' + sk.type) : ''));

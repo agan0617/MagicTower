@@ -88,14 +88,19 @@
      名稱 3.2.66 起改成鐵壁／連擊／反彈（原本沉穩低音／連音／回音）；代碼沿用 absorb（存檔裡的技能不用轉換）。 */
   MT.SKILL = {
     absorb: [1, 1.35, 1.5, 1.7],              // 防禦倍數（3.2.64 以前是「每下少受 20／35／50%」）
-    absorbCap: [0, 90, 120, 140],              // 鐵壁加的防禦最多這麼多（3.2.68 Ken 指定：最穩、天花板最低；不讓有效防禦一路衝過最終魔王的攻擊）
+    absorbCap: [0, 90, 120, 130],              // 鐵壁加的防禦最多這麼多（3.2.68 Ken 指定：最穩、天花板最低；不讓有效防禦一路衝過最終魔王的攻擊）
     reflect: [0, 0.8, 1.1, 2.0],              // 彈回去的比例（以那一下實際打到的傷害算）
-    double: [[], [0.1], [0.3], [1, 1]],        // 每回合額外的攻擊（攻擊減怪物防禦的倍數）；3.2.68 前期很弱、滿級多打兩下：撐到後期才爆分（Ken 指定：看技術、上限最高）
-    doubleGuard: 0.93,                         // 連擊＝全力進攻，戰鬥時防禦只算 93%：不會玩的人容易卡（3.2.68）
+    double: [[], [0.3], [0.6], [1, 1]],        // 每回合額外的攻擊（攻擊減怪物防禦的倍數）
+    doubleGuard: 0.9,                          // 連擊＝全力進攻，戰鬥時防禦只算 90%
+    doubleBurst: [1, 0.5], doubleBurstAt: 1.6, // 滿級爆發：攻擊 ≥ 怪物防禦 ×1.6 時再多打這兩下
+    lvNeedDouble: [0, 0, 12, 26],              // 連擊升滿級要勇者 Lv26：會規劃、經驗值花得早的人才拿得到爆發
+    lvNeedReflect: [0, 0, 12, 25],             // 反彈升滿級要勇者 Lv25（鐵壁維持 Lv22）：一般玩家用鐵壁最穩、反彈次之
+    // 3.2.70（Ken 指定：連擊下限最低、上限最高）：一般玩家常囤經驗值、等級偏低，撐不到滿級；高手拿到爆發後分數最高
     lvNeed: [0, 0, 12, 22],                    // 升到第 n 級要的勇者等級（第 1 級＝鑑定就有）
     upCost: [0, 0, 50, 100],                   // 升到第 n 級要付老琴師的金幣（3.2.42 Ken 指定：升級要花一點資源才合理；鑑定免費）
   };
   const skillOf = st => (st.skill && st.skill.lv > 0 ? st.skill : null);
+  MT.skillLvNeed = sk => (sk.type === 'double' ? MT.SKILL.lvNeedDouble : sk.type === 'reflect' ? MT.SKILL.lvNeedReflect : MT.SKILL.lvNeed);
   // 戰鬥時算的防禦：沉穩低音（absorb）乘上倍數
   MT.battleDef = st => { const sk = skillOf(st); return sk && sk.type === 'absorb' ? st.def + Math.min(Math.floor(st.def * (MT.SKILL.absorb[sk.lv] - 1)), MT.SKILL.absorbCap[sk.lv])
     : sk && sk.type === 'double' ? Math.floor(st.def * MT.SKILL.doubleGuard) : st.def; };
@@ -116,7 +121,8 @@
     const raw = MT.monHitRaw(st, m);
     const monHit = raw;
     const reflect = sk && sk.type === 'reflect' && raw > 0 ? Math.ceil(raw * MT.SKILL.reflect[sk.lv]) : 0;
-    const strikes = [heroHit].concat(sk && sk.type === 'double' ? MT.SKILL.double[sk.lv].map(k => Math.max(1, Math.floor(heroHit * k))) : []);
+    const dk = sk && sk.type === 'double' ? MT.SKILL.double[sk.lv].concat(sk.lv >= 3 && st.atk >= m.def * MT.SKILL.doubleBurstAt ? MT.SKILL.doubleBurst : []) : [];
+    const strikes = [heroHit].concat(dk.map(k => Math.max(1, Math.floor(heroHit * k))));
     const monStrikes = sp.includes('double') ? 2 : 1;
     const drain = sp.includes('drain') ? Math.floor(st.hp * m.drain) : 0;
     const per = strikes.reduce((a, b) => a + b, 0);
@@ -164,7 +170,7 @@
     if (!sk) return { r: 'none' };
     if (sk.lv === 0) { sk.lv = 1; return { r: 'activate' }; }
     if (sk.lv >= 3) return { r: 'max' };
-    const need = MT.SKILL.lvNeed[sk.lv + 1], cost = MT.SKILL.upCost[sk.lv + 1];
+    const need = MT.skillLvNeed(sk)[sk.lv + 1], cost = MT.SKILL.upCost[sk.lv + 1];
     if (st.lv < need) return { r: 'notyet', need, cost };
     if (st.gold < cost) return { r: 'poor', cost };
     st.gold -= cost; sk.lv++;
@@ -175,7 +181,7 @@
     if (!sk) return 'none';
     if (sk.lv === 0) return 'activate';
     if (sk.lv >= 3) return 'max';
-    if (st.lv < MT.SKILL.lvNeed[sk.lv + 1]) return 'notyet';
+    if (st.lv < MT.skillLvNeed(sk)[sk.lv + 1]) return 'notyet';
     return st.gold >= MT.SKILL.upCost[sk.lv + 1] ? 'up' : 'poor';
   };
 

@@ -12,6 +12,8 @@ require(path.join(__dirname, '../js/data.js'));
 require(path.join(__dirname, '../js/core.js'));
 const MT = globalThis.MT;
 const DIRS = [[0, -1], [0, 1], [-1, 0], [1, 0]];
+const BUILD = process.env.MT_BUILD || 'bias';   // only＝祭壇只買對應能力；bias＝位能偏好對應能力（預設）；0＝不偏好
+const BIAS = +process.env.MT_BIAS || 100;
 let skillChoices = ['absorb', 'reflect', 'double'];   // 高手三種都試；setSkills 可以限定只走某一種
 
 // 比 JSON 快的複製：地圖逐列 slice，其他淺層物件各自複製
@@ -186,7 +188,10 @@ function actions(st, fr) {
       const shop = n.shop;
       // 鑰匙身上還有就不買（不然沒事做的時候會一直買來囤）
       if (shop === 'keys' || shop === 'keys2') { for (const w of ['y', 'b', 'r']) if (st.gold >= MT.SHOPS[shop][w] && st.keys[w] < 1) out.push({ kind: 'buy', shop, what: w, c }); continue; }
-      if (st.gold >= MT.shopPrice(st, shop)) for (const w of ['atk', 'def', 'hp']) out.push({ kind: 'buy', shop, what: w, c });
+      // 照技能配點（3.2.70）：選了技能之後偏好那個技能對應的能力——鐵壁堆防、連擊堆攻、反彈堆血（真人會這樣玩；
+      // 不這樣的話三種技能只差在公式，個性拉不開）。只買單一能力太極端（一般玩家幾乎全滅），預設改成位能加分
+      const pref = BUILD === 'only' && st.skill ? { absorb: ['def'], double: ['atk'], reflect: ['hp'] }[st.skill.type] : null;
+      if (st.gold >= MT.shopPrice(st, shop)) for (const w of pref || ['atk', 'def', 'hp']) out.push({ kind: 'buy', shop, what: w, c });
       continue;
     }
     if (t === 'Cw') { if (st.items.chisel > 0) out.push({ kind: 'break', c }); continue; }
@@ -330,7 +335,9 @@ function potential(st, ahead = true) {
   const te = ahead === 'all' ? (st.pages.length + (st.items.note ? 1 : 0)) * TE : 0;
   // 音符還沒拿：手上留一把金鑰匙另外加分，不然一路上會把金鑰匙花在別的金門，到 19F 才發現打不開
   const keep = ahead === 'all' && !st.items.note && st.keys.r > 0 ? TE : 0;
-  return te + keep + st.hp - dmg - short * 4000 + st.keys.y * kv('y', 150) + st.keys.b * kv('b', 450) + st.keys.r * kv('r', 900) + st.gold * gv + st.exp * ev + (st.items.chisel || 0) * 300 * z;
+  const sk = BUILD === 'bias' && st.skill && st.skill.lv > 0 ? st.skill.type : null;
+  const lean = sk === 'absorb' ? st.def * BIAS : sk === 'double' ? st.atk * BIAS : sk === 'reflect' ? st.hp * BIAS / 300 : 0;
+  return lean + te + keep + st.hp - dmg - short * 4000 + st.keys.y * kv('y', 150) + st.keys.b * kv('b', 450) + st.keys.r * kv('r', 900) + st.gold * gv + st.exp * ev + (st.items.chisel || 0) * 300 * z;
 }
 
 function newRun(opt) {
