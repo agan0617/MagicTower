@@ -3052,7 +3052,7 @@
     theEnd.remove();
     const rank = `<div class="rank" data-g="${r.grade}"><span class="rankLab">${esc(MT.t('rateTitle'))}</span><span class="rankG">${r.grade}</span>${newBest ? `<span class="rankNew">${esc(MT.t('rateNew'))}</span>` : ''}</div>`
       + `<span class="small">${esc(MT.t('rateCalc', { hp: r.hp, bonus: r.bonus, score: r.score }))}</span><br>`
-      + (r.needTrue ? `<span class="small rankWarn">${esc(MT.t('rateNeedTrue'))}</span><br>` : '')
+      // 分數到 S 但沒真結局時不另外提示（3.2.72 Ken 指定：不劇透有真結局）
       // S 的額外獎勵（3.2.71 Ken 指定）：金色標語＋國王的一句話
       + (r.grade === 'S' ? `<div class="sBonus"><b>${esc(MT.t('sTitle'))}</b><span class="small">${esc(MT.story('s_king'))}</span></div>` : '');   // 換算說明不寫在破關畫面（3.2.45 Ken 指定）
     // 回到標題的按鈕放在評價下面、水平置中；最下面是開發者資訊
