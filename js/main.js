@@ -3052,15 +3052,33 @@
     theEnd.remove();
     const rank = `<div class="rank" data-g="${r.grade}"><span class="rankLab">${esc(MT.t('rateTitle'))}</span><span class="rankG">${r.grade}</span>${newBest ? `<span class="rankNew">${esc(MT.t('rateNew'))}</span>` : ''}</div>`
       + `<span class="small">${esc(MT.t('rateCalc', { hp: r.hp, bonus: r.bonus, score: r.score }))}</span><br>`
-      + (r.needTrue ? `<span class="small rankWarn">${esc(MT.t('rateNeedTrue'))}</span><br>` : '');   // 換算說明不寫在破關畫面（3.2.45 Ken 指定）
+      + (r.needTrue ? `<span class="small rankWarn">${esc(MT.t('rateNeedTrue'))}</span><br>` : '')
+      // S 的額外獎勵（3.2.71 Ken 指定）：金色標語＋國王的一句話
+      + (r.grade === 'S' ? `<div class="sBonus"><b>${esc(MT.t('sTitle'))}</b><span class="small">${esc(MT.story('s_king'))}</span></div>` : '');   // 換算說明不寫在破關畫面（3.2.45 Ken 指定）
     // 回到標題的按鈕放在評價下面、水平置中；最下面是開發者資訊
     $('#cineBody').innerHTML = `<b>${esc(MT.story('ed_thanks'))}</b><br>${rank}<div class="endBtns"><button class="btn primary" id="endBack">${esc(MT.t('endAgain'))}</button></div>`
       + `<span class="small">${esc(MT.t(trueEnd ? 'endTrue' : 'endNormal'))}　${esc(MT.t('endStats', { t: tstr, s: st.steps, k: st.kills }))}</span><br>${trueEnd ? '' : `<span class="small">${esc(MT.story('ed_hint'))}</span><br>`}`
       + `<span class="small credits">${esc(MT.t('credits'))}</span>`;
     $('#cine').classList.add('ending');
     $('#cineText').classList.remove('hide');
-    setTimeout(() => { sfx('clang'); flash(r.grade === 'S' ? '#ffd84a' : '#ffffff', 350); }, 650);   // 評價字母蹦出來那一下（CSS 動畫 0.65 秒時落定）
+    setTimeout(() => { sfx('clang'); flash(r.grade === 'S' ? '#ffd84a' : '#ffffff', 350); }, 650);
+    if (r.grade === 'S') setTimeout(() => { sfx('fanfare'); goldRain(); }, 1300);   // S：號角＋金色音符從上面飄下來   // 評價字母蹦出來那一下（CSS 動畫 0.65 秒時落定）
     $('#endBack').addEventListener('click', e => { e.stopPropagation(); endScreen = false; $('#cineSkip').hidden = false; $('#cine').hidden = true; $('#cine').classList.remove('ending'); showTitle(); });
+  }
+
+  // S 評價的金色音符雨：在通關畫面上方灑 40 個金色音符，飄 4～7 秒
+  function goldRain() {
+    const box = $('#cine'), marks = ['♪', '♫', '♩', '♬', '✦'];
+    for (let i = 0; i < 40; i++) {
+      const n = document.createElement('span');
+      n.className = 'goldNote'; n.textContent = marks[i % marks.length];
+      n.style.left = (Math.random() * 100) + '%';
+      n.style.animationDelay = (Math.random() * 2.5) + 's';
+      n.style.animationDuration = (4 + Math.random() * 3) + 's';
+      n.style.fontSize = (14 + Math.random() * 14) + 'px';
+      box.appendChild(n);
+      setTimeout(() => n.remove(), 10000);
+    }
   }
 
   /* ───────── 啟動 ───────── */

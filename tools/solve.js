@@ -21,7 +21,7 @@ function line(name, r, ms) {
   const st = r.st;
   const where = r.done ? '通關' : `卡在 ${MT.floorName(S.maxFloor(st))}`;
   const sk = st.skill ? `${st.skill.type} Lv${st.skill.lv}` : '-';
-  return `${name.padEnd(6)} ${where.padEnd(8)} 分數 ${String(r.score == null ? '-' : r.score).padStart(6)} ${r.grade || ' '}  HP ${st.hp} 攻 ${st.atk} 防 ${st.def} Lv ${st.lv} 金 ${st.gold} 經驗 ${st.exp} 鑰 ${st.keys.y}/${st.keys.b}/${st.keys.r} 技能 ${sk}  擊倒 ${st.kills}  (${(ms / 1000).toFixed(1)}s)`;
+  return `${name.padEnd(6)} ${where.padEnd(8)} 分數 ${String(r.score == null ? '-' : r.score).padStart(6)} ${r.grade || ' '}  HP ${st.hp} 攻 ${st.atk} 防 ${st.def} Lv ${st.lv} 金 ${st.gold} 經驗 ${st.exp} 鑰 ${st.keys.y}/${st.keys.b}/${st.keys.r} 技能 ${sk}  擊倒 ${st.kills}${r.done && MT.isTrueEnding(st) ? '  真結局' : ''}  (${(ms / 1000).toFixed(1)}s)`;
 }
 const runs = { weak: () => S.solveWeak(), mid: () => S.solveMid(), human: seed => S.solveHuman({ width: width || 4, noise, seed, ahead }), strong: () => S.solveStrong({ width: width || 12, ahead }) };
 const dist = [];

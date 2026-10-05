@@ -292,6 +292,7 @@ function guardValues() {
         if (it.kind === 'hp') v += MT.zoneValue(it.zone, f);
         else if ((it.kind === 'atk' || it.kind === 'def') && it.zone) v += MT.zoneValue(it.zone, f) * PT;
         else if (it.kind === 'key') v += { y: 150, b: 450, r: 900 }[it.key];
+        else if (it.kind === 'page' || it.kind === 'note') v += TE;   // 真結局道具照 TE 估價（3.2.71）：守門怪比這還貴就放棄真結局，像真人一樣量力而為
         else { v = Infinity; break; }
       }
       const mm = MT.MONSTERS[m[y][x]];

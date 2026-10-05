@@ -174,6 +174,12 @@ html[lang=en] #tTitle { font-size: clamp(40px, 12vmin, 76px); letter-spacing: 2p
 #cineText.hide { visibility: hidden; }
 #cineBody .endBtns { text-align: center; }
 /* 破關時畫面中央浮出的 The End：2 秒淡入、停 1.2 秒、1 秒淡出（3.2.45） */
+/* S 評價的額外獎勵（3.2.71） */
+.sBonus { margin: 6px auto 2px; padding: 6px 12px; max-width: 30em; border: 1px solid #ffd84a; border-radius: 8px; background: rgba(255, 216, 74, .10); color: #ffe9a8; display: flex; flex-direction: column; gap: 2px; animation: sGlow 2s ease-in-out infinite alternate; }
+.sBonus b { color: #ffd84a; letter-spacing: .1em; }
+@keyframes sGlow { from { box-shadow: 0 0 4px rgba(255, 216, 74, .3); } to { box-shadow: 0 0 16px rgba(255, 216, 74, .7); } }
+.goldNote { position: absolute; top: -40px; color: #ffd84a; text-shadow: 0 0 6px rgba(255, 216, 74, .8); pointer-events: none; z-index: 4; animation-name: goldFall; animation-timing-function: linear; animation-fill-mode: forwards; }
+@keyframes goldFall { 0% { transform: translateY(0) rotate(0); opacity: 0; } 10% { opacity: 1; } 100% { transform: translateY(110vh) rotate(360deg); opacity: .2; } }
 .theEnd { position: absolute; left: 0; right: 0; top: 38%; text-align: center; z-index: 3; pointer-events: none;
   font-family: "Noto Serif TC", "Songti TC", "Yu Mincho", serif; font-style: italic; font-size: clamp(44px, 13vmin, 96px); letter-spacing: 6px;
   color: #fff3c0; text-shadow: 0 0 22px rgba(255, 216, 74, 0.8), 0 4px 0 rgba(0, 0, 0, 0.6); animation: theEnd 4.2s ease-in-out both; }
