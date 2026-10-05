@@ -176,7 +176,7 @@ blockquote { margin: 10px 0; padding: 6px 14px; border-left: 3px solid var(--acc
 <tr><td>查看模式</td><td class="wrap">功能鍵列第一顆「查看」：開啟時按鈕變黃、地圖框淡黃，點一下只看說明不移動；再按一次、<code>Esc</code>、返回鍵或方向鍵離開</td></tr>
 <tr><td>鍵盤</td><td class="wrap">方向鍵／WASD 走（按住每 125ms 連續走）；<code>B</code> 圖鑑、<code>F</code> 飛行、<code>Shift+S</code> 存讀、<code>Esc</code> 選單（查看模式中為離開查看）；<code>Enter</code>／空白鍵推進對話與過場</td></tr>
 <tr><td>數值變動</td><td class="wrap">撿道具、買東西、升級、劇情給東西時，「+N」從那一格飛進資訊列對應的欄位（<code>flyGains</code>），顏色跟資訊列同一組：生命紅、攻擊橘、防禦藍、金幣黃，只在 <code>style.css</code> 的 <code>--hp</code>／<code>--atk</code>／<code>--def</code>／<code>--gold</code> 定義一次（3.0.3）；鑰匙飛的是鑰匙圖</td></tr>
-<tr><td>功能鍵列</td><td class="wrap">查看／圖鑑／飛行／存讀／選單。圖鑑分「怪物｜收藏品」兩頁（3.2.0）：怪物頁列出<b>本層</b>所有怪物（需先有《怪物圖鑑》），收藏品見 3.4；面板固定大小、分頁鈕釘在上面，切分頁只換內容不重開面板（3.2.1）</td></tr>
+<tr><td>功能鍵列</td><td class="wrap">查看／圖鑑／飛行／存讀／選單。圖鑑分「怪物｜收藏品」兩頁（3.2.0）：怪物頁不分樓層列出全部怪物，<b>打倒過才顯示能力</b>（沒打過的是剪影＋？？？；二階段指揮家打倒前不列，3.2.64 Ken 指定），沒打過的怪要看能力就長按牠；收藏品見 3.4；面板固定大小、分頁鈕釘在上面，切分頁只換內容不重開面板（3.2.1）</td></tr>
 <tr><td>教學</td><td class="wrap"><b>完整教學</b>：標題畫面、選單 → 教學、或資訊列樓層下方的「？」（3.1.3），8 頁圖文（目標、移動、戰鬥、鑰匙與門、道具、金幣與經驗、怪物特技、小技巧），左右鍵或下方圓點翻頁；面板固定大小，內容在中間捲、翻頁列釘在底部，每頁「下一頁」都在同一位置（3.2.1）。示意圖由 <code>tutScene</code> 用地圖同款圖塊即時畫出，戰鬥頁的損失數字照 <code>MT.calc</code> 實算（假設生命 200／攻擊 10／防禦 10），改數值不用改圖；戰鬥頁的 ??? 畫紅色、「這場會損失的生命」畫重點色（i18n 裡用 <code>**…**</code> 標，<code>tutFmt</code>），《怪物圖鑑》那列拿到圖鑑才顯示（3.2.11）<br><b>遇到才教</b>（<code>tutHint</code>，3.1.3 起）：第一次開門、第一次撿紅色小劍／藍色小盾，以及<b>走到附近 2 格內</b>才有的沒看過的怪物特技、回音地板、祭壇／商人／節拍之神（<code>nearHints</code>，3.2.3；一次一個、危險的先講、講的時候停下腳步），多蕾講一句並問要不要看教學；選「看教學」只開那一頁、底下只有「關閉」（3.2.1）。每個只講一次（旗標 <code>tut:*</code>）；舊存檔第一次讀進來時，去過的樓層都當作講過（<code>tutInit</code>）<br><b>老玩家不教</b>（3.2.4）：有最佳紀錄（<code>MT.Sync.best()</code>，跨裝置）就不跳遇到才教與沒鑰匙提醒<br><b>不劇透</b>（3.1.3～3.2.1）：教學不寫真結局條件、S／A／B／C 評價規則、特殊道具的用途與在哪一層（改在收藏品看），只說「塔裡散落著看不出用途的東西，先撿起來」</td></tr>
 <tr><td>Android 返回鍵</td><td class="wrap"><code>MT.onBack</code>：先關確認框 → 關視窗 → 離開查看模式 → 開選單</td></tr>
 <tr><td>夾擊格</td><td class="wrap">自動尋路會盡量繞開兩隻夾擊怪中間的格子；夾擊怪腳下有紅色虛線框</td></tr>
@@ -219,7 +219,7 @@ damage  = drain + 怪物出手 × (連擊 ? 2 : 1) × monHit</code></pre>
 <li>三級：銅（Yk／Yd）→ 銀（Bk／Bd）→ 金（Rk／Rd），每扇用掉 1 把。全塔門數遠多於鑰匙（銅門 159、銀門 17、金門 5；鑰匙 94／15／3），不可能全開</li>
 <li>鐵門（Gt）：指定格子的怪物都打倒就開（<code>MT.GATES</code>）：5F／10F／15F 的 (5,1) ← Boss；20F (5,4) ← 兩隻休止符衛士</li>
 <li>前期每層一上樓的區域放一把鑰匙，上樓路線只需 1～2 扇門；中後期越來越緊</li>
-<li>銅鑰匙刻意最緊（1～8F 地圖上 37 把對 69 扇銅門），不夠的用金幣買：6F 呱呱商人 10 金一把、8F 小偷 20 金三把（3.2.42 起；原本 30，跟 6F 一樣價沒有便宜到）（13F 表哥只收不賣）。真人型自動玩家沒通關的全卡在 4F，原因就是銅鑰匙用光。前期銀門多半不在主線上，所以常出現「缺銅、銀用不掉」</li>
+<li>銅鑰匙刻意最緊（1～8F 地圖上 37 把對 69 扇銅門），不夠的用金幣買：6F 呱呱商人 10 金一把、8F 小偷 20 金三把（3.2.42 起；原本 30，跟 6F 一樣價沒有便宜到）、13F 表哥 8 金一把（3.2.59 起三種鑰匙都賣、都比 6F 便宜）。真人型自動玩家沒通關的全卡在 4F，原因就是銅鑰匙用光。前期銀門多半不在主線上，所以常出現「缺銅、銀用不掉」</li>
 <li>第一次因為沒鑰匙開不了門：多蕾提醒「腳下發金光、頭上有鑰匙記號的人會賣鑰匙」（<code>keyHint</code>，3.1.1，只講一次）</li>
 </ul>
 
@@ -233,7 +233,7 @@ damage  = drain + 怪物出手 × (連擊 ? 2 : 1) × monHit</code></pre>
 
 <h3 id="s3-5">3.5 商店、交易定價</h3>
 <p>祭壇每次奉獻三選一（生命／攻擊／防禦），價格 = base + step × 該祭壇已購次數；鑰匙商人固定價；交易一次性，成交後 NPC 離開。數字見 4.4。</p>
-<p><b>收購鑰匙</b>（3.2.7）：6F 呱呱商人只賣、13F 表哥只收（3.2.9 起表哥不賣：他原本賣得比 6F 貴，可是 9F 拿到風之羽之後飛回 6F 不花任何東西，賣貴只剩笑點）。表哥收銀、金鑰匙，價格是<b>全塔最便宜賣價（6F 呱呱商人 50／100）的一半</b>：銀 25、金 50，在哪裡買了再賣都一定虧（3.2.9：3.2.7 照表哥自己的賣價算一半是銀 45、金 90，跟 6F 只差一點，賣掉再飛回 6F 買幾乎不虧，一把銀等於 4.5 把銅，Ken 指出）；通關評價本來就照原價把剩的鑰匙算分，所以賣掉是拿分數換現在用的錢。照新新魔塔（鑰匙商人半價收購）、50 層魔塔（28F 收購黃鑰匙）的做法放在中後期：6F 的呱呱商人不收，否則一把銀拆成 2.5 把銅，前期銅鑰匙的取捨會變簡單。動機是自動玩家通關時身上都還剩 6～7 把銀；試過「5F＋B1 各一把銀換銅」，剩的銀只少 1.5 把、4F 照樣卡、高手還掉出 S，所以不改地圖。自動玩家不會賣鑰匙，分數不受影響（高手寬度 4 回音仍 20296）</p>
+<p><b>收購鑰匙</b>（3.2.7）：6F 呱呱商人只賣不收；13F 表哥 3.2.59 起三種鑰匙都賣、都比 6F 便宜（銅 8／銀 40／金 80，Ken 指定），也照舊收購；金鑰匙全遊戲限購 2 把、兩個商人合計（<code>MT.KEY_STOCK</code>）。（3.2.9～3.2.58 表哥只收不賣：他原本賣得比 6F 貴，可是 9F 拿到風之羽之後飛回 6F 不花任何東西，賣貴只剩笑點）。表哥收銀、金鑰匙，價格是<b>全塔最便宜賣價（6F 呱呱商人 50／100）的一半</b>：銀 25、金 50，在哪裡買了再賣都一定虧（3.2.9：3.2.7 照表哥自己的賣價算一半是銀 45、金 90，跟 6F 只差一點，賣掉再飛回 6F 買幾乎不虧，一把銀等於 4.5 把銅，Ken 指出）；通關評價本來就照原價把剩的鑰匙算分，所以賣掉是拿分數換現在用的錢。照新新魔塔（鑰匙商人半價收購）、50 層魔塔（28F 收購黃鑰匙）的做法放在中後期：6F 的呱呱商人不收，否則一把銀拆成 2.5 把銅，前期銅鑰匙的取捨會變簡單。動機是自動玩家通關時身上都還剩 6～7 把銀；試過「5F＋B1 各一把銀換銅」，剩的銀只少 1.5 把、4F 照樣卡、高手還掉出 S，所以不改地圖。自動玩家不會賣鑰匙，分數不受影響（高手寬度 4 回音仍 20296）</p>
 
 <h3>3.6 飛行</h3>
 <ul>
@@ -290,7 +290,7 @@ S：分數 ≥ 16800 且真結局　A：≥ 13850　B：≥ 5900　其餘 C（3.
 <tr><td>老琴師</td><td><code>Sg</code></td><td>12F</td><td>鑑定／升級</td><td>技能生效與升級；找不到假牙</td></tr>
 <tr><td>節拍之神</td><td><code>L1</code></td><td>3F</td><td>經驗換等級</td><td class="wrap">每級 +120 生命 +2 攻 +2 防</td></tr>
 <tr><td>進階節拍之神</td><td><code>L2</code></td><td>13F</td><td>經驗換等級</td><td class="wrap">每級 +300 生命 +4 攻 +4 防（與 L1 共用等級與價格）</td></tr>
-<tr><td>呱呱商人的表哥</td><td><code>Mq</code></td><td>13F</td><td>商店</td><td class="wrap">自稱正牌：「樓下那個只會賣，正牌的懂得收」。只收購用不完的銀、金鑰匙（6F 賣價的一半，<code>MT.sellKey</code>），不賣（3.2.9 起）</td></tr>
+<tr><td>呱呱商人的表哥</td><td><code>Mq</code></td><td>13F</td><td>商店</td><td class="wrap">自稱正牌：「樓下那個只會賣，還賣得比較貴」。三種鑰匙都賣、都比 6F 便宜（3.2.59 起），也收購用不完的銀、金鑰匙（6F 賣價的一半，<code>MT.sellKey</code>）</td></tr>
 <tr><td>琴師學徒</td><td><code>N6</code></td><td>14F</td><td>交易</td><td class="wrap">320 金 → 防禦 +14（「保證——大概——不會壞」）</td></tr>
 <tr><td>占星師</td><td><code>N7</code></td><td>16F</td><td>提示</td><td class="wrap">東南角暗牆、失落音符；日記只含蓄地說「別把它們丟了，故事好像不只一種結尾」（3.1.3 起不明講真結局條件）</td></tr>
 <tr><td>迷路的小節拍</td><td><code>N8</code></td><td>17F</td><td>贈送</td><td>銀鑰匙 ×1</td></tr>
@@ -321,28 +321,28 @@ S：分數 ≥ 16800 且真結局　A：≥ 13850　B：≥ 5900　其餘 C（3.
 <h3>4.1 怪物</h3>
 <div class="tw"><table>
 <tr><th>代號</th><th>名稱</th><th>生命</th><th>攻擊</th><th>防禦</th><th>金幣</th><th>經驗</th><th>出現樓層（數量）</th><th>特殊能力</th></tr>
-<tr><td>gs</td><td>綠史萊姆</td><td class="n">35</td><td class="n">18</td><td class="n">1</td><td class="n">1</td><td class="n">1</td><td>1F×5、2F×2、3F×1</td><td>—</td></tr>
+<tr><td>gs</td><td>綠史萊姆</td><td class="n">35</td><td class="n">18</td><td class="n">1</td><td class="n">1</td><td class="n">1</td><td class="wrap">1F×5、2F×2、3F×1</td><td>—</td></tr>
 <tr><td>rs</td><td>紅史萊姆</td><td class="n">45</td><td class="n">21</td><td class="n">2</td><td class="n">2</td><td class="n">1</td><td>1F×3、2F×1</td><td>—</td></tr>
 <tr><td>bt</td><td>小蝙蝠</td><td class="n">30</td><td class="n">36</td><td class="n">3</td><td class="n">2</td><td class="n">2</td><td class="wrap">1F×2、2F×2、3F×1、5F×1</td><td>—</td></tr>
 <tr><td>sk</td><td>骷髏兵</td><td class="n">55</td><td class="n">40</td><td class="n">6</td><td class="n">4</td><td class="n">3</td><td class="wrap">2F×3、3F×5、4F×4、5F×2</td><td>—</td></tr>
 <tr><td>mg</td><td>見習巫師</td><td class="n">40</td><td class="n">14</td><td class="n">6</td><td class="n">4</td><td class="n">3</td><td class="wrap">2F×2、3F×1、4F×2、5F×1</td><td><span class="tag">魔法</span></td></tr>
-<tr><td>ab</td><td>盔甲蟲</td><td class="n">20</td><td class="n">26</td><td class="n">15</td><td class="n">6</td><td class="n">4</td><td>2F×2、3F×1、4F×2</td><td>—</td></tr>
-<tr><td>sw</td><td>骷髏戰士</td><td class="n">130</td><td class="n">46</td><td class="n">10</td><td class="n">6</td><td class="n">5</td><td>3F×2、4F×2、5F×3</td><td>—</td></tr>
-<tr><td>bb</td><td>大蝙蝠</td><td class="n">50</td><td class="n">66</td><td class="n">8</td><td class="n">8</td><td class="n">5</td><td>3F×1、4F×2、5F×3</td><td><span class="tag">先攻</span></td></tr>
+<tr><td>ab</td><td>盔甲蟲</td><td class="n">20</td><td class="n">26</td><td class="n">15</td><td class="n">6</td><td class="n">4</td><td class="wrap">2F×2、3F×1、4F×2</td><td>—</td></tr>
+<tr><td>sw</td><td>骷髏戰士</td><td class="n">130</td><td class="n">46</td><td class="n">10</td><td class="n">6</td><td class="n">5</td><td class="wrap">3F×2、4F×2、5F×3</td><td>—</td></tr>
+<tr><td>bb</td><td>大蝙蝠</td><td class="n">50</td><td class="n">66</td><td class="n">8</td><td class="n">8</td><td class="n">5</td><td class="wrap">3F×1、4F×2、5F×3</td><td><span class="tag">先攻</span></td></tr>
 <tr><td>K1</td><td>骷髏館長</td><td class="n">420</td><td class="n">58</td><td class="n">14</td><td class="n">40</td><td class="n">30</td><td>3F×1</td><td><span class="tag boss">Boss</span> 2×2</td></tr>
 <tr><td>DG</td><td>鼓魔像</td><td class="n">900</td><td class="n">78</td><td class="n">20</td><td class="n">80</td><td class="n">60</td><td>5F×1</td><td class="wrap"><span class="tag boss">Boss</span> 3×3 死亡→<code>drumGet</code></td></tr>
 <tr><td>ks</td><td>黑史萊姆</td><td class="n">300</td><td class="n">75</td><td class="n">10</td><td class="n">8</td><td class="n">6</td><td>6F×3、8F×1</td><td>—</td></tr>
-<tr><td>gd</td><td>塔之衛兵</td><td class="n">90</td><td class="n">80</td><td class="n">45</td><td class="n">12</td><td class="n">8</td><td class="wrap">B1×1、6F×2、7F×1、8F×1、9F×3、10F×1</td><td>—</td></tr>
+<tr><td>gd</td><td>塔之衛兵</td><td class="n">90</td><td class="n">80</td><td class="n">45</td><td class="n">12</td><td class="n">8</td><td class="wrap">B1×1、6F×2、7F×1、8F×1、9F×2、10F×1</td><td>—</td></tr>
 <tr><td>oc</td><td>獸人</td><td class="n">200</td><td class="n">115</td><td class="n">20</td><td class="n">14</td><td class="n">9</td><td class="wrap">6F×1、7F×1、8F×1、9F×1、10F×1</td><td>—</td></tr>
 <tr><td>wz</td><td>紅袍巫師</td><td class="n">110</td><td class="n">50</td><td class="n">30</td><td class="n">12</td><td class="n">8</td><td class="wrap">B1×1、6F×2、7F×1、8F×2、9F×1</td><td><span class="tag">魔法</span></td></tr>
 <tr><td>gh</td><td>啞靈</td><td class="n">150</td><td class="n">100</td><td class="n">35</td><td class="n">15</td><td class="n">10</td><td class="wrap">B1×1、6F×1、7F×3、8F×2、9F×1、10F×3</td><td><span class="tag">先攻</span></td></tr>
 <tr><td>dw</td><td>雙刀劍客</td><td class="n">180</td><td class="n">80</td><td class="n">40</td><td class="n">16</td><td class="n">11</td><td class="wrap">6F×2、7F×2、8F×2、9F×3、10F×1</td><td><span class="tag">連擊</span></td></tr>
-<tr><td>pg</td><td>門衛石像</td><td class="n">130</td><td class="n">90</td><td class="n">45</td><td class="n">10</td><td class="n">8</td><td>7F×2、8F×4、10F×2</td><td><span class="tag">夾擊</span></td></tr>
+<tr><td>pg</td><td>門衛石像</td><td class="n">130</td><td class="n">90</td><td class="n">45</td><td class="n">10</td><td class="n">8</td><td class="wrap">7F×2、8F×4、10F×2</td><td><span class="tag">夾擊</span></td></tr>
 <tr><td>sc</td><td>骷髏隊長</td><td class="n">240</td><td class="n">110</td><td class="n">45</td><td class="n">20</td><td class="n">14</td><td class="wrap">B1×1、7F×2、8F×1、9F×3、10F×4</td><td>—</td></tr>
 <tr><td>rt</td><td>胖老鼠</td><td class="n">200</td><td class="n">95</td><td class="n">35</td><td class="n">25</td><td class="n">12</td><td>B1×4</td><td>—</td></tr>
 <tr><td>K2</td><td>獄卒長</td><td class="n">1800</td><td class="n">125</td><td class="n">50</td><td class="n">80</td><td class="n">60</td><td>8F×1</td><td><span class="tag boss">Boss</span> <span class="tag">連擊</span> 2×2</td></tr>
 <tr><td>SR</td><td>弦之魔女</td><td class="n">3200</td><td class="n">160</td><td class="n">65</td><td class="n">150</td><td class="n">120</td><td>10F×1</td><td class="wrap"><span class="tag boss">Boss</span> 3×3 死亡→<code>harpGet</code></td></tr>
-<tr><td>vb</td><td>吸血蝙蝠</td><td class="n">220</td><td class="n">160</td><td class="n">75</td><td class="n">25</td><td class="n">18</td><td class="wrap">11F×3、12F×3、13F×4、14F×1、15F×1</td><td><span class="tag">吸血 20%</span></td></tr>
+<tr><td>vb</td><td>吸血鬼</td><td class="n">220</td><td class="n">160</td><td class="n">75</td><td class="n">25</td><td class="n">18</td><td class="wrap">11F×3、12F×3、13F×4、14F×1、15F×1</td><td><span class="tag">吸血 20%</span></td></tr>
 <tr><td>mi</td><td>碎鏡小鬼</td><td class="n">280</td><td class="n">180</td><td class="n">85</td><td class="n">26</td><td class="n">18</td><td class="wrap">11F×3、12F×3、14F×2、15F×1</td><td><span class="tag">破甲</span></td></tr>
 <tr><td>st</td><td>石像守衛</td><td class="n">80</td><td class="n">200</td><td class="n">125</td><td class="n">30</td><td class="n">20</td><td class="wrap">11F×1、12F×1、13F×3、14F×1、15F×2</td><td>—</td></tr>
 <tr><td>cm</td><td>無聲合唱團員</td><td class="n">200</td><td class="n">95</td><td class="n">90</td><td class="n">28</td><td class="n">20</td><td class="wrap">11F×4、12F×1、13F×2、14F×2、15F×1</td><td><span class="tag">魔法</span></td></tr>
@@ -351,19 +351,21 @@ S：分數 ≥ 16800 且真結局　A：≥ 13850　B：≥ 5900　其餘 C（3.
 <tr><td>pm</td><td>鏡面守衛</td><td class="n">300</td><td class="n">190</td><td class="n">105</td><td class="n">30</td><td class="n">20</td><td>12F×2、15F×2</td><td><span class="tag">夾擊</span></td></tr>
 <tr><td>K3</td><td>鏡之騎士</td><td class="n">3500</td><td class="n">230</td><td class="n">115</td><td class="n">150</td><td class="n">100</td><td>13F×1</td><td><span class="tag boss">Boss</span> <span class="tag">破甲</span> 2×2</td></tr>
 <tr><td>EM</td><td>回音之鏡</td><td class="n">6500</td><td class="n">250</td><td class="n">125</td><td class="n">300</td><td class="n">200</td><td>15F×1</td><td class="wrap"><span class="tag boss">Boss</span> <span class="tag">連擊</span> 3×3 死亡→<code>fluteGet</code></td></tr>
-<tr><td>cv</td><td>水晶吸血鬼</td><td class="n">380</td><td class="n">290</td><td class="n">150</td><td class="n">45</td><td class="n">35</td><td class="wrap">16F×3、17F×3、18F×4、19F×1</td><td><span class="tag">吸血 25%</span> <span class="tag">先攻</span></td></tr>
-<tr><td>am</td><td>大巫師</td><td class="n">320</td><td class="n">160</td><td class="n">165</td><td class="n">45</td><td class="n">35</td><td class="wrap">16F×3、17F×3、18F×2、19F×2</td><td><span class="tag">魔法</span></td></tr>
-<tr><td>kd</td><td>水晶重騎士</td><td class="n">800</td><td class="n">300</td><td class="n">160</td><td class="n">50</td><td class="n">40</td><td class="wrap">16F×2、17F×2、18F×3、19F×2</td><td>—</td></tr>
-<tr><td>cg</td><td>水晶魔像</td><td class="n">120</td><td class="n">330</td><td class="n">205</td><td class="n">50</td><td class="n">40</td><td class="wrap">16F×1、17F×1、18F×3、19F×1</td><td>—</td></tr>
-<tr><td>nb</td><td>夜梟</td><td class="n">420</td><td class="n">260</td><td class="n">170</td><td class="n">45</td><td class="n">35</td><td class="wrap">16F×1、17F×2、19F×2</td><td><span class="tag">連擊</span></td></tr>
-<tr><td>dk</td><td>無聲刺客</td><td class="n">360</td><td class="n">320</td><td class="n">160</td><td class="n">50</td><td class="n">40</td><td class="wrap">16F×1、17F×2、19F×4</td><td><span class="tag">破甲</span> <span class="tag">先攻</span></td></tr>
-<tr><td>rc</td><td>共鳴水晶（3.1）</td><td class="n">500</td><td class="n">150</td><td class="n">190</td><td class="n">45</td><td class="n">35</td><td class="wrap">16F×2、17F×2、18F×2、19F×2</td><td class="wrap"><span class="tag">魔法</span> <span class="tag">共鳴 80</span></td></tr>
-<tr><td>rg</td><td>休止符衛士</td><td class="n">900</td><td class="n">330</td><td class="n">190</td><td class="n">70</td><td class="n">50</td><td>20F×2</td><td>—</td></tr>
-<tr><td>K4</td><td>回音指揮</td><td class="n">6000</td><td class="n">340</td><td class="n">185</td><td class="n">200</td><td class="n">150</td><td>18F×1</td><td><span class="tag boss">Boss</span> <span class="tag">魔法</span> 2×2</td></tr>
+<tr><td>cv</td><td>水晶吸血鬼</td><td class="n">380</td><td class="n">319</td><td class="n">150</td><td class="n">45</td><td class="n">35</td><td class="wrap">16F×3、17F×2、18F×4、19F×1</td><td><span class="tag">吸血 25%</span> <span class="tag">先攻</span></td></tr>
+<tr><td>am</td><td>大巫師</td><td class="n">320</td><td class="n">176</td><td class="n">165</td><td class="n">45</td><td class="n">35</td><td class="wrap">16F×3、17F×3、18F×2、19F×2</td><td><span class="tag">魔法</span></td></tr>
+<tr><td>kd</td><td>水晶重騎士</td><td class="n">800</td><td class="n">330</td><td class="n">160</td><td class="n">50</td><td class="n">40</td><td class="wrap">16F×2、17F×2、18F×3、19F×2</td><td>—</td></tr>
+<tr><td>cg</td><td>水晶魔像</td><td class="n">120</td><td class="n">363</td><td class="n">205</td><td class="n">50</td><td class="n">40</td><td class="wrap">16F×1、17F×1、18F×3、19F×1</td><td>—</td></tr>
+<tr><td>nb</td><td>夜梟</td><td class="n">420</td><td class="n">286</td><td class="n">170</td><td class="n">45</td><td class="n">35</td><td class="wrap">16F×1、17F×2、19F×2</td><td><span class="tag">連擊</span></td></tr>
+<tr><td>dk</td><td>無聲刺客</td><td class="n">360</td><td class="n">352</td><td class="n">160</td><td class="n">50</td><td class="n">40</td><td class="wrap">16F×1、17F×3、19F×4</td><td><span class="tag">破甲</span> <span class="tag">先攻</span></td></tr>
+<tr><td>rc</td><td>共鳴水晶（3.1）</td><td class="n">500</td><td class="n">165</td><td class="n">190</td><td class="n">45</td><td class="n">35</td><td class="wrap">16F×2、17F×2、18F×2、19F×2</td><td class="wrap"><span class="tag">魔法</span> <span class="tag">共鳴 80</span></td></tr>
+<tr><td>rg</td><td>休止符衛士</td><td class="n">900</td><td class="n">363</td><td class="n">190</td><td class="n">70</td><td class="n">50</td><td>20F×2</td><td>—</td></tr>
+<tr><td>K4</td><td>回音指揮</td><td class="n">6000</td><td class="n">374</td><td class="n">185</td><td class="n">200</td><td class="n">150</td><td>18F×1</td><td><span class="tag boss">Boss</span> <span class="tag">魔法</span> 2×2</td></tr>
 <tr><td>M1</td><td>靜默指揮家</td><td class="n">9999</td><td class="n">350</td><td class="n">200</td><td class="n">0</td><td class="n">0</td><td>20F×1</td><td class="wrap"><span class="tag boss">Boss</span> <span class="tag">無敵</span> 3×3 碰到→<code>maestroDrum</code></td></tr>
-<tr><td>M2</td><td>靜默指揮家</td><td class="n">9000</td><td class="n">450</td><td class="n">200</td><td class="n">0</td><td class="n">0</td><td>20F（劇情放置）</td><td class="wrap"><span class="tag boss">Boss</span> 3×3 死亡→<code>ending</code></td></tr>
+<tr><td>M2</td><td>靜默指揮家</td><td class="n">4800</td><td class="n">500</td><td class="n">200</td><td class="n">0</td><td class="n">0</td><td>20F（劇情放置）</td><td class="wrap"><span class="tag boss">Boss</span> 3×3 死亡→<code>maestroPhase2</code>（二階段）</td></tr>
+<tr><td>M3</td><td>失控的指揮家</td><td class="n">3500</td><td class="n">600</td><td class="n">140</td><td class="n">0</td><td class="n">0</td><td>20F（二階段）</td><td class="wrap"><span class="tag boss">Boss</span> 3×3 死亡→<code>ending</code></td></tr>
+<tr><td>M4</td><td>失控的指揮家</td><td class="n">3000</td><td class="n">560</td><td class="n">140</td><td class="n">0</td><td class="n">0</td><td>20F（二階段）</td><td class="wrap"><span class="tag boss">Boss</span> 3×3 身上有失落的音符時換成這隻（慢一拍）死亡→<code>ending</code></td></tr>
 </table></div>
-<p class="muted">全塔怪物金幣合計約 6746、經驗值約 4961（3.1 加了共鳴水晶）（不含劇情、祭壇、交易）。數量由 <code>MT.FLOORS</code> 統計；大型怪物一塊算一隻。</p>
+<p class="muted">全塔怪物金幣合計約 6739、經驗值約 4958（3.2.70 重算）（不含劇情、祭壇、交易）。數量由 <code>MT.FLOORS</code> 統計；大型怪物一塊算一隻。</p>
 
 <h3>4.2 道具（依區域變化）</h3>
 <div class="tw"><table>
@@ -396,7 +398,7 @@ S：分數 ≥ 16800 且真結局　A：≥ 13850　B：≥ 5900　其餘 C（3.
 <div class="tw"><table>
 <tr><th>鑰匙商人</th><th>位置</th><th>銅</th><th>銀</th><th>金</th><th>收購（3.2.7）</th></tr>
 <tr><td>呱呱商人（keys）</td><td>6F</td><td class="n">10</td><td class="n">50</td><td class="n">100</td><td>不收</td></tr>
-<tr><td>呱呱商人的表哥（keys2）</td><td>13F</td><td>不賣</td><td>不賣</td><td>不賣</td><td class="wrap">銀 25、金 50（6F 賣價的一半；銅不收）</td></tr>
+<tr><td>呱呱商人的表哥（keys2）</td><td>13F</td><td class="n">8</td><td class="n">40</td><td class="n">80</td><td class="wrap">銀 25、金 50（6F 賣價的一半；銅不收）</td></tr>
 </table></div>
 <div class="tw"><table>
 <tr><th>交易</th><th>NPC</th><th>價格（金幣）</th><th>得到</th></tr>
@@ -419,10 +421,10 @@ S：分數 ≥ 16800 且真結局　A：≥ 13850　B：≥ 5900　其餘 C（3.
 <tr><td>8F</td><td class="n">2</td><td class="wrap">門衛石像×4、啞靈×2、紅袍巫師×2、雙刀劍客×2、骷髏隊長</td><td class="wrap">地牢：小偷（交易：便宜的銅鑰匙）、獄卒長（2×2）守著鐵盾與日記第二頁；下半是一整排的連戰（鐵柵欄＝夾擊石像兩兩一組）</td></tr>
 <tr><td>9F</td><td class="n">2</td><td class="wrap">骷髏隊長×3、塔之衛兵×3、雙刀劍客×3、啞靈、紅袍巫師</td><td class="wrap">兵器庫：銀劍、信差鴿子（給風之羽）、高攻獸人與高防衛兵交錯，決定先拿攻還是防；裂牆後面是一顆藍寶石＋紅寶石</td></tr>
 <tr><td>10F</td><td class="n">2</td><td class="wrap">骷髏隊長×4、啞靈×3、門衛石像×2、弦之魔女、塔之衛兵</td><td class="wrap">弦之魔女（3×3）：打倒後，豎琴之靈讓你三選一技能</td></tr>
-<tr><td>11F</td><td class="n">3</td><td class="wrap">無聲合唱團員×4、吸血蝙蝠×3、碎鏡小鬼×3、回音幽靈×2、石像守衛</td><td class="wrap">鏡之迴廊入口：古老音叉祭壇、鏡中少女（提示老琴師在 12F）、吸血蝙蝠登場（血少的時候再去打）；回音地板第一次出現：右上 (10,2)、下方走廊 (5,14)</td></tr>
-<tr><td>12F</td><td class="n">3</td><td class="wrap">吸血蝙蝠×3、碎鏡小鬼×3、回音幽靈×2、鏡面守衛×2、無聲合唱團員</td><td class="wrap">老琴師：技能鑑定與升級；第三把鑿子；鏡像夾擊衛兵守著一條走廊；回音地板在老琴師正下方 (5,7)（找他鑑定、升級都要踩）與右下 (7,13)</td></tr>
-<tr><td>13F</td><td class="n">3</td><td class="wrap">吸血蝙蝠×4、石像守衛×3、黑騎士×3、無聲合唱團員×2、鏡之騎士</td><td class="wrap">回音長廊：進階節拍之神、呱呱商人的表哥（自稱正牌，比較貴）、鏡之騎士（2×2）守著銀盾；回音地板 (10,2) 在往進階節拍之神的路上、(4,10) 在左下補給前</td></tr>
-<tr><td>14F</td><td class="n">3</td><td class="wrap">碎鏡小鬼×2、無聲合唱團員×2、回音幽靈×2、黑騎士×2、吸血蝙蝠</td><td class="wrap">鏡宮：老琴師的學徒（交易：金幣換防禦）；破甲的鏡像士兵很多，防禦只算一半；下半部左右兩條路各一塊回音地板 (0,13)(7,14)</td></tr>
+<tr><td>11F</td><td class="n">3</td><td class="wrap">無聲合唱團員×4、吸血鬼×3、碎鏡小鬼×3、回音幽靈×2、石像守衛</td><td class="wrap">鏡之迴廊入口：古老音叉祭壇、鏡中少女（提示老琴師在 12F）、吸血鬼登場（血少的時候再去打）；回音地板第一次出現：右上 (10,2)、下方走廊 (5,14)</td></tr>
+<tr><td>12F</td><td class="n">3</td><td class="wrap">吸血鬼×3、碎鏡小鬼×3、回音幽靈×2、鏡面守衛×2、無聲合唱團員</td><td class="wrap">老琴師：技能鑑定與升級；第三把鑿子；鏡像夾擊衛兵守著一條走廊；回音地板在老琴師正下方 (5,7)（找他鑑定、升級都要踩）與右下 (7,13)</td></tr>
+<tr><td>13F</td><td class="n">3</td><td class="wrap">吸血鬼×4、石像守衛×3、黑騎士×3、無聲合唱團員×2、鏡之騎士</td><td class="wrap">回音長廊：進階節拍之神、呱呱商人的表哥（自稱正牌，比較貴）、鏡之騎士（2×2）守著銀盾；回音地板 (10,2) 在往進階節拍之神的路上、(4,10) 在左下補給前</td></tr>
+<tr><td>14F</td><td class="n">3</td><td class="wrap">碎鏡小鬼×2、無聲合唱團員×2、回音幽靈×2、黑騎士×2、吸血鬼</td><td class="wrap">鏡宮：老琴師的學徒（交易：金幣換防禦）；破甲的鏡像士兵很多，防禦只算一半；下半部左右兩條路各一塊回音地板 (0,13)(7,14)</td></tr>
 <tr><td>15F</td><td class="n">3</td><td class="wrap">石像守衛×2、回音幽靈×2、黑騎士×2、鏡面守衛×2、回音之鏡</td><td class="wrap">回音之鏡（3×3）：打倒後找回「笛」；最下排左邊一塊回音地板 (2,14)</td></tr>
 <tr><td>16F</td><td class="n">4</td><td class="wrap">水晶吸血鬼×3、水晶重騎士×3、大巫師×3、無聲刺客、夜梟</td><td class="wrap">水晶迴廊：水晶祭壇；占星師（提示暗牆與失落的音符）；共鳴水晶第一次出現：樓梯口 (5,2)（一出樓梯就在範圍裡，也擋著往祭壇的捷徑）、下方 (5,13)</td></tr>
 <tr><td>17F</td><td class="n">4</td><td class="wrap">水晶吸血鬼×3、大巫師×3、無聲刺客×2、水晶重騎士×2、夜梟×2</td><td class="wrap">觀星台：日記第三頁、迷路的小精靈（送銀鑰匙）；裂牆後面是金鑰匙；共鳴水晶守著中間走廊與金鑰匙 (5,7)、右下房間 (8,9)</td></tr>
