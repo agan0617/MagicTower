@@ -82,7 +82,7 @@ function collect(st, opt) {
         if (seen.has(k)) continue;
         // 夾擊、共鳴的那格不白走（要付生命，算成 frontier 的「pass」動作）；回音地板 Ec 不是 '..'，本來就不在這裡走
         if (t === '..' || t === 'UU' || t === 'DD') { if (!costly(st, f, nx, ny)) { seen.add(k); q.push([f, nx, ny]); } }
-        else if (t === 'Hw' && secrets) { MT.setTile(st, f, nx, ny, MT.hiddenItem(f, nx, ny) || '..'); st.secrets++; changed = true; }
+        else if (t === 'Hw' && secrets) { MT.setTile(st, f, nx, ny, MT.hiddenItem(f, nx, ny) || '..'); st.secrets++; changed = true; note(st, { type: 'secret', f, x: nx, y: ny }); }
         else if (MT.isItem(t) && !costly(st, f, nx, ny)) {
           const sf = st.floor; st.floor = f;
           const got = MT.pickup(st, t); MT.setTile(st, f, nx, ny, '..');
