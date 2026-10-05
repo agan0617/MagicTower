@@ -1,5 +1,6 @@
 /* 平衡總表（strategy-depth）：幾組真人型自動玩家平行跑，印出 Ken 的平衡目標各項與跨層規劃三個指標。
    用法：node tools/bench.js [--runs N（每組每種技能幾局，預設 20）] [--seed S] [--jobs J（預設 8）] [--groups gen,pro,blind,rule,...] [--out 檔] [--resume]
+         [--mt '{"KEY_STEP":{"y":3},"MAP_PATCH":{"11:0,1":"hp"}}'（覆蓋 MT 的數值試一組設定，不用改 data.js）] [--prio low/below/normal]
    組別（高手參數都是 width 2、noise 500）：
      gen    一般＝human --width 1 --noise 2000
      pro    高手＝--ahead all（知道整座塔）
@@ -8,7 +9,7 @@
      pro_nokf      高手但關掉鑰匙遠見估價（MT_KF=0）——量基準差距裡 keyFuture 佔多少
      pro_nokf_nokeep  再關掉「留金鑰匙」（MT_KEEP=0）——剩下的差距＝純粹看得到後面樓層的怪
    三個指標（v2）：差距一律 (高−低)/高；主目標＝高手 vs 盲高手差距的增量；護欄 1＝高手 vs 懂規則的盲高手差距不放大；護欄 2＝盲高手通關率 ≥ 一般。
-   每局跑完立刻寫一行 jsonl，中斷後 --resume 接著跑。子程序低優先權、預設 8 個平行，留 CPU 給別的工作 */
+   每局跑完立刻寫一行 jsonl，中斷後 --resume 接著跑。子程序預設 below-normal 優先權（--prio low/below/normal）、預設 8 個平行，留 CPU 給別的工作 */
 'use strict';
 const path = require('path');
 const os = require('os');
@@ -31,6 +32,8 @@ if (args[0] === '--worker') {
   const G = GROUPS[g];
   Object.assign(process.env, G.env || {});   // 要在 require sim.js 之前設，它讀環境變數是在載入時
   const S = require('./sim.js');
+  // 調數值用的覆蓋（--mt 傳進來的 JSON）：MT.KEY_STEP、MT.MAP_PATCH、MT.SHOPS… 一層層合併進 MT，不用改 data.js 就能試一組數值
+  if (process.env.MT_OVERRIDE) { const merge = (o, p) => { for (const k in p) { if (p[k] && typeof p[k] === 'object' && !Array.isArray(p[k]) && o[k] && typeof o[k] === 'object') merge(o[k], p[k]); else o[k] = p[k]; } }; merge(S.MT, JSON.parse(process.env.MT_OVERRIDE)); }
   S.setSkills([skill]);
   const r = S.solveHuman({ width: G.width, noise: G.noise, seed: +seed, ahead: G.ahead });
   const st = r.st;
@@ -40,6 +43,11 @@ if (args[0] === '--worker') {
 
 const num = (k, d) => { const i = args.indexOf(k); return i >= 0 ? Number(args[i + 1]) : d; };
 const runs = num('--runs', 20), seed0 = num('--seed', 1), jobs = num('--jobs', 8);
+// 子程序優先權：預設 below（低於一般，仍會讓給前景工作）。low＝Idle：在 P／E 混合核心的機器上會被排到 E 核、每局慢 5～6 倍，Ken 在用電腦時才用
+const pi = args.indexOf('--prio'), prio = pi >= 0 ? args[pi + 1] : 'below';
+const mi = args.indexOf('--mt');
+if (mi >= 0) { JSON.parse(args[mi + 1]); process.env.MT_OVERRIDE = args[mi + 1]; }   // 先 parse 一次，壞 JSON 在這裡就報錯而不是每個子程序各死一次
+const PRIO = { low: os.constants.priority.PRIORITY_LOW, below: os.constants.priority.PRIORITY_BELOW_NORMAL, normal: os.constants.priority.PRIORITY_NORMAL }[prio];
 const oi = args.indexOf('--out'), outFile = oi >= 0 ? args[oi + 1] : path.join(os.tmpdir(), 'mt_bench.jsonl');
 const resume = args.includes('--resume');
 const gi = args.indexOf('--groups'), groups = gi >= 0 ? args[gi + 1].split(',') : ['gen', 'pro', 'blind', 'rule'];
@@ -60,7 +68,7 @@ function next() {
     const [g, sk, s] = queue[idx++];
     running++;
     const p = spawn(process.execPath, [__filename, '--worker', g, sk, String(s)], { cwd: path.join(__dirname, '..') });
-    try { os.setPriority(p.pid, os.constants.priority.PRIORITY_LOW); } catch (e) { /* 設不了就算了 */ }
+    try { if (PRIO != null) os.setPriority(p.pid, PRIO); } catch (e) { /* 設不了就算了 */ }
     let buf = '';
     p.stdout.on('data', d => { buf += d; });
     p.on('close', () => {

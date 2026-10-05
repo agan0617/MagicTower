@@ -255,6 +255,10 @@ const KEEP = process.env.MT_KEEP !== '0';   // 老手知道要留一把金鑰匙
 // 鑰匙會越買越貴、後面區域的房間更值錢（照去過樓層的門後價值乘 ZONE_VALUES 的倍率推）、該留一把金鑰匙。
 // 和 'all' 的差距＝「背地圖」值多少（不該因為改版而放大）；和 blind 的差距＝「懂規則」值多少（改版要拉開的是這個）
 const RULE = process.env.MT_RULE === '1';
+// 盲高手對「還沒去過的樓層」的通用先驗（0b 第二次修尺）：高手的 dmg 項算得到後面 300 隻怪，所以買攻防時看得到它能砍掉多少傷害；
+// 盲高手眼中去過的樓層怪都死光了，攻防一文不值，只買血、金幣囤到通關——基準 42 個百分點的差距全是這個。
+// 真人沒看過樓上也知道「後面還有十層怪、攻防會用到」，所以給盲高手：每點攻／防值 FUT 點生命 ×（剩下幾層／總層數）
+const FUT = process.env.MT_FUT != null ? +process.env.MT_FUT : 200;
 
 /* 這隻怪值不值得打（3.2.55）：拿開局的地圖算「把這格堵住，會少走到哪些格子」＝牠守著的東西。
    守著樓梯、NPC、劇情道具（日記、圖鑑、鑿子…）＝必經，傷害照算；
@@ -424,20 +428,23 @@ function keyFuture(st, c, mf) {
 
 // 兩個商人裡最便宜的「下一把」價格：有 MT.keyPrice（鑰匙越買越貴，strategy-depth）就照它算，沒有就是定價
 const cheapest = (st, c) => Math.min(...['keys', 'keys2'].map(s => (MT.keyPrice ? MT.keyPrice(st, s, c) : MT.SHOPS[s][c]) || Infinity));
-/* 懂規則的盲高手眼中手上 c 色鑰匙的總值（MT_RULE=1）：去過樓層的門後價值平均（主線門不算）乘「下一區／這區」的數值倍率
-   ＝「後面房間大概值這麼多」；商人買得到時仍不超過下一把的價格×5（鑰匙漲價後這個上限會跟著升，才會想把鑰匙留給後面） */
+/* 懂規則的盲高手眼中手上 c 色鑰匙的總值（MT_RULE=1）：跟盲高手一樣用固定價、商人買得到時以價格×5 為上限，
+   差別只在「知道還會再漲」——上限用的不是現價而是再買 RULE_AHEAD 把之後的價格。沒有漲價機制時和盲高手完全一樣。
+   （第一版用「去過樓層的門後價值平均×下一區倍率」當先驗，前期把鑰匙估到幾百、囤著不開門，鐵壁 20 局全滅、14 局卡 15F，0b 基準後拿掉） */
+const RULE_AHEAD = +process.env.MT_RULE_AHEAD || 3;
 function ruleKeyValue(st, c, mf) {
-  const D = doorValues();
-  let sum = 0, n = 0;
-  for (const f of st.visited) if (D[f]) for (const v of D[f].doors[c]) if (v !== MAIN) { sum += v; n++; }
-  const z = MT.zoneOf(mf), nz = Math.min(4, z + 1);
-  let prior = n ? sum / n * (MT.ZONE_VALUES.hp[nz - 1] / MT.ZONE_VALUES.hp[z - 1]) : { y: 150, b: 450, r: 900 }[c];
-  if (st.visited.includes(6) && MT.keyStockLeft(st, 'keys', c) > 0) prior = Math.min(prior, cheapest(st, c) * 5);
-  return st.keys[c] * Math.max(prior, 1);
+  const early = { y: 150, b: 450, r: 900 }[c];
+  const step = (MT.KEY_STEP || {})[c] || 0;
+  const p6 = MT.keyPrice ? MT.keyPrice(st, 'keys', c) : MT.SHOPS.keys[c];   // 跟 kv 一樣照 6F 的價（不是兩家最便宜的），沒漲價時才會和盲高手一致
+  const v = st.visited.includes(6) && MT.keyStockLeft(st, 'keys', c) > 0 ? Math.min(early, (p6 + step * RULE_AHEAD) * 5) : early;
+  return st.keys[c] * v;
 }
 
-function potential(st, ahead = true) {
-  const top = ahead === 'all' ? MT.TOP : ahead === 'blind' ? maxFloor(st) : Math.min(MT.TOP, maxFloor(st) + (ahead ? 1 : 0));
+/* horizon（只給 blind）：怪物傷害只算到這層。真人型的 beam 每到新樓層就定案（committed），比較候選局面時都用定案那層當地平線——
+   不然「上去看一眼」的局面會因為多算一整層怪的傷害而永遠排不到前面，盲高手就變成「不把這層清光絕不上樓」，
+   基準量出 42 個百分點的差距其實是這個偏差（strategy-depth 0b）。真人不知道樓上有什麼也會先上去看 */
+function potential(st, ahead = true, horizon) {
+  const top = ahead === 'all' ? MT.TOP : ahead === 'blind' ? Math.min(maxFloor(st), horizon == null ? MT.TOP : horizon) : Math.min(MT.TOP, maxFloor(st) + (ahead ? 1 : 0));
   let dmg = 0;
   for (let f = 1; f <= top; f++) {
     const m = st.maps[f], seen = new Set();
@@ -475,7 +482,8 @@ function potential(st, ahead = true) {
   const kval = ahead === 'all' && KF ? ['y', 'b', 'r'].reduce((a, c) => a + keyFuture(st, c, mf), 0)
     : ahead === 'blind' && RULE ? ['y', 'b', 'r'].reduce((a, c) => a + ruleKeyValue(st, c, mf), 0)
     : st.keys.y * kv('y', 150) + st.keys.b * kv('b', 450) + st.keys.r * kv('r', 900);
-  return lean + te + keep + st.hp - dmg - short * 4000 + kval + st.gold * gv + st.exp * ev + (st.items.chisel || 0) * 300 * z;
+  const fut = ahead === 'blind' ? (st.atk + st.def) * FUT * (MT.TOP - mf) / MT.TOP : 0;
+  return lean + te + keep + fut + st.hp - dmg - short * 4000 + kval + st.gold * gv + st.exp * ev + (st.items.chisel || 0) * 300 * z;
 }
 
 function newRun(opt) {
@@ -606,7 +614,7 @@ function solveHuman(opt = {}) {
         const g = sig(s2);
         if (seen.has(g)) continue;
         seen.add(g);
-        s2._p = potential(s2, opt.ahead == null ? false : opt.ahead) + (noise ? (rng() - 0.5) * noise : 0);
+        s2._p = potential(s2, opt.ahead == null ? false : opt.ahead, committed) + (noise ? (rng() - 0.5) * noise : 0);
         next.push(s2);
       }
     }
