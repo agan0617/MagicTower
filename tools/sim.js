@@ -602,11 +602,17 @@ function rngOf(seed) {   // mulberry32
   let a = seed >>> 0;
   return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
 }
+/* 讀檔退回上一層（key-economy，Ken 指定）：一般玩家卡住（沒路可走又沒通關）時，退回「上一層剛到達時」的存檔重試，
+   亂數接續所以走法會不同——真人在 12F 發現鑰匙不夠會讀 11F 的檔少開幾扇門，不是直接算死。
+   次數 MT_RETRY（預設 1），只給一般玩家（ahead 不是 all／blind）；高手與盲高手本來就不太卡，維持原樣好跟舊數字對照 */
+const RETRY = process.env.MT_RETRY != null ? +process.env.MT_RETRY : 1;
 function solveHuman(opt = {}) {
   const width = opt.width || 4, noise = opt.noise || 0, rng = rngOf(opt.seed || 1);
   let beam = [newRun(opt)];
   collect(beam[0], opt);
   let committed = maxFloor(beam[0]), best = null, depth = 0, last = beam;
+  let retries = opt.retry != null ? opt.retry : vet(opt.ahead) ? 0 : RETRY;
+  const saves = [clone(beam[0])];   // 每層剛到達時的存檔（開局算第一份）
   while (beam.length && depth++ < 4000) {
     last = beam;
     const next = [], seen = new Set();
@@ -626,12 +632,19 @@ function solveHuman(opt = {}) {
     }
     next.sort((a, b) => b._p - a._p);
     // 最好的那個局面到了新樓層：存檔，從這裡重新開始試
-    if (next.length && maxFloor(next[0]) > committed) { committed = maxFloor(next[0]); beam = [next[0]]; continue; }
+    if (next.length && maxFloor(next[0]) > committed) { committed = maxFloor(next[0]); beam = [next[0]]; saves.push(clone(next[0])); continue; }
     const keep = next.slice(0, width), groups = new Map();
     for (const s of next) { const k = maxFloor(s) + ':' + (s.keys.y > 0 ? 1 : 0); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(s); }
     for (const g of groups.values()) for (const s of g.slice(0, Math.max(1, width >> 2))) if (!keep.includes(s)) keep.push(s);
     beam = keep;
     if (best && beam.every(s => s.hp + s.gold * 6 < best.score * 0.5)) break;
+    // 走投無路、還沒通關：讀上一層的檔重來（這層的存檔丟掉）
+    if (!beam.length && !best && retries > 0 && saves.length >= 2) {
+      retries--; saves.pop();
+      const back = clone(saves[saves.length - 1]);
+      back.retried = (back.retried || 0) + 1;   // 記在局面上，報表看得出這局讀過檔
+      beam = [back]; last = beam; committed = maxFloor(back);
+    }
   }
   if (best) return result(best.st);
   const far = last.slice().sort((a, b) => maxFloor(b) - maxFloor(a) || b._p - a._p)[0];

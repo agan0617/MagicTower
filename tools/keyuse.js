@@ -4,7 +4,7 @@
 const S = require('./sim.js');
 const MT = S.MT;
 // 跟 bench.js 一樣吃 MT_OVERRIDE（JSON）覆蓋數值，看某組設定下的鑰匙流向
-if (process.env.MT_OVERRIDE) { const merge = (o, p) => { for (const k in p) { if (p[k] && typeof p[k] === 'object' && !Array.isArray(p[k]) && o[k] && typeof o[k] === 'object') merge(o[k], p[k]); else o[k] = p[k]; } }; merge(MT, JSON.parse(process.env.MT_OVERRIDE)); }
+if (process.env.MT_OVERRIDE) { const merge = (o, p) => { for (const k in p) { if (p[k] === null) o[k] = {}; else if (p[k] && typeof p[k] === 'object' && !Array.isArray(p[k]) && o[k] && typeof o[k] === 'object') merge(o[k], p[k]); else o[k] = p[k]; } };   // null＝清空成 {}（例如把 MAP_PATCH 整個拿掉） merge(MT, JSON.parse(process.env.MT_OVERRIDE)); }
 const args = process.argv.slice(2);
 const num = (k, d) => { const i = args.indexOf(k); return i >= 0 ? Number(args[i + 1]) : d; };
 const ai = args.indexOf('--ahead'), ahead = ai >= 0 ? args[ai + 1] : null;
