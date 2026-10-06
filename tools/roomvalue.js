@@ -11,11 +11,12 @@ if (process.env.MT_OVERRIDE) { const merge = (o, p) => { for (const k in p) { if
 const ARRIVE = { 1: [10, 10], 2: [12, 10], 3: [16, 10], 4: [44, 30], 5: [55, 40], 6: [65, 48], 7: [83, 64], 8: [100, 73], 9: [114, 78], 10: [114, 78], 11: [139, 108], 12: [174, 126], 13: [196, 135], 14: [209, 182], 15: [221, 194], 16: [221, 197], 17: [248, 226], 18: [256, 241], 19: [264, 249] };
 const HP_AT = f => (MT.zoneOf(f) >= 4 ? 3000 : MT.zoneOf(f) === 3 ? 1500 : MT.zoneOf(f) === 2 ? 800 : 400);   // 吸血怪照目前生命比例吸，血要給合理值
 const PT = +process.env.MT_PT || 200;
-const worth = (t, f) => {
+// 道具對某種配點的價值：跟 sim.js 的 BUILD='bias' 一致——鐵壁多算防禦（×1.5）、連擊多算攻擊（×1.5）、反彈多算生命（×1.33）
+const worth = (t, f, skill) => {
   const it = MT.ITEMS[t];
   if (!it) return 0;
-  if (it.kind === 'hp') return MT.zoneValue(it.zone, f);
-  if (it.kind === 'atk' || it.kind === 'def') return (it.zone ? MT.zoneValue(it.zone, f) : it.value) * PT;
+  if (it.kind === 'hp') return MT.zoneValue(it.zone, f) * (skill === 'reflect' ? 1.33 : 1);
+  if (it.kind === 'atk' || it.kind === 'def') return (it.zone ? MT.zoneValue(it.zone, f) : it.value) * PT * ((skill === 'absorb' && it.kind === 'def') || (skill === 'double' && it.kind === 'atk') ? 1.5 : 1);
   if (it.kind === 'key') return { y: 150, b: 450, r: 900 }[it.key];
   return 2500;   // 日記、音符、道具
 };
@@ -69,7 +70,7 @@ function analyzeFloor(f, statsFloor, skill) {
     if (!far) { rows.push({ door: `${x},${y}`, main: true }); continue; }
     if (seenRoom.has(far.key)) { rows.push({ door: `${x},${y}`, dup: true }); continue; }
     seenRoom.add(far.key);
-    const value = far.items.reduce((a, t) => a + worth(t, f), 0);
+    const value = far.items.reduce((a, t) => a + worth(t, f, skill), 0);
     const seenMon = new Set(); let cost = 0; const guards = [];
     for (const t of far.mons) {
       const mm = MT.MONSTERS[t];
