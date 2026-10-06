@@ -450,11 +450,20 @@ const stockLeft = (st, c) => {
    差別只在「知道還會再漲」——上限用的不是現價而是再買 RULE_AHEAD 把之後的價格。沒有漲價機制時和盲高手完全一樣。
    （第一版用「去過樓層的門後價值平均×下一區倍率」當先驗，前期把鑰匙估到幾百、囤著不開門，鐵壁 20 局全滅、14 局卡 15F，0b 基準後拿掉） */
 const RULE_AHEAD = +process.env.MT_RULE_AHEAD || 3;
+// 懂規則的人另外知道「越後面的房間越值錢」（遊戲裡商人講的方向性提示，不是地圖；F4：護欄 1 從 35.9% 降到 6.8%）——
+// 鑰匙限量時，手上每把鑰匙至少值「下一區支線房間的平均價值」（照 doorValues 算的設計常數，不看特定房間）
+const RULE_ZONE = process.env.MT_RULE_ZONE !== '0';   // 預設開：遊戲裡 6F 商人已講「越往上的門後面越值得」，讀過說明的人就有這條；0＝關掉看沒提示時的差距
+let zoneAvgCache = null;
+function zoneAvg(c, z) {
+  if (!zoneAvgCache) { zoneAvgCache = {}; const D = doorValues(); for (const col of ['y', 'b', 'r']) { zoneAvgCache[col] = {}; for (let zz = 1; zz <= 4; zz++) { const vs = []; for (let f = 1; f <= MT.TOP; f++) if (D[f] && MT.zoneOf(f) === zz) for (const v of D[f].doors[col]) if (v !== MAIN && v > 0) vs.push(v); zoneAvgCache[col][zz] = vs.length ? vs.reduce((a, b) => a + b, 0) / vs.length : 0; } } }
+  return zoneAvgCache[c][Math.min(4, z)] || 0;
+}
 function ruleKeyValue(st, c, mf) {
   const early = { y: 150, b: 450, r: 900 }[c];
   const step = (MT.KEY_STEP || {})[c] || 0;
   const p6 = MT.keyPrice ? MT.keyPrice(st, 'keys', c) : MT.SHOPS.keys[c];   // 跟 kv 一樣照 6F 的價（不是兩家最便宜的），沒漲價時才會和盲高手一致
-  const v = st.visited.includes(6) && stockLeft(st, c) > 0 ? Math.min(early, (p6 + step * RULE_AHEAD) * 5) : early;
+  let v = st.visited.includes(6) && stockLeft(st, c) > 0 ? Math.min(early, (p6 + step * RULE_AHEAD) * 5) : early;
+  if (RULE_ZONE && stockLeft(st, c) !== Infinity && mf < TOPF) v = Math.max(v, zoneAvg(c, MT.zoneOf(mf) + 1) * 0.5);   // 打五折：只是「大概更值錢」的印象，不是精算
   return st.keys[c] * v;
 }
 
