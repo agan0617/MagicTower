@@ -1,6 +1,6 @@
 /* 平衡總表（strategy-depth）：幾組真人型自動玩家平行跑，印出 Ken 的平衡目標各項與跨層規劃三個指標。
    用法：node tools/bench.js [--runs N（每組每種技能幾局，預設 20）] [--seed S] [--jobs J（預設 8）] [--groups gen,pro,blind,rule,...] [--out 檔] [--resume]
-         [--mt '{"KEY_STEP":{"y":3},"MAP_PATCH":{"11:0,1":"hp"}}'（覆蓋 MT 的數值試一組設定，不用改 data.js）] [--prio low/below/normal]
+         [--mt '{"KEY_RATE":{"y":1.3},"MAP_PATCH":{"11:0,1":"hp"}}'（覆蓋 MT 的數值試一組設定，不用改 data.js）] [--prio low/below/normal]
    組別（高手參數都是 width 2、noise 500）：
      gen    一般＝human --width 1 --noise 2000
      pro    高手＝--ahead all（知道整座塔）
@@ -20,10 +20,11 @@ const GROUPS = {
   pro: { width: 2, noise: 500, ahead: 'all' },
   blind: { width: 2, noise: 500, ahead: 'blind' },
   rule: { width: 2, noise: 500, ahead: 'blind', env: { MT_RULE: '1' } },
+  perfect: { width: 8, noise: 300, ahead: 'all' },   // 完美玩家（3.4 報表用）：知道整座塔、寬度 8，跟攻略產生器 --human 同一組參數
   pro_nokf: { width: 2, noise: 500, ahead: 'all', env: { MT_KF: '0' } },
   pro_nokf_nokeep: { width: 2, noise: 500, ahead: 'all', env: { MT_KF: '0', MT_KEEP: '0' } },
 };
-const NAMES = { gen: '一般', pro: '高手', blind: '盲高手（不知道後面樓層）', rule: '懂規則的盲高手', pro_nokf: '高手（無鑰匙遠見）', pro_nokf_nokeep: '高手（無鑰匙遠見、不留金鑰匙）' };
+const NAMES = { perfect: '完美（寬度 8）', gen: '一般', pro: '高手', blind: '盲高手（不知道後面樓層）', rule: '懂規則的盲高手', pro_nokf: '高手（無鑰匙遠見）', pro_nokf_nokeep: '高手（無鑰匙遠見、不留金鑰匙）' };
 const SKILLS = ['absorb', 'reflect', 'double'];
 const args = process.argv.slice(2);
 
@@ -32,12 +33,14 @@ if (args[0] === '--worker') {
   const G = GROUPS[g];
   Object.assign(process.env, G.env || {});   // 要在 require sim.js 之前設，它讀環境變數是在載入時
   const S = require('./sim.js');
-  // 調數值用的覆蓋（--mt 傳進來的 JSON）：MT.KEY_STEP、MT.MAP_PATCH、MT.SHOPS… 一層層合併進 MT，不用改 data.js 就能試一組數值
-  if (process.env.MT_OVERRIDE) { const merge = (o, p) => { for (const k in p) { if (p[k] && typeof p[k] === 'object' && !Array.isArray(p[k]) && o[k] && typeof o[k] === 'object') merge(o[k], p[k]); else o[k] = p[k]; } }; merge(S.MT, JSON.parse(process.env.MT_OVERRIDE)); }
+  // 調數值用的覆蓋（--mt 傳進來的 JSON）：MT.KEY_RATE、MT.MAP_PATCH、MT.SHOPS… 一層層合併進 MT，不用改 data.js 就能試一組數值
+  if (process.env.MT_OVERRIDE) { const merge = (o, p) => { for (const k in p) { if (p[k] === null) o[k] = {}; else if (p[k] && typeof p[k] === 'object' && !Array.isArray(p[k]) && o[k] && typeof o[k] === 'object') merge(o[k], p[k]); else o[k] = p[k]; } }; /* null＝清空成 {}（例如把 MAP_PATCH 整個拿掉） */ merge(S.MT, JSON.parse(process.env.MT_OVERRIDE)); }
   S.setSkills([skill]);
-  const r = S.solveHuman({ width: G.width, noise: G.noise, seed: +seed, ahead: G.ahead });
+  // MT_SNAP=F：另外記下第一次到達 F 層的局面（寫進 jsonl 的 snap 欄，給 tools/tail.js 從那裡接著跑）
+  const o = { width: G.width, noise: G.noise, seed: +seed, ahead: G.ahead, snapFloor: +process.env.MT_SNAP || 0 };
+  const r = S.solveHuman(o);
   const st = r.st;
-  process.stdout.write(JSON.stringify({ g, skill, seed: +seed, done: !!r.done, score: r.score || 0, grade: r.grade || '-', te: !!(r.done && S.MT.isTrueEnding(st)), floor: S.maxFloor(st), hp: st.hp, atk: st.atk, def: st.def, gold: st.gold, keys: st.keys }));
+  process.stdout.write(JSON.stringify({ g, skill, seed: +seed, done: !!r.done, score: r.score || 0, grade: r.grade || '-', te: !!(r.done && S.MT.isTrueEnding(st)), floor: S.maxFloor(st), hp: st.hp, atk: st.atk, def: st.def, gold: st.gold, keys: st.keys, bought: { y: st.shops["keys:y"] || 0, b: st.shops["keys:b"] || 0, r: st.shops["keys:r"] || 0 }, retried: st.retried || 0, ...(o.snap ? { snap: o.snap } : {}) }));
   process.exit(0);
 }
 
@@ -45,11 +48,16 @@ const num = (k, d) => { const i = args.indexOf(k); return i >= 0 ? Number(args[i
 const runs = num('--runs', 20), seed0 = num('--seed', 1), jobs = num('--jobs', 8);
 // 子程序優先權：預設 below（低於一般，仍會讓給前景工作）。low＝Idle：在 P／E 混合核心的機器上會被排到 E 核、每局慢 5～6 倍，Ken 在用電腦時才用
 const pi = args.indexOf('--prio'), prio = pi >= 0 ? args[pi + 1] : 'below';
+// 小範圍模擬：--from F --top T 傳給子程序（sim.js 讀 MT_FROM／MT_TOP）
+const fi = args.indexOf('--from'), ti = args.indexOf('--top');
+if (fi >= 0) process.env.MT_FROM = args[fi + 1];
+if (ti >= 0) process.env.MT_TOP = args[ti + 1];
 const mi = args.indexOf('--mt');
 if (mi >= 0) { JSON.parse(args[mi + 1]); process.env.MT_OVERRIDE = args[mi + 1]; }   // 先 parse 一次，壞 JSON 在這裡就報錯而不是每個子程序各死一次
 const PRIO = { low: os.constants.priority.PRIORITY_LOW, below: os.constants.priority.PRIORITY_BELOW_NORMAL, normal: os.constants.priority.PRIORITY_NORMAL }[prio];
 const oi = args.indexOf('--out'), outFile = oi >= 0 ? args[oi + 1] : path.join(os.tmpdir(), 'mt_bench.jsonl');
 const resume = args.includes('--resume');
+const si = args.indexOf('--snap'); if (si >= 0) process.env.MT_SNAP = args[si + 1];   // --snap F：記下到達 F 層的局面（tools/tail.js 用）
 const gi = args.indexOf('--groups'), groups = gi >= 0 ? args[gi + 1].split(',') : ['gen', 'pro', 'blind', 'rule'];
 for (const g of groups) if (!GROUPS[g]) { console.error('沒有這組：' + g); process.exit(1); }
 const queue = [];

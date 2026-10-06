@@ -84,7 +84,7 @@
   // 一張圖畫成 n×n 格大（大型怪物：16×16 的圖畫成 2×2、24×24 的畫成 3×3）
   const spriteAt = (name, pal, n, flip) => { const d = MT.SPRITES[name]; return MT.sprite(name, pal, TILE * n / ((d && d.size) || 16), flip); };
   const BOSS_GLOW = { DG: '#ffd84a', SR: '#5ab0ff', EM: '#7affff' };
-  // 有功能的 NPC 頭上的圖示（腳下都會發金光）：呱呱商人、小偷賣鑰匙＝鑰匙；祭壇、鐵匠、學徒收金幣、13F 表哥收購鑰匙＝金幣；
+  // 有功能的 NPC 頭上的圖示（腳下都會發金光）：呱呱商人、表哥、小偷賣鑰匙＝鑰匙；祭壇、鐵匠、學徒收金幣＝金幣；
   // 節拍之神用經驗值升級＝「Lv」；老琴師（技能鑑定）、豎琴之靈（技能三選一）＝「♪」
   function tradeIcon(code) {
     const n = MT.NPCS[code];
@@ -1280,7 +1280,7 @@
       else if (it.kind === 'note') { name = MT.itemName('note'); desc = MT.t('info_note'); }
       else if (it.kind === 'tool') { name = MT.itemName(it.tool); desc = MT.t('info_' + it.tool); }
       else { name = MT.t('name_' + code); desc = MT.t('info_' + it.kind, { n: v }); }
-    } else if (n && (n.shop === 'keys' || n.shop === 'keys2')) { name = MT.t(n.shop === 'keys' ? 'frog' : 'frog2'); const K = MT.SHOPS[n.shop], P = { y: MT.keyPrice(st, n.shop, 'y'), b: MT.keyPrice(st, n.shop, 'b'), r: MT.keyPrice(st, n.shop, 'r') }; desc = n.shop === 'keys' ? MT.t('info_frog', P) : MT.t('info_buyer', { y: P.y, b: P.b, r: P.r, sb: K.sell.b, sr: K.sell.r }); }
+    } else if (n && (n.shop === 'keys' || n.shop === 'keys2')) { name = MT.t(n.shop === 'keys' ? 'frog' : 'frog2'); const P = { y: MT.keyPrice(st, n.shop, 'y'), b: MT.keyPrice(st, n.shop, 'b'), r: MT.keyPrice(st, n.shop, 'r') }; desc = MT.t(n.shop === 'keys' ? 'info_frog' : 'info_buyer', P); }
     else if (n && n.level) { name = MT.t('level_' + n.level); desc = MT.t('info_level', { cost: MT.levelCost(st), hp: MT.LEVEL[n.level].hp, atk: MT.LEVEL[n.level].atk, def: MT.LEVEL[n.level].def }); }
     else if (n && n.sage) { name = MT.t('speaker_harpist'); desc = MT.t('info_sage_' + MT.sagePreview(st), { cost: st.skill && st.skill.lv < 3 ? MT.SKILL.upCost[st.skill.lv + 1] : 0 }); }
     else if (n && n.choose) { name = MT.t('speaker_harpghost'); desc = MT.t('info_choose'); }
@@ -1611,20 +1611,13 @@
     if (id === 'keys' || id === 'keys2') {
       const K = MT.SHOPS[id], two = id === 'keys2';
       const opts = [['y', 'buyY'], ['b', 'buyB'], ['r', 'buyR']].filter(([k]) => K[k] != null).map(([k, lab]) => {
-        const left = MT.keyStockLeft(st, id, k), p = MT.keyPrice(st, id, k), step = (MT.KEY_STEP || {})[k] || 0;   // 限量的鑰匙標剩幾把、賣完反灰；會漲價的標漲幅
-        const tail = (left === Infinity ? '' : MT.t(left > 0 ? 'stockLeft' : 'soldOut', { n: left })) + (step && left > 0 ? MT.t('keyStep', { s: step }) : '');
+        const left = MT.keyStockLeft(st, id, k), p = MT.keyPrice(st, id, k), next = MT.keyPriceAt(st, id, k, 1);   // 限量的鑰匙標剩幾把、賣完反灰；會漲價的標下一把多少
+        const tail = (left === Infinity ? '' : MT.t(left > 0 ? 'stockLeft' : 'soldOut', { n: left })) + (next > p && left > 0 ? MT.t('keyNext', { n: next }) : '');
         return `<button class="btn opt" data-k="${k}" ${st.gold < p || left <= 0 ? 'disabled' : ''}>${img(...spriteFor(KEY_OF[k]))} ${esc(MT.t(lab, { p }) + tail)}</button>`;
       }).join('');
-      const stepNote = Object.values(MT.KEY_STEP || {}).some(s => s > 0) ? `<p class="muted small">${esc(MT.t('frogStep'))}</p>` : '';
-      // 表哥另外收購（K.sell）：身上沒有那種鑰匙就反灰
-      const sells = K.sell ? `<p class="muted small">${esc(MT.t('sellHead'))}</p><div class="opts">` + Object.keys(K.sell).map(k =>
-        `<button class="btn opt" data-s="${k}" ${st.keys[k] > 0 ? '' : 'disabled'}>${img(...spriteFor(KEY_OF[k]))} ${esc(MT.t('sell' + k.toUpperCase(), { p: K.sell[k], n: st.keys[k] }))}</button>`).join('') + '</div>' : '';
-      openModal(MT.t(two ? 'frog2' : 'frog'), `<div class="shopTop">${img(two ? 'frogCousin' : 'frog', null, 'big')}<p>${esc(MT.t(two ? 'frog2Text' : 'frogText'))}</p></div>${stepNote}<div class="opts">${opts}</div>${sells}
+      const stepNote = Object.values(MT.KEY_RATE || {}).some(r => r > 1) ? `<p class="muted small">${esc(MT.t('frogStep'))}</p>` : '';   // 說明列：每買一把，下一把貴一倍（兩家合計、不能賣）
+      openModal(MT.t(two ? 'frog2' : 'frog'), `<div class="shopTop">${img(two ? 'frogCousin' : 'frog', null, 'big')}<p>${esc(MT.t(two ? 'frog2Text' : 'frogText'))}</p></div>${stepNote}<div class="opts">${opts}</div>
         <p class="muted small">${esc(MT.t('gold'))}：${st.gold}</p><button class="btn" data-x>${esc(MT.t('leave'))}</button>`, body => {
-        body.querySelectorAll('[data-s]').forEach(b => b.addEventListener('click', () => {
-          const before = snapStats();
-          if (MT.sellKey(st, id, b.dataset.s)) { sfx('buy'); flyGains(before, st.x, st.y); renderHud(); closeModal(); openShop(id); autosave(); } else sfx('error');
-        }));
         body.querySelectorAll('[data-k]').forEach(b => b.addEventListener('click', () => {
           const before = snapStats();
           if (MT.buy(st, id, b.dataset.k)) { sfx('buy'); flyGains(before, st.x, st.y); renderHud(); closeModal(); openShop(id); autosave(); } else { sfx('error'); toast(MT.t('noGold')); }

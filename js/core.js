@@ -414,25 +414,25 @@
   };
 
   /* 買東西。回傳 true＝成交 */
-  // 賣鑰匙給商人（3.2.7，只有 13F 表哥收：SHOPS.keys2.sell）。價格是 6F 賣價的一半，買了再賣一定虧；通關評價照原價算剩的鑰匙，賣掉等於拿分數換現在用
-  MT.sellKey = function (st, shop, what) {
-    const price = (MT.SHOPS[shop].sell || {})[what];
-    if (!price || st.keys[what] <= 0) return false;
-    st.keys[what]--; st.gold += price;
-    return true;
+  // 限量鑰匙還剩幾把（沒限量回傳 Infinity）。MT.KEY_STOCK_SHOP[shop][what] 是每個商人各自的庫存；沒有的話看 MT.KEY_STOCK[what]（兩個商人合計）。3.4 兩個都空＝不限購
+  MT.keyStockLeft = (st, shop, what) => {
+    const per = (MT.KEY_STOCK_SHOP || {})[shop];
+    if (per && per[what] != null) return per[what] - (st.shops['stock:' + shop + ':' + what] || 0);
+    const n = (MT.KEY_STOCK || {})[what]; return n == null ? Infinity : n - (st.shops['keys:' + what] || 0);
   };
-  // 限量鑰匙還剩幾把（沒限量回傳 Infinity）
-  MT.keyStockLeft = (st, shop, what) => { const n = (MT.KEY_STOCK || {})[what]; return n == null ? Infinity : n - (st.shops['keys:' + what] || 0); };   // 兩個商人合計
-  // 這把鑰匙現在賣多少（3.3 鑰匙越買越貴）：定價＋KEY_STEP×已經買過的把數，兩個商人合計、不會重置；沒賣的回傳 null
+  // 這把鑰匙現在賣多少（3.4 每買一把貴一倍）：起步價×KEY_RATE^已經買過的把數（四捨五入），兩個商人合計、不會重置；沒賣的回傳 null。
+  // keyPriceAt 的 extra＝再多買幾把之後的價格（商人 UI 標下一把、模擬的懂規則玩家估價用）。鑰匙不能賣（3.4 拿掉 13F 表哥收購）
   MT.keyBought = (st, what) => st.shops['keys:' + what] || 0;
-  MT.keyPrice = (st, shop, what) => { const base = MT.SHOPS[shop][what]; return base == null ? null : base + ((MT.KEY_STEP || {})[what] || 0) * MT.keyBought(st, what); };
+  MT.keyPriceAt = (st, shop, what, extra) => { const base = MT.SHOPS[shop][what]; return base == null ? null : Math.round(base * Math.pow((MT.KEY_RATE || {})[what] || 1, MT.keyBought(st, what) + (extra || 0))); };
+  MT.keyPrice = (st, shop, what) => MT.keyPriceAt(st, shop, what, 0);
   MT.buy = function (st, shop, what) {
     if (shop === 'keys' || shop === 'keys2') {
       const price = MT.keyPrice(st, shop, what);
       if (price == null || st.gold < price) return false;   // 沒賣價＝這家不賣
       if (MT.keyStockLeft(st, shop, what) <= 0) return false;   // 限量的賣完了
       st.gold -= price; st.keys[what]++;
-      st.shops['keys:' + what] = MT.keyBought(st, what) + 1;   // 三色都計數（限量與漲價都靠它）
+      st.shops['keys:' + what] = MT.keyBought(st, what) + 1;   // 兩商人合計的計數（漲價靠它）
+      st.shops['stock:' + shop + ':' + what] = (st.shops['stock:' + shop + ':' + what] || 0) + 1;   // 這個商人自己的計數（各自限量用）
       return true;
     }
     const price = MT.shopPrice(st, shop);
@@ -471,7 +471,7 @@
      等於幫玩家把資源花完，不用最後跑回去買血。
      門檻（MT.RATING）用 tools/solve.js 的新手／一般／高手三種自動玩家的成績定；S 還要真結局 */
   MT.rating = function (st) {
-    // 剩下的銅鑰匙照全塔最便宜的賣價換算（13F 表哥 8 金），不然在 13F 買來囤著就能白賺分數
+    // 剩下的鑰匙照全塔最便宜的起步價換算（13F 表哥，沒漲價的價格），不然在 13F 買來囤著就能白賺分數
     const R = MT.RATING, S3 = MT.SHOPS.shop3, K = {};
     for (const c of ['y', 'b', 'r']) K[c] = Math.min(MT.SHOPS.keys[c], MT.SHOPS.keys2[c] || Infinity);   // 照最便宜的賣價（3.2.59 起表哥三種都賣）
     // 照真的去買來算：鑰匙換回金幣，金幣在水晶祭壇一次一次買生命（每買一次漲價），經驗值一級一級升（只算生命）
