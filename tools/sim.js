@@ -260,6 +260,7 @@ const RULE = process.env.MT_RULE === '1';
 // 真人沒看過樓上也知道「後面還有十層怪、攻防會用到」，所以給盲高手：每點攻／防值 FUT 點生命 ×（剩下幾層／總層數）
 const FUT = process.env.MT_FUT != null ? +process.env.MT_FUT : 200;
 const RESERVE = process.env.MT_RESERVE != null ? +process.env.MT_RESERVE : 2;   // 盲高手限量時留幾把銅鑰匙備用
+const SHORT = +process.env.MT_SHORT || 8000;   // 這層主線還缺一把鑰匙的罰則（原 4000，比 19F 大房間的 4865 小，連高手都會先開房間再卡死）
 
 /* 這隻怪值不值得打（3.2.55）：拿開局的地圖算「把這格堵住，會少走到哪些格子」＝牠守著的東西。
    守著樓梯、NPC、劇情道具（日記、圖鑑、鑿子…）＝必經，傷害照算；
@@ -407,23 +408,33 @@ function mainDoors(st, f) {
   for (let k = to.join(); k && prev.has(k); k = prev.get(k)) { const [x, y] = k.split(',').map(Number); if (MT.DOORS[m[y][x]]) out.push(k); }
   return out;
 }
-/* 老手眼中手上 c 色鑰匙的總值：後面樓層（還沒去過）的門照價值排，後面撿得到的鑰匙＋商人還買得到的先拿去開最好的那幾扇，
-   手上這幾把的價值＝接下來那幾扇。商人沒限量時最多值「賣價×5」（跟一般玩家的 kv 一樣） */
+/* 老手眼中手上 c 色鑰匙的總值（keyFuture，strategy-depth 4）：從下一層走到頂樓逐層記帳——每層先把走廊撿得到的鑰匙加進來、
+   先付主線門、再用剩下的開那層最值錢的房間（商人在的那層加上庫存）。手上鑰匙的價值＝「帶著這幾把走」比「空手走」多開到的房間總值。
+   舊版把後面樓層所有鑰匙都當成能用在任何門的供給，所以不會為 19F 的大房間省鑰匙（F1：連高手都先開 19F 支線房然後上不了樓） */
 function keyFuture(st, c, mf) {
-  const D = doorValues(), opp = [];
-  let supply = 0;
-  for (let f = mf + 1; f <= TOPF; f++) { if (!D[f]) continue; opp.push(...D[f].doors[c]); supply += D[f].keys[c]; }
-  const left = Math.max(0, stockLeft(st, c));
-  if (left !== Infinity) supply += left;
-  const price = cheapest(st, c);
-  opp.sort((a, b) => b - a);
+  const D = doorValues();
+  const walk = carry => {
+    let got = 0;
+    for (let f = mf + 1; f <= TOPF; f++) {
+      if (!D[f]) continue;
+      carry += D[f].keys[c];
+      for (const [sf, shop] of [[6, 'keys'], [13, 'keys2']]) if (f === sf && MT.SHOPS[shop][c] != null) { const l = MT.keyStockLeft(st, shop, c); carry += l === Infinity ? 99 : Math.max(0, l); }   // 商人那層把庫存算進供給
+      const doors = D[f].doors[c].slice().sort((a, b) => b - a);
+      for (const v of doors) {
+        if (v === MAIN) { carry--; continue; }   // 主線一定開（開不了＝這條路走不通，由 short 罰）
+        if (carry <= 0) break;
+        if (v <= 0) break;
+        carry--; got += v;
+      }
+      if (carry < 0) carry = 0;
+    }
+    return got;
+  };
+  const base = walk(0);
   let v = 0;
-  for (let i = 0; i < st.keys[c]; i++) {
-    const j = supply + i;
-    let w = j < opp.length ? opp[j] : 0;
-    if (left === Infinity && st.visited.includes(6)) w = Math.min(w, price * 5);
-    v += Math.max(w, 1);   // 至少留一點價值，免得同分時亂花
-  }
+  for (let i = 1; i <= st.keys[c]; i++) v += Math.max(1, walk(i) - walk(i - 1));   // 第 i 把的邊際價值（至少 1，免得同分亂花）
+  // 商人還買得到時，一把鑰匙不會比「現在去買一把」更值錢
+  if (st.visited.includes(6) && stockLeft(st, c) === Infinity) v = Math.min(v, st.keys[c] * cheapest(st, c) * 5);   // 限量時不設這個上限，不然會把「省給 19F 大房間」的價值蓋掉
   return v;
 }
 
@@ -493,7 +504,7 @@ function potential(st, ahead = true, horizon) {
   // 盲高手／懂規則：鑰匙限量（商人買不到或快買不到）時手上留 RESERVE 把銅鑰匙給上樓用——看到「剩 N 把」會留備用是常識，不是地圖知識。
   // 高手也要：keyFuture 把後面樓層撿得到的鑰匙都算成供給，主線門的保留會被沖掉（11～15F 窗口裡高手 9 局卡 14F）
   const reserve = vet(ahead) && mf < TOPF && stockLeft(st, 'y') !== Infinity && st.keys.y < RESERVE ? (RESERVE - st.keys.y) * 2000 : 0;
-  return lean + te + keep + fut - reserve + st.hp - dmg - short * 4000 + kval + st.gold * gv + st.exp * ev + (st.items.chisel || 0) * 300 * z;
+  return lean + te + keep + fut - reserve + st.hp - dmg - short * SHORT + kval + st.gold * gv + st.exp * ev + (st.items.chisel || 0) * 300 * z;
 }
 
 function newRun(opt) {
