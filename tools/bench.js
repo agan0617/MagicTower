@@ -45,6 +45,10 @@ const num = (k, d) => { const i = args.indexOf(k); return i >= 0 ? Number(args[i
 const runs = num('--runs', 20), seed0 = num('--seed', 1), jobs = num('--jobs', 8);
 // 子程序優先權：預設 below（低於一般，仍會讓給前景工作）。low＝Idle：在 P／E 混合核心的機器上會被排到 E 核、每局慢 5～6 倍，Ken 在用電腦時才用
 const pi = args.indexOf('--prio'), prio = pi >= 0 ? args[pi + 1] : 'below';
+// 小範圍模擬：--from F --top T 傳給子程序（sim.js 讀 MT_FROM／MT_TOP）
+const fi = args.indexOf('--from'), ti = args.indexOf('--top');
+if (fi >= 0) process.env.MT_FROM = args[fi + 1];
+if (ti >= 0) process.env.MT_TOP = args[ti + 1];
 const mi = args.indexOf('--mt');
 if (mi >= 0) { JSON.parse(args[mi + 1]); process.env.MT_OVERRIDE = args[mi + 1]; }   // 先 parse 一次，壞 JSON 在這裡就報錯而不是每個子程序各死一次
 const PRIO = { low: os.constants.priority.PRIORITY_LOW, below: os.constants.priority.PRIORITY_BELOW_NORMAL, normal: os.constants.priority.PRIORITY_NORMAL }[prio];

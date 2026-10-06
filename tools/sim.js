@@ -61,7 +61,7 @@ function collect(st, opt) {
       reach.push([f, x, y]);
       const t0 = MT.tile(st, f, x, y);
       const hop = (nf, code) => {
-        if (nf < MT.BOTTOM || nf > MT.TOP) return;
+        if (nf < MT.BOTTOM || nf > TOPF) return;   // 小範圍模擬：TOPF 以上不去
         const p = MT.findTile(st, nf, code);
         if (!p) return;
         const k = nf + ',' + p[0] + ',' + p[1];
@@ -411,7 +411,7 @@ function mainDoors(st, f) {
 function keyFuture(st, c, mf) {
   const D = doorValues(), opp = [];
   let supply = 0;
-  for (let f = mf + 1; f <= MT.TOP; f++) { if (!D[f]) continue; opp.push(...D[f].doors[c]); supply += D[f].keys[c]; }
+  for (let f = mf + 1; f <= TOPF; f++) { if (!D[f]) continue; opp.push(...D[f].doors[c]); supply += D[f].keys[c]; }
   const left = Math.max(0, stockLeft(st, c));
   if (left !== Infinity) supply += left;
   const price = cheapest(st, c);
@@ -450,7 +450,7 @@ function ruleKeyValue(st, c, mf) {
    不然「上去看一眼」的局面會因為多算一整層怪的傷害而永遠排不到前面，盲高手就變成「不把這層清光絕不上樓」，
    基準量出 42 個百分點的差距其實是這個偏差（strategy-depth 0b）。真人不知道樓上有什麼也會先上去看 */
 function potential(st, ahead = true, horizon) {
-  const top = ahead === 'all' ? MT.TOP : ahead === 'blind' ? Math.min(maxFloor(st), horizon == null ? MT.TOP : horizon) : Math.min(MT.TOP, maxFloor(st) + (ahead ? 1 : 0));
+  const top = ahead === 'all' ? TOPF : ahead === 'blind' ? Math.min(maxFloor(st), horizon == null ? TOPF : horizon) : Math.min(TOPF, maxFloor(st) + (ahead ? 1 : 0));
   let dmg = 0;
   for (let f = 1; f <= top; f++) {
     const m = st.maps[f], seen = new Set();
@@ -472,7 +472,7 @@ function potential(st, ahead = true, horizon) {
   // 主線上樓還要的鑰匙不夠：重罰（等於「這條路走不通」）
   let short = 0;
   const mf = maxFloor(st);
-  if (mf < MT.TOP) {
+  if (mf < TOPF) {
     const need = stairNeed(st, mf);
     if (need) short = Math.max(0, need.y - st.keys.y) + Math.max(0, need.b - st.keys.b) * 2 + Math.max(0, need.r - st.keys.r) * 4;
   }
@@ -488,18 +488,30 @@ function potential(st, ahead = true, horizon) {
   const kval = ahead === 'all' && KF ? ['y', 'b', 'r'].reduce((a, c) => a + keyFuture(st, c, mf), 0)
     : ahead === 'blind' && RULE ? ['y', 'b', 'r'].reduce((a, c) => a + ruleKeyValue(st, c, mf), 0)
     : st.keys.y * kv('y', 150) + st.keys.b * kv('b', 450) + st.keys.r * kv('r', 900);
-  const fut = ahead === 'blind' ? (st.atk + st.def) * FUT * (MT.TOP - mf) / MT.TOP : 0;
+  const fut = ahead === 'blind' ? (st.atk + st.def) * FUT * (TOPF - mf) / TOPF : 0;
   return lean + te + keep + fut + st.hp - dmg - short * 4000 + kval + st.gold * gv + st.exp * ev + (st.items.chisel || 0) * 300 * z;
 }
 
 function newRun(opt) {
   const st = MT.newGame();
   if (opt && opt.log) st.log = null;
+  if (FROM > 1) {   // 小範圍模擬：站在 FROM 層的下樓梯位置、樓梯封掉，能力照 ARRIVE 表
+    const A = ARRIVE[FROM];
+    if (!A) throw new Error('MT_FROM 只支援 ' + Object.keys(ARRIVE).join('/'));
+    const dd = MT.findTile(st, FROM, 'DD');
+    MT.setTile(st, FROM, dd[0], dd[1], '..');
+    Object.assign(st, { floor: FROM, x: dd[0], y: dd[1], hp: A.hp, atk: A.atk, def: A.def, lv: A.lv, exp: A.exp, gold: A.gold, visited: [FROM] });
+    st.keys = Object.assign({}, A.keys); Object.assign(st.items, A.items); st.layers = A.layers.slice();
+    if (A.skillLv) st.skill = { type: skillChoices[0], lv: A.skillLv };
+    return st;
+  }
   const id = MT.stepTrigger(st);
   if (id) MT.runScriptState(st, id);
   return st;
 }
-const result = (st, extra) => Object.assign({ st, done: st.done, score: st.done ? MT.rating(st).score : null, grade: st.done ? MT.rating(st).grade : null }, extra || {});
+// 小範圍模擬的分數：跑到 TOPF 不是終點，攻防與資源都還要帶上去，所以不能只算生命——每點攻防算 100 血、金幣與經驗各算 1、鑰匙照固定價
+const miniScore = st => Math.round(st.hp + (st.atk + st.def) * 100 + st.gold + st.exp + st.keys.y * 150 + st.keys.b * 450 + st.keys.r * 900);
+const result = (st, extra) => Object.assign({ st, done: st.done, score: st.done ? (TOPF < MT.TOP ? miniScore(st) : MT.rating(st).score) : null, grade: st.done ? (TOPF < MT.TOP ? '-' : MT.rating(st).grade) : null }, extra || {});
 
 /* 新手：門有鑰匙就開、怪挑最便宜的、祭壇只買生命、交易有錢就接、不找暗牆 */
 function solveWeak(opt = {}) {
@@ -519,6 +531,7 @@ function solveWeak(opt = {}) {
       || as.find(a => a.kind === 'buy' && (a.what === 'y' || a.what === 'b'));
     if (!pick) break;
     doAction(st, pick);
+    if (finished(st)) st.done = true;
   }
   return result(st);
 }
@@ -543,6 +556,7 @@ function solveMid(opt = {}) {
     }
     if (!best) break;
     doAction(st, best);
+    if (finished(st)) st.done = true;
   }
   return result(st);
 }
@@ -568,6 +582,7 @@ function solveStrong(opt = {}) {
         const s2 = clone(st);
         if (!doAction(s2, a)) continue;
         collect(s2, opt);
+        if (finished(s2)) s2.done = true;
         if (s2.done) { const sc = MT.rating(s2).score; if (!best || sc > best.score) best = { st: s2, score: sc }; continue; }
         const g = sig(s2);
         if (seen.has(g)) continue;
@@ -606,6 +621,19 @@ function rngOf(seed) {   // mulberry32
    亂數接續所以走法會不同——真人在 12F 發現鑰匙不夠會讀 11F 的檔少開幾扇門，不是直接算死。
    次數 MT_RETRY（預設 1），只給一般玩家（ahead 不是 all／blind）；高手與盲高手本來就不太卡，維持原樣好跟舊數字對照 */
 const RETRY = process.env.MT_RETRY != null ? +process.env.MT_RETRY : 1;
+/* 小範圍模擬（strategy-depth 4，Ken 指定）：MT_FROM＝從哪一層以標準抵達能力起跑（下樓梯封掉、下面樓層不算）、
+   MT_TOP＝到哪一層算完（那層的 Boss 打倒、或沒 Boss 時一踏上去）。幾秒跑完一局，拿來看「調什麼會動什麼」；
+   絕對數字對不上全塔目標，方向對了再跑全塔確認 */
+const TOPF = +process.env.MT_TOP || MT.TOP;
+const FROM = +process.env.MT_FROM || 0;
+// 標準抵達能力（高手與盲高手真人型到該層時的中間值，3.2.74 的軌跡）：血給得比高手厚一點，免得小範圍一開局就死
+const ARRIVE = {
+  6: { hp: 800, atk: 65, def: 48, lv: 6, exp: 0, gold: 150, keys: { y: 3, b: 2, r: 0 }, items: { book: 1, chisel: 1 }, layers: ['drums'] },
+  11: { hp: 1500, atk: 139, def: 110, lv: 15, exp: 0, gold: 300, keys: { y: 2, b: 1, r: 1 }, items: { book: 1, fly: 1, chisel: 1 }, layers: ['drums', 'strings'], skillLv: 1 },
+  16: { hp: 3000, atk: 221, def: 197, lv: 21, exp: 0, gold: 450, keys: { y: 3, b: 1, r: 1 }, items: { book: 1, fly: 1, chisel: 1 }, layers: ['drums', 'strings', 'flute'], skillLv: 2 },
+};
+const bossDead = (st, f) => !MT.NOFLY[f] || !MT.findTile(st, f, MT.NOFLY[f]);
+const finished = st => st.done || (TOPF < MT.TOP && maxFloor(st) >= TOPF && bossDead(st, TOPF));
 function solveHuman(opt = {}) {
   const width = opt.width || 4, noise = opt.noise || 0, rng = rngOf(opt.seed || 1);
   let beam = [newRun(opt)];
@@ -622,6 +650,7 @@ function solveHuman(opt = {}) {
         const s2 = clone(st);
         if (!doAction(s2, a)) continue;
         collect(s2, opt);
+        if (finished(s2)) s2.done = true;
         if (s2.done) { const sc = MT.rating(s2).score; if (!best || sc > best.score) best = { st: s2, score: sc }; continue; }
         const g = sig(s2);
         if (seen.has(g)) continue;
