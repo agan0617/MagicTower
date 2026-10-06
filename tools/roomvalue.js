@@ -9,6 +9,7 @@ if (process.env.MT_OVERRIDE) { const merge = (o, p) => { for (const k in p) { if
 const [f0, f1] = [+(process.argv[2] || 11), +(process.argv[3] || 19)];
 // 標準抵達能力：高手真人型（width 2、noise 500、seed 1）到每層時的攻防（3.2.74 的軌跡），只用來把守衛的代價換算成血
 const ARRIVE = { 11: [139, 108], 12: [174, 126], 13: [196, 135], 14: [209, 182], 15: [221, 194], 16: [221, 197], 17: [248, 226], 18: [256, 241], 19: [264, 249] };
+const HP_AT = f => (MT.zoneOf(f) >= 4 ? 3000 : MT.zoneOf(f) === 3 ? 1500 : 800);   // 吸血怪照目前生命比例吸，血要給合理值，不能給 99999
 const PT = +process.env.MT_PT || 200;
 const worth = (t, f) => {
   const it = MT.ITEMS[t];
@@ -24,7 +25,7 @@ for (let f = f0; f <= f1; f++) {
   const m = st0.maps[f];
   if (!m) continue;
   const [atk, def] = ARRIVE[f] || [200, 150];
-  const st = Object.assign({}, st0, { hp: 99999, atk, def, floor: f });
+  const st = Object.assign({}, st0, { hp: HP_AT(f), atk, def, floor: f });
   const entries = new Set();
   for (let y = 0; y < MT.H; y++) for (let x = 0; x < MT.W; x++) if (m[y][x] === 'UU' || m[y][x] === 'DD') entries.add(y * 100 + x);
   if (f === MT.START.floor) entries.add(MT.START.y * 100 + MT.START.x);
