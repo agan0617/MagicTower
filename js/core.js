@@ -485,7 +485,7 @@
     for (let p = S3.base + S3.step * n; gold >= p; p += S3.step) { gold -= p; bonus += S3.hp; }
     let exp = st.exp, lv = st.lv;
     for (let c = MT.lvCost(lv); exp >= c; c = MT.lvCost(++lv)) { exp -= c; bonus += MT.LEVEL.L2.hp; }
-    // 留到通關沒花的資源換算後再乘 MT.LEFTOVER（3.2.43 Ken 指定：留著要比花掉划算，先用 1.3）
+    // 留到通關沒花的資源換算後再乘 MT.LEFTOVER（3.2.43 起 1.3，3.3.1 改回 1）
     bonus = Math.floor(bonus * (MT.LEFTOVER || 1));
     const score = st.hp + bonus;
     const trueEnd = MT.isTrueEnding(st);

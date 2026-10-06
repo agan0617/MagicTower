@@ -1,6 +1,6 @@
 /* 三選一技能的「選擇差異」（strategy-depth 技能標準）：高手用三種技能各跑幾局，比較
    (1) 開過的銅門集合兩兩重疊（|交集|／|較小的那組|，同種子配對，取平均；目標 ≤75%）
-   (2) 祭壇購買偏好：鐵壁買防、連擊買攻、反彈買血各占該技能購買次數的比例（目標 ≥50%）
+   (2) 祭壇購買偏好：鐵壁買防、連擊買攻、反彈買血各占該技能購買次數的比例（目標 ≥50%；只算技能生效後的購買）
    用法：node tools/skilldiff.js [--seeds N（預設 8）] [--jobs J（預設 6）]   吃 MT_OVERRIDE（JSON） */
 'use strict';
 const path = require('path');
@@ -14,12 +14,15 @@ if (args[0] === '--worker') {
   if (process.env.MT_OVERRIDE) { const merge = (o, p) => { for (const k in p) { if (p[k] === null) o[k] = {}; else if (p[k] && typeof p[k] === 'object' && !Array.isArray(p[k]) && o[k] && typeof o[k] === 'object') merge(o[k], p[k]); else o[k] = p[k]; } }; merge(MT, JSON.parse(process.env.MT_OVERRIDE)); }
   S.setSkills([skill]);
   const r = S.solveHuman({ width: 2, noise: 500, seed: +seed, ahead: 'all', log: true });
-  const doors = [], buys = { atk: 0, def: 0, hp: 0 };
+  // 祭壇偏好只算技能生效之後（12F 老琴師鑑定、lv ≥ 1）的購買：10F 才選技能，4F 祭壇大半是選技能之前買的，算進去等於量雜訊（3.3.1）
+  const doors = [], buys = { atk: 0, def: 0, hp: 0 }, buysAll = { atk: 0, def: 0, hp: 0 };
+  let lv = 0;
   for (const e of S.logList(r.st)) {
+    if (e.type === 'sage') lv = e.lv;
     if (e.type === 'act' && e.a.kind === 'door' && MT.DOORS[e.a.c.t] === 'y') doors.push(e.a.c.f + ':' + e.a.c.x + ',' + e.a.c.y);
-    if (e.type === 'act' && e.a.kind === 'buy' && ['atk', 'def', 'hp'].includes(e.a.what)) buys[e.a.what]++;
+    if (e.type === 'act' && e.a.kind === 'buy' && ['atk', 'def', 'hp'].includes(e.a.what)) { buysAll[e.a.what]++; if (lv >= 1) buys[e.a.what]++; }
   }
-  process.stdout.write(JSON.stringify({ skill, seed: +seed, done: !!r.done, score: r.score || 0, doors, buys }));
+  process.stdout.write(JSON.stringify({ skill, seed: +seed, done: !!r.done, score: r.score || 0, doors, buys, buysAll }));
   process.exit(0);
 }
 const seeds = num('--seeds', 8), jobs = num('--jobs', 6);
@@ -40,7 +43,8 @@ function report() {
   for (const sk of SKILLS) {
     const a = by[sk] || []; const b = a.reduce((acc, r) => { for (const k in r.buys) acc[k] += r.buys[k]; return acc; }, { atk: 0, def: 0, hp: 0 });
     const tot = b.atk + b.def + b.hp || 1; const pref = { absorb: 'def', double: 'atk', reflect: 'hp' }[sk];
-    console.log(`  ${sk.padEnd(8)} 通關 ${a.filter(r => r.done).length}/${a.length}  通關者分數中位數 ${median(a.filter(r => r.done).map(r => r.score))}  祭壇 攻 ${Math.round(b.atk / tot * 100)}% 防 ${Math.round(b.def / tot * 100)}% 血 ${Math.round(b.hp / tot * 100)}%（該技能偏好 ${pref} ${Math.round(b[pref] / tot * 100)}%，目標 ≥50%）`);
+    const ba = a.reduce((acc, r) => { for (const k in r.buysAll) acc[k] += r.buysAll[k]; return acc; }, { atk: 0, def: 0, hp: 0 }), ta = ba.atk + ba.def + ba.hp || 1;
+    console.log(`  ${sk.padEnd(8)} 通關 ${a.filter(r => r.done).length}/${a.length}  通關者分數中位數 ${median(a.filter(r => r.done).map(r => r.score))}  技能生效後的祭壇 攻 ${Math.round(b.atk / tot * 100)}% 防 ${Math.round(b.def / tot * 100)}% 血 ${Math.round(b.hp / tot * 100)}%（${b.atk + b.def + b.hp} 次；該技能偏好 ${pref} ${Math.round(b[pref] / tot * 100)}%，目標 ≥50%）  全部購買 ${ta} 次、偏好 ${Math.round(ba[pref] / ta * 100)}%`);
   }
   const pairs = [['absorb', 'reflect'], ['absorb', 'double'], ['reflect', 'double']];
   for (const [x, y] of pairs) {
