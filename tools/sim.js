@@ -259,6 +259,7 @@ const RULE = process.env.MT_RULE === '1';
 // 盲高手眼中去過的樓層怪都死光了，攻防一文不值，只買血、金幣囤到通關——基準 42 個百分點的差距全是這個。
 // 真人沒看過樓上也知道「後面還有十層怪、攻防會用到」，所以給盲高手：每點攻／防值 FUT 點生命 ×（剩下幾層／總層數）
 const FUT = process.env.MT_FUT != null ? +process.env.MT_FUT : 200;
+const RESERVE = process.env.MT_RESERVE != null ? +process.env.MT_RESERVE : 2;   // 盲高手限量時留幾把銅鑰匙備用
 
 /* 這隻怪值不值得打（3.2.55）：拿開局的地圖算「把這格堵住，會少走到哪些格子」＝牠守著的東西。
    守著樓梯、NPC、劇情道具（日記、圖鑑、鑿子…）＝必經，傷害照算；
@@ -489,7 +490,10 @@ function potential(st, ahead = true, horizon) {
     : ahead === 'blind' && RULE ? ['y', 'b', 'r'].reduce((a, c) => a + ruleKeyValue(st, c, mf), 0)
     : st.keys.y * kv('y', 150) + st.keys.b * kv('b', 450) + st.keys.r * kv('r', 900);
   const fut = ahead === 'blind' ? (st.atk + st.def) * FUT * (TOPF - mf) / TOPF : 0;
-  return lean + te + keep + fut + st.hp - dmg - short * 4000 + kval + st.gold * gv + st.exp * ev + (st.items.chisel || 0) * 300 * z;
+  // 盲高手／懂規則：鑰匙限量（商人買不到或快買不到）時手上留 RESERVE 把銅鑰匙給上樓用——看到「剩 N 把」會留備用是常識，不是地圖知識。
+  // 高手也要：keyFuture 把後面樓層撿得到的鑰匙都算成供給，主線門的保留會被沖掉（11～15F 窗口裡高手 9 局卡 14F）
+  const reserve = vet(ahead) && mf < TOPF && stockLeft(st, 'y') !== Infinity && st.keys.y < RESERVE ? (RESERVE - st.keys.y) * 2000 : 0;
+  return lean + te + keep + fut - reserve + st.hp - dmg - short * 4000 + kval + st.gold * gv + st.exp * ev + (st.items.chisel || 0) * 300 * z;
 }
 
 function newRun(opt) {
