@@ -619,8 +619,9 @@ function rngOf(seed) {   // mulberry32
 }
 /* 讀檔退回上一層（key-economy，Ken 指定）：一般玩家卡住（沒路可走又沒通關）時，退回「上一層剛到達時」的存檔重試，
    亂數接續所以走法會不同——真人在 12F 發現鑰匙不夠會讀 11F 的檔少開幾扇門，不是直接算死。
-   次數 MT_RETRY（預設 1），只給一般玩家（ahead 不是 all／blind）；高手與盲高手本來就不太卡，維持原樣好跟舊數字對照 */
+   次數 MT_RETRY（預設 1），四組都適用（MT_RETRY_ALL=0 時只給一般玩家）*/
 const RETRY = process.env.MT_RETRY != null ? +process.env.MT_RETRY : 1;
+const RETRY_ALL = process.env.MT_RETRY_ALL !== '0';   // 預設四組都會讀檔（Ken 2026-10-06 定：不然護欄 2 比的是「會不會讀檔」而不是「知不知道後面」）；0＝只有一般玩家讀檔
 /* 小範圍模擬（strategy-depth 4，Ken 指定）：MT_FROM＝從哪一層以標準抵達能力起跑（下樓梯封掉、下面樓層不算）、
    MT_TOP＝到哪一層算完（那層的 Boss 打倒、或沒 Boss 時一踏上去）。幾秒跑完一局，拿來看「調什麼會動什麼」；
    絕對數字對不上全塔目標，方向對了再跑全塔確認 */
@@ -639,7 +640,7 @@ function solveHuman(opt = {}) {
   let beam = [newRun(opt)];
   collect(beam[0], opt);
   let committed = maxFloor(beam[0]), best = null, depth = 0, last = beam;
-  let retries = opt.retry != null ? opt.retry : vet(opt.ahead) ? 0 : RETRY;
+  let retries = opt.retry != null ? opt.retry : (vet(opt.ahead) && !RETRY_ALL) ? 0 : RETRY;
   const saves = [clone(beam[0])];   // 每層剛到達時的存檔（開局算第一份）
   while (beam.length && depth++ < 4000) {
     last = beam;
