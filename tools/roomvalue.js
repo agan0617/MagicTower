@@ -23,12 +23,14 @@ const st0 = MT.newGame();
 const D4 = [[0, -1], [0, 1], [-1, 0], [1, 0]];
 /* 回傳 [{door:'x,y', main:true}|{door, dup:true}|{door, n, items, mons, value, cost, net, guards, hasKey, hasStory}] */
 /* statsFloor：用哪一層的標準抵達能力算守衛代價。設計用抵達當層（看「現在值不值得」）；稽核用該區最後一層（看「等變強回來也不值得」才算陷阱） */
-function analyzeFloor(f, statsFloor) {
+function analyzeFloor(f, statsFloor, skill) {
   const m = st0.maps[f];
   if (!m) return [];
   const sf = statsFloor || f;
   const [atk, def] = ARRIVE[sf] || [200, 150];
-  const st = Object.assign({}, st0, { hp: HP_AT(sf), atk, def, floor: f });
+  // skill：用哪種配點算守衛代價（5.1 房間分型）。鐵壁多防少攻、連擊多攻少防、反彈多血，各照技能 Lv2 算
+  const bias = { absorb: [-10, 20, 0], double: [20, -10, 0], reflect: [0, 0, 600] }[skill] || [0, 0, 0];
+  const st = Object.assign({}, st0, { hp: HP_AT(sf) + bias[2], atk: atk + bias[0], def: def + bias[1], floor: f, skill: skill ? { type: skill, lv: 2 } : st0.skill });
   const entries = new Set();
   for (let y = 0; y < MT.H; y++) for (let x = 0; x < MT.W; x++) if (m[y][x] === 'UU' || m[y][x] === 'DD') entries.add(y * 100 + x);
   if (f === MT.START.floor) entries.add(MT.START.y * 100 + MT.START.x);
@@ -82,7 +84,17 @@ function analyzeFloor(f, statsFloor) {
   }
   return rows;
 }
-if (require.main === module) {
+if (require.main === module && process.argv.includes('--skills')) {
+  // 三種配點各自的淨值表（5.1 房間分型用）：看哪間房只對某種配點划算
+  const [f0, f1] = [+(process.argv[2] || 11), +(process.argv[3] || 19)];
+  for (let f = f0; f <= f1; f++) {
+    const by = {}; for (const sk of ['absorb', 'reflect', 'double']) for (const r of analyzeFloor(f, f, sk)) if (!r.main && !r.dup) (by[r.door] = by[r.door] || { items: r.items, guards: r.mons })[sk] = r.net;
+    const doors = Object.keys(by); if (!doors.length) continue;
+    console.log(`
+${MT.floorName(f)}  門      鐵壁    反彈    連擊   道具／守衛`);
+    for (const d of doors) { const r = by[d]; const vals = [r.absorb, r.reflect, r.double]; const best = Math.max(...vals), worst = Math.min(...vals); const tag = best > 0 && worst < 0 ? ' ◆分型' : best - worst > 800 ? ' ◇有差' : ''; console.log(`  ${d.padEnd(6)} ${String(r.absorb).padStart(6)} ${String(r.reflect).padStart(6)} ${String(r.double).padStart(6)}   [${r.items.join(' ')}] 守 ${[...new Set(r.guards)].join(' ')}${tag}`); }
+  }
+} else if (require.main === module) {
   const [f0, f1] = [+(process.argv[2] || 11), +(process.argv[3] || 19)];
   for (let f = f0; f <= f1; f++) {
     const rows = analyzeFloor(f);
