@@ -1615,7 +1615,9 @@
         const tail = (left === Infinity ? '' : MT.t(left > 0 ? 'stockLeft' : 'soldOut', { n: left })) + (step && left > 0 ? MT.t('keyStep', { s: step }) : '');
         return `<button class="btn opt" data-k="${k}" ${st.gold < p || left <= 0 ? 'disabled' : ''}>${img(...spriteFor(KEY_OF[k]))} ${esc(MT.t(lab, { p }) + tail)}</button>`;
       }).join('');
-      const stepNote = Object.values(MT.KEY_STEP || {}).some(s => s > 0) ? `<p class="muted small">${esc(MT.t('frogStep'))}</p>` : '';
+      // 說明列：會漲價就講漲價；只有限量就講限量＋方向性提示（越往上的門越值得，不講留幾把、不講哪一層）
+      const limited = Object.values(MT.KEY_STOCK_SHOP || {}).some(o => Object.values(o).some(n => n != null)) || Object.keys(MT.KEY_STOCK || {}).length > 1;
+      const stepNote = Object.values(MT.KEY_STEP || {}).some(s => s > 0) ? `<p class="muted small">${esc(MT.t('frogStep'))}</p>` : limited ? `<p class="muted small">${esc(MT.t('frogLimit'))}</p>` : '';
       // 表哥另外收購（K.sell）：身上沒有那種鑰匙就反灰
       const sells = K.sell ? `<p class="muted small">${esc(MT.t('sellHead'))}</p><div class="opts">` + Object.keys(K.sell).map(k =>
         `<button class="btn opt" data-s="${k}" ${st.keys[k] > 0 ? '' : 'disabled'}>${img(...spriteFor(KEY_OF[k]))} ${esc(MT.t('sell' + k.toUpperCase(), { p: K.sell[k], n: st.keys[k] }))}</button>`).join('') + '</div>' : '';

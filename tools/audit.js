@@ -1,5 +1,5 @@
-/* 關卡設計稽核：改地圖或數值後跑 `node tools/audit.js`，有問題的項目會列出來（設計規則見 DESIGN.md）。
-   1. 白開的房間：只有一道門、裡面只放同色鑰匙（數量不超過門）和怪
+/* 關卡設計稽核：改地圖或數值後跑 `node tools/audit.js`，有問題的項目會列出來（設計規則見 docs/DESIGN.md）。
+   1. 不值得的房間：門後價值減守衛代價 <0 的銅門房間每層 ≤1、全塔 ≤6，且不含鑰匙／劇情道具（tools/roomvalue.js）
    2. 多餘的門：兩側不經過任何門或怪就互通
    3. 擋路的 NPC：拿掉牠之後原本分開的兩塊會接起來（會說完話離開、會讓路的不算）
    4. 樓梯當岔路：樓梯旁的格子不經過樓梯走不通
@@ -44,28 +44,22 @@ const roots = f => {
   return r;
 };
 
-// 1. 白開的房間
+// 1. 不值得的房間（strategy-depth 4.2 起）：門後道具價值減守衛代價（照標準抵達能力算，tools/roomvalue.js）＜0 的銅門房間
+//    每層最多 1 間、全塔最多 6 間；而且不值得的房間不能有鑰匙或劇情道具（那會變成「必開的陷阱」）。
+//    原本的規則 1「沒有白開的房間」把「不值得開」的選項全刪光，決策只剩順序；現在陷阱房是設計的一部分，胖老鼠的玩家就是會踩到然後學乖
 {
-  const rows = [];
+  const RV = require('./roomvalue.js');
+  const rows = []; let total = 0;
   for (const f of floors) {
-    const m = st.maps[f], seen = new Set();
-    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-      const t = m[y][x];
-      if (blocks(t) || MT.DOORS[t] || t === 'Cw' || t === 'Hw' || seen.has(x + ',' + y)) continue;
-      const cells = [...flood(m, [[x, y]], c => !blocks(c) && !MT.DOORS[c] && c !== 'Cw' && c !== 'Hw')];
-      cells.forEach(k => seen.add(k));
-      const doors = new Set();
-      for (const k of cells) { const [cx, cy] = k.split(',').map(Number); for (const [dx, dy] of D) { const nx = cx + dx, ny = cy + dy; if (inb(nx, ny) && MT.DOORS[m[ny][nx]]) doors.add(nx + ',' + ny); } }
-      if (doors.size !== 1) continue;
-      const ts = cells.map(k => { const [a, b] = k.split(',').map(Number); return m[b][a]; });
-      if (ts.some(t => t === 'UU' || t === 'DD' || MT.isNpc(t))) continue;
-      const [dk] = [...doors]; const [dx, dy] = dk.split(',').map(Number); const color = MT.DOORS[m[dy][dx]];
-      const items = ts.filter(t => MT.isItem(t));
-      if (items.every(t => MT.ITEMS[t].kind === 'key' && MT.ITEMS[t].key === color) && items.length <= 1)
-        rows.push(`${MT.floorName(f)} ${m[dy][dx]}@${dk} 後面只有 ${items.join(' ') || '（沒東西）'}`);
-    }
+    if (f === MT.BOTTOM) continue;
+    const zoneEnd = { 1: 5, 2: 10, 3: 15, 4: 19 }[MT.zoneOf(f)];   // 用該區最後一層的能力算：等變強回來也不值得才是陷阱
+    const bad = RV.analyzeFloor(f, zoneEnd).filter(r => !r.main && !r.dup && r.net < 0);
+    total += bad.length;
+    if (bad.length > 1) rows.push(`${MT.floorName(f)} 有 ${bad.length} 間不值得的房間：${bad.map(r => `門 ${r.door}（淨值 ${r.net}）`).join('、')}`);
+    for (const r of bad) if (r.hasKey || r.hasStory) rows.push(`${MT.floorName(f)} 門 ${r.door} 不值得（淨值 ${r.net}）卻放了${r.hasKey ? '鑰匙' : '劇情道具'}`);
   }
-  report('白開的房間', rows);
+  if (total > 6) rows.push(`全塔不值得的房間 ${total} 間（上限 6）`);
+  report('不值得的房間（每層 ≤1、全塔 ≤6、不含鑰匙／劇情道具）', rows);
 }
 // 2. 多餘的門
 {

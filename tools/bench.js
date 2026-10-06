@@ -33,11 +33,11 @@ if (args[0] === '--worker') {
   Object.assign(process.env, G.env || {});   // 要在 require sim.js 之前設，它讀環境變數是在載入時
   const S = require('./sim.js');
   // 調數值用的覆蓋（--mt 傳進來的 JSON）：MT.KEY_STEP、MT.MAP_PATCH、MT.SHOPS… 一層層合併進 MT，不用改 data.js 就能試一組數值
-  if (process.env.MT_OVERRIDE) { const merge = (o, p) => { for (const k in p) { if (p[k] && typeof p[k] === 'object' && !Array.isArray(p[k]) && o[k] && typeof o[k] === 'object') merge(o[k], p[k]); else o[k] = p[k]; } }; merge(S.MT, JSON.parse(process.env.MT_OVERRIDE)); }
+  if (process.env.MT_OVERRIDE) { const merge = (o, p) => { for (const k in p) { if (p[k] === null) o[k] = {}; else if (p[k] && typeof p[k] === 'object' && !Array.isArray(p[k]) && o[k] && typeof o[k] === 'object') merge(o[k], p[k]); else o[k] = p[k]; } }; /* null＝清空成 {}（例如把 MAP_PATCH 整個拿掉） */ merge(S.MT, JSON.parse(process.env.MT_OVERRIDE)); }
   S.setSkills([skill]);
   const r = S.solveHuman({ width: G.width, noise: G.noise, seed: +seed, ahead: G.ahead });
   const st = r.st;
-  process.stdout.write(JSON.stringify({ g, skill, seed: +seed, done: !!r.done, score: r.score || 0, grade: r.grade || '-', te: !!(r.done && S.MT.isTrueEnding(st)), floor: S.maxFloor(st), hp: st.hp, atk: st.atk, def: st.def, gold: st.gold, keys: st.keys }));
+  process.stdout.write(JSON.stringify({ g, skill, seed: +seed, done: !!r.done, score: r.score || 0, grade: r.grade || '-', te: !!(r.done && S.MT.isTrueEnding(st)), floor: S.maxFloor(st), hp: st.hp, atk: st.atk, def: st.def, gold: st.gold, keys: st.keys, retried: st.retried || 0 }));
   process.exit(0);
 }
 
@@ -45,6 +45,10 @@ const num = (k, d) => { const i = args.indexOf(k); return i >= 0 ? Number(args[i
 const runs = num('--runs', 20), seed0 = num('--seed', 1), jobs = num('--jobs', 8);
 // 子程序優先權：預設 below（低於一般，仍會讓給前景工作）。low＝Idle：在 P／E 混合核心的機器上會被排到 E 核、每局慢 5～6 倍，Ken 在用電腦時才用
 const pi = args.indexOf('--prio'), prio = pi >= 0 ? args[pi + 1] : 'below';
+// 小範圍模擬：--from F --top T 傳給子程序（sim.js 讀 MT_FROM／MT_TOP）
+const fi = args.indexOf('--from'), ti = args.indexOf('--top');
+if (fi >= 0) process.env.MT_FROM = args[fi + 1];
+if (ti >= 0) process.env.MT_TOP = args[ti + 1];
 const mi = args.indexOf('--mt');
 if (mi >= 0) { JSON.parse(args[mi + 1]); process.env.MT_OVERRIDE = args[mi + 1]; }   // 先 parse 一次，壞 JSON 在這裡就報錯而不是每個子程序各死一次
 const PRIO = { low: os.constants.priority.PRIORITY_LOW, below: os.constants.priority.PRIORITY_BELOW_NORMAL, normal: os.constants.priority.PRIORITY_NORMAL }[prio];
