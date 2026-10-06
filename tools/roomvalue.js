@@ -1,15 +1,15 @@
-/* 銅門房間的收穫與代價（strategy-depth 4.2 房間分級用）：
+/* 銅門房間的收穫與代價（strategy-depth 4.2 房間分級用；audit.js 規則 1 也用）：
    對每層每扇銅門，算門後那塊區域（不經過其他門）的道具價值、守在裡面的怪照「標準抵達能力」要掉多少血、淨值＝價值−代價，
    照淨值排序印出來，設計時照著把房間分成「很好／普通／不值得」三級。
-   用法：node tools/roomvalue.js [起樓層] [迄樓層]   預設 11～19；吃 MT_OVERRIDE（JSON）看某組設定下的房間 */
+   用法：node tools/roomvalue.js [起樓層] [迄樓層]   預設 11～19；吃 MT_OVERRIDE（JSON）看某組設定下的房間
+   被 require 時：analyzeFloor(f) 回傳該層每扇銅門的資料 */
 'use strict';
 const S = require('./sim.js');
 const MT = S.MT;
 if (process.env.MT_OVERRIDE) { const merge = (o, p) => { for (const k in p) { if (p[k] === null) o[k] = {}; else if (p[k] && typeof p[k] === 'object' && !Array.isArray(p[k]) && o[k] && typeof o[k] === 'object') merge(o[k], p[k]); else o[k] = p[k]; } }; merge(MT, JSON.parse(process.env.MT_OVERRIDE)); }
-const [f0, f1] = [+(process.argv[2] || 11), +(process.argv[3] || 19)];
-// 標準抵達能力：高手真人型（width 2、noise 500、seed 1）到每層時的攻防（3.2.74 的軌跡），只用來把守衛的代價換算成血
-const ARRIVE = { 11: [139, 108], 12: [174, 126], 13: [196, 135], 14: [209, 182], 15: [221, 194], 16: [221, 197], 17: [248, 226], 18: [256, 241], 19: [264, 249] };
-const HP_AT = f => (MT.zoneOf(f) >= 4 ? 3000 : MT.zoneOf(f) === 3 ? 1500 : 800);   // 吸血怪照目前生命比例吸，血要給合理值，不能給 99999
+// 標準抵達能力：高手真人型（width 2、noise 500、seed 1）到每層時的攻防（3.2.74 的軌跡），只用來把守衛的代價換算成血；前兩區用模擬的新手／一般中間值
+const ARRIVE = { 1: [10, 10], 2: [12, 10], 3: [16, 10], 4: [44, 30], 5: [55, 40], 6: [65, 48], 7: [83, 64], 8: [100, 73], 9: [114, 78], 10: [114, 78], 11: [139, 108], 12: [174, 126], 13: [196, 135], 14: [209, 182], 15: [221, 194], 16: [221, 197], 17: [248, 226], 18: [256, 241], 19: [264, 249] };
+const HP_AT = f => (MT.zoneOf(f) >= 4 ? 3000 : MT.zoneOf(f) === 3 ? 1500 : MT.zoneOf(f) === 2 ? 800 : 400);   // 吸血怪照目前生命比例吸，血要給合理值
 const PT = +process.env.MT_PT || 200;
 const worth = (t, f) => {
   const it = MT.ITEMS[t];
@@ -21,11 +21,14 @@ const worth = (t, f) => {
 };
 const st0 = MT.newGame();
 const D4 = [[0, -1], [0, 1], [-1, 0], [1, 0]];
-for (let f = f0; f <= f1; f++) {
+/* 回傳 [{door:'x,y', main:true}|{door, dup:true}|{door, n, items, mons, value, cost, net, guards, hasKey, hasStory}] */
+/* statsFloor：用哪一層的標準抵達能力算守衛代價。設計用抵達當層（看「現在值不值得」）；稽核用該區最後一層（看「等變強回來也不值得」才算陷阱） */
+function analyzeFloor(f, statsFloor) {
   const m = st0.maps[f];
-  if (!m) continue;
-  const [atk, def] = ARRIVE[f] || [200, 150];
-  const st = Object.assign({}, st0, { hp: HP_AT(f), atk, def, floor: f });
+  if (!m) return [];
+  const sf = statsFloor || f;
+  const [atk, def] = ARRIVE[sf] || [200, 150];
+  const st = Object.assign({}, st0, { hp: HP_AT(sf), atk, def, floor: f });
   const entries = new Set();
   for (let y = 0; y < MT.H; y++) for (let x = 0; x < MT.W; x++) if (m[y][x] === 'UU' || m[y][x] === 'DD') entries.add(y * 100 + x);
   if (f === MT.START.floor) entries.add(MT.START.y * 100 + MT.START.x);
@@ -60,10 +63,9 @@ for (let f = f0; f <= f1; f++) {
     }
     const far = sides.filter(s => !s.entry).sort((a, b) => a.n - b.n)[0];
     if (!far) { rows.push({ door: `${x},${y}`, main: true }); continue; }
-    if (seenRoom.has(far.key)) { rows.push({ door: `${x},${y}`, dup: true }); continue; }   // 同一間房的第二扇門
+    if (seenRoom.has(far.key)) { rows.push({ door: `${x},${y}`, dup: true }); continue; }
     seenRoom.add(far.key);
     const value = far.items.reduce((a, t) => a + worth(t, f), 0);
-    // 守衛代價：房裡每隻怪照標準能力算一次（大型怪多格只算一次）
     const seenMon = new Set(); let cost = 0; const guards = [];
     for (const t of far.mons) {
       const mm = MT.MONSTERS[t];
@@ -73,11 +75,22 @@ for (let f = f0; f <= f1; f++) {
       const d = c.damage == null ? 9999 : c.damage;
       cost += d; guards.push(`${t}:${d}`);
     }
-    rows.push({ door: `${x},${y}`, n: far.n, items: far.items, value, cost, net: value - cost, guards });
+    rows.push({ door: `${x},${y}`, n: far.n, items: far.items, mons: far.mons, value, cost, net: value - cost, guards,
+      hasKey: far.items.some(t => MT.ITEMS[t].kind === 'key'), hasStory: far.items.some(t => ['page', 'note', 'tool'].includes(MT.ITEMS[t].kind)) });
   }
-  console.log(`\n${MT.floorName(f)}（標準抵達 攻 ${atk} 防 ${def}）`);
-  const real = rows.filter(r => !r.main && !r.dup).sort((a, b) => b.net - a.net);
-  for (const r of real) console.log(`  門 ${r.door.padEnd(5)} 淨值 ${String(r.net).padStart(6)}  價值 ${String(r.value).padStart(5)}  代價 ${String(r.cost).padStart(5)}  [${r.items.join(' ')}]  守衛 ${r.guards.join(' ') || '-'}`);
-  const other = rows.filter(r => r.main || r.dup);
-  if (other.length) console.log(`  （主線或同房的第二扇門：${other.map(r => r.door).join('  ')}）`);
+  return rows;
 }
+if (require.main === module) {
+  const [f0, f1] = [+(process.argv[2] || 11), +(process.argv[3] || 19)];
+  for (let f = f0; f <= f1; f++) {
+    const rows = analyzeFloor(f);
+    if (!rows.length) continue;
+    const [atk, def] = ARRIVE[f] || [200, 150];
+    console.log(`\n${MT.floorName(f)}（標準抵達 攻 ${atk} 防 ${def}）`);
+    const real = rows.filter(r => !r.main && !r.dup).sort((a, b) => b.net - a.net);
+    for (const r of real) console.log(`  門 ${r.door.padEnd(5)} 淨值 ${String(r.net).padStart(6)}  價值 ${String(r.value).padStart(5)}  代價 ${String(r.cost).padStart(5)}  [${r.items.join(' ')}]  守衛 ${r.guards.join(' ') || '-'}`);
+    const other = rows.filter(r => r.main || r.dup);
+    if (other.length) console.log(`  （主線或同房的第二扇門：${other.map(r => r.door).join('  ')}）`);
+  }
+}
+module.exports = { analyzeFloor, ARRIVE };
