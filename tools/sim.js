@@ -412,7 +412,7 @@ function keyFuture(st, c, mf) {
   const D = doorValues(), opp = [];
   let supply = 0;
   for (let f = mf + 1; f <= MT.TOP; f++) { if (!D[f]) continue; opp.push(...D[f].doors[c]); supply += D[f].keys[c]; }
-  const left = Math.max(0, MT.keyStockLeft(st, 'keys', c));
+  const left = Math.max(0, stockLeft(st, c));
   if (left !== Infinity) supply += left;
   const price = cheapest(st, c);
   opp.sort((a, b) => b - a);
@@ -428,6 +428,12 @@ function keyFuture(st, c, mf) {
 
 // 兩個商人裡最便宜的「下一把」價格：有 MT.keyPrice（鑰匙越買越貴，strategy-depth）就照它算，沒有就是定價
 const cheapest = (st, c) => Math.min(...['keys', 'keys2'].map(s => (MT.keyPrice ? MT.keyPrice(st, s, c) : MT.SHOPS[s][c]) || Infinity));
+// 兩個商人加起來還買得到幾把 c 色鑰匙（任一家不限量就是 Infinity；各自限量時加總）
+const stockLeft = (st, c) => {
+  const per = MT.KEY_STOCK_SHOP || {};
+  if (!['keys', 'keys2'].some(s => per[s] && per[s][c] != null)) return MT.keyStockLeft(st, 'keys', c);   // 合計限量（或不限）：只算一次，不能兩家相加
+  return ['keys', 'keys2'].reduce((a, s) => (MT.SHOPS[s][c] == null ? a : a + Math.max(0, MT.keyStockLeft(st, s, c))), 0);
+};
 /* 懂規則的盲高手眼中手上 c 色鑰匙的總值（MT_RULE=1）：跟盲高手一樣用固定價、商人買得到時以價格×5 為上限，
    差別只在「知道還會再漲」——上限用的不是現價而是再買 RULE_AHEAD 把之後的價格。沒有漲價機制時和盲高手完全一樣。
    （第一版用「去過樓層的門後價值平均×下一區倍率」當先驗，前期把鑰匙估到幾百、囤著不開門，鐵壁 20 局全滅、14 局卡 15F，0b 基準後拿掉） */
@@ -436,7 +442,7 @@ function ruleKeyValue(st, c, mf) {
   const early = { y: 150, b: 450, r: 900 }[c];
   const step = (MT.KEY_STEP || {})[c] || 0;
   const p6 = MT.keyPrice ? MT.keyPrice(st, 'keys', c) : MT.SHOPS.keys[c];   // 跟 kv 一樣照 6F 的價（不是兩家最便宜的），沒漲價時才會和盲高手一致
-  const v = st.visited.includes(6) && MT.keyStockLeft(st, 'keys', c) > 0 ? Math.min(early, (p6 + step * RULE_AHEAD) * 5) : early;
+  const v = st.visited.includes(6) && stockLeft(st, c) > 0 ? Math.min(early, (p6 + step * RULE_AHEAD) * 5) : early;
   return st.keys[c] * v;
 }
 
@@ -462,7 +468,7 @@ function potential(st, ahead = true, horizon) {
   }
   const z = MT.zoneOf(maxFloor(st));
   // 鑰匙的價值：前期（還買不到）照稀缺估，買得到之後不超過「商人賣價×金幣價值」，免得一直買來囤
-  const kv = (c, early) => (st.visited.includes(6) && MT.keyStockLeft(st, 'keys', c) > 0 ? Math.min(early, (MT.keyPrice ? MT.keyPrice(st, 'keys', c) : MT.SHOPS.keys[c]) * 5) : early);
+  const kv = (c, early) => (st.visited.includes(6) && stockLeft(st, c) > 0 ? Math.min(early, (MT.keyPrice ? MT.keyPrice(st, 'keys', c) : MT.SHOPS.keys[c]) * 5) : early);
   // 主線上樓還要的鑰匙不夠：重罰（等於「這條路走不通」）
   let short = 0;
   const mf = maxFloor(st);

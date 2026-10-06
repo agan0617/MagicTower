@@ -421,8 +421,13 @@
     st.keys[what]--; st.gold += price;
     return true;
   };
-  // 限量鑰匙還剩幾把（沒限量回傳 Infinity）
-  MT.keyStockLeft = (st, shop, what) => { const n = (MT.KEY_STOCK || {})[what]; return n == null ? Infinity : n - (st.shops['keys:' + what] || 0); };   // 兩個商人合計
+  // 限量鑰匙還剩幾把（沒限量回傳 Infinity）。MT.KEY_STOCK_SHOP[shop][what] 是每個商人各自的庫存（6F、13F 各一批，後段有補給點）；
+  // 沒有的話看 MT.KEY_STOCK[what]：兩個商人合計（金鑰匙用這個）
+  MT.keyStockLeft = (st, shop, what) => {
+    const per = (MT.KEY_STOCK_SHOP || {})[shop];
+    if (per && per[what] != null) return per[what] - (st.shops['stock:' + shop + ':' + what] || 0);
+    const n = (MT.KEY_STOCK || {})[what]; return n == null ? Infinity : n - (st.shops['keys:' + what] || 0);
+  };
   // 這把鑰匙現在賣多少（3.3 鑰匙越買越貴）：定價＋KEY_STEP×已經買過的把數，兩個商人合計、不會重置；沒賣的回傳 null
   MT.keyBought = (st, what) => st.shops['keys:' + what] || 0;
   MT.keyPrice = (st, shop, what) => { const base = MT.SHOPS[shop][what]; return base == null ? null : base + ((MT.KEY_STEP || {})[what] || 0) * MT.keyBought(st, what); };
@@ -432,7 +437,8 @@
       if (price == null || st.gold < price) return false;   // 沒賣價＝這家不賣
       if (MT.keyStockLeft(st, shop, what) <= 0) return false;   // 限量的賣完了
       st.gold -= price; st.keys[what]++;
-      st.shops['keys:' + what] = MT.keyBought(st, what) + 1;   // 三色都計數（限量與漲價都靠它）
+      st.shops['keys:' + what] = MT.keyBought(st, what) + 1;   // 兩商人合計的計數（合計限量與漲價靠它）
+      st.shops['stock:' + shop + ':' + what] = (st.shops['stock:' + shop + ':' + what] || 0) + 1;   // 這個商人自己的計數（各自限量靠它；'keys:y' 是合計的，不能撞）
       return true;
     }
     const price = MT.shopPrice(st, shop);
