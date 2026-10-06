@@ -661,7 +661,9 @@ const bossDead = (st, f) => !MT.NOFLY[f] || !MT.findTile(st, f, MT.NOFLY[f]);
 const finished = st => st.done || (TOPF < MT.TOP && maxFloor(st) >= TOPF && bossDead(st, TOPF));
 function solveHuman(opt = {}) {
   const width = opt.width || 4, noise = opt.noise || 0, rng = rngOf(opt.seed || 1);
-  let beam = [newRun(opt)];
+  // opt.start：從存下來的局面接著跑（小範圍模擬用真實的高手狀態當起點，tools/late.js）
+  const start = () => { const s = clone(opt.start); if (opt.log) s.log = null; return s; };
+  let beam = [opt.start ? start() : newRun(opt)];
   collect(beam[0], opt);
   let committed = maxFloor(beam[0]), best = null, depth = 0, last = beam;
   let retries = opt.retry != null ? opt.retry : (vet(opt.ahead) && !RETRY_ALL) ? 0 : RETRY;
