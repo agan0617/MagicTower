@@ -1,5 +1,5 @@
 /* 小範圍模擬（後期）：從存下來的「高手第一次到 16F」局面接著跑到通關，比較改參數前後的技能上限與 S。
-   存檔由完整高手跑一次產生（每行 {skill, seed, snap}，snap＝sim 的局面）；改 Lv3 參數這類只影響後期的東西，用它幾十秒一輪。
+   存檔用 tools/snap.js 產生（每行 {skill, seed, snap}，snap＝sim 的局面）；改 Lv3 參數這類只影響後期的東西，用它幾十秒一輪。
    用法：node tools/late.js <存檔 jsonl> [--mt '<JSON>'] [--jobs 8] [--noise 500]
    注意：起點是舊參數跑出來的 16F 狀態，16F 以前就生效的改動（例如鐵壁 Lv3 在勇者 Lv22 就升得到）會被低估，定案仍要完整驗收 */
 'use strict';
