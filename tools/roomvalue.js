@@ -51,8 +51,10 @@ function analyzeFloor(f, statsFloor) {
     return { items, mons, entry, n: seen.size, key: [...seen].sort().join(',') };
   };
   const rows = [], seenRoom = new Set();
+  const mainSet = new Set(S.mainDoors(st0, f));   // 主線上的門（兩道主線門之間的走廊不是房間）
   for (let y = 0; y < MT.H; y++) for (let x = 0; x < MT.W; x++) {
     if (m[y][x] !== 'Yd') continue;
+    if (mainSet.has(x + ',' + y)) { rows.push({ door: `${x},${y}`, main: true }); continue; }
     const sides = [];
     for (const [dx, dy] of D4) {
       const nx = x + dx, ny = y + dy;
@@ -93,4 +95,4 @@ if (require.main === module) {
     if (other.length) console.log(`  （主線或同房的第二扇門：${other.map(r => r.door).join('  ')}）`);
   }
 }
-module.exports = { analyzeFloor, ARRIVE };
+module.exports = { analyzeFloor, ARRIVE, st0 };   // st0 讓外面的工具改地圖後重算

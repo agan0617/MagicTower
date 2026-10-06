@@ -697,4 +697,4 @@ function solveHuman(opt = {}) {
 }
 
 function setSkills(list) { skillChoices = list; }
-module.exports = { doorValues, setSkills, logList, newRun, MT, clone, collect, frontier, actions, doAction, potential, solveWeak, solveMid, solveStrong, solveHuman, maxFloor };
+module.exports = { doorValues, mainDoors, setSkills, logList, newRun, MT, clone, collect, frontier, actions, doAction, potential, solveWeak, solveMid, solveStrong, solveHuman, maxFloor };
