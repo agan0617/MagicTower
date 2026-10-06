@@ -334,6 +334,7 @@
     golem: { type: 'square', f: [70, 90], dur: 0.09, peak: 0.08, lp: 450 },
     siren: { type: 'sine', f: [700, 900], dur: 0.07, peak: 0.08, bend: 1.25, detune: 12 },
     maestro: { type: 'sawtooth', f: [90, 105], dur: 0.09, peak: 0.08, lp: 650, detune: 7 },
+    maestroRage: { type: 'sawtooth', f: [85, 125], dur: 0.07, peak: 0.1, lp: 900, detune: 14 },   // 失控的指揮家：同一把聲音但更粗、音高抖得更兇（3.2.75）
     harpghost: { type: 'sine', f: [600, 780], dur: 0.08, peak: 0.08, detune: 100 },
     soldier: { type: 'square', f: [260, 320], dur: 0.05, peak: 0.045, bend: 0.9 },
     guard: { type: 'square', f: [200, 250], dur: 0.05, peak: 0.05 },

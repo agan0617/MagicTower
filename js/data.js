@@ -63,10 +63,11 @@
     K4: { hp: 6000, atk: 374, def: 185, gold: 200, exp: 150, size: 2, sprite: 'conductor', sp: ['boss', 'magic'] },     // 18F 回音指揮
     M1: { hp: 9999, atk: 350, def: 200, gold: 0, exp: 0, size: 3, sprite: 'maestroBig', sp: ['boss', 'invincible'], onBump: 'maestroDrum' },
     M2: { hp: 4800, atk: 500, def: 200, gold: 0, exp: 0, size: 3, sprite: 'maestroBig', sp: ['boss'], onDeath: 'maestroPhase2' },
-    // 二階段「失控的指揮家」（3.2.44 Ken 指定）：面具裂一半、攻擊很高防禦很低——攻擊夠的人很快打完，攻擊不夠的會被拖垮；
+    // 二階段「失控的指揮家」（3.2.44 Ken 指定）：攻擊很高防禦很低——攻擊夠的人很快打完，攻擊不夠的會被拖垮；
+    // 3.2.75 起換成大吼的臉（maestroRageBig，姿勢同一階段），對話頭像也換成 maestroRage；
     // 身上有失落的音符（真結局路線）時換成 M4：音符發光讓他慢一拍
-    M3: { hp: 3500, atk: 600, def: 140, gold: 0, exp: 0, size: 3, sprite: 'maestroBig', pal: 'maestroRage', sp: ['boss'], onDeath: 'ending' },
-    M4: { hp: 3000, atk: 560, def: 140, gold: 0, exp: 0, size: 3, sprite: 'maestroBig', pal: 'maestroRage', sp: ['boss'], onDeath: 'ending' },
+    M3: { hp: 3500, atk: 600, def: 140, gold: 0, exp: 0, size: 3, sprite: 'maestroRageBig', pal: 'maestroRage', sp: ['boss'], onDeath: 'ending' },
+    M4: { hp: 3000, atk: 560, def: 140, gold: 0, exp: 0, size: 3, sprite: 'maestroRageBig', pal: 'maestroRage', sp: ['boss'], onDeath: 'ending' },
   };
 
   // 同區域的數值：[1區, 2區, 3區, 4區]
@@ -817,7 +818,7 @@
       ['sfx', 'heartbeat'], ['wait', 900],
       ['phase2'],
       ['fadeIn', ['M3', 'M4'], 2400],   // 失控的指揮家慢慢浮現（3.2.53 Ken 指定）
-      ['say', 'maestro', 'p2_1'],
+      ['say', 'maestroRage', 'p2_1'],
       ['branch', 'hasNote', 'noteGlow'],
       ['fairy', true],
       ['say', 'doremi', 'p2_2'],
@@ -832,7 +833,7 @@
     ending: [
       ['music', 'none'],
       ['wait', 500],
-      ['say', 'maestro', 'end_1'],
+      ['say', 'maestroRage', 'end_1'],
       ['say', 'tink', 'end_2'],
       // 面具裂開：舞台中央換成沒戴面具的指揮家（＝阿爾特自己的臉）
       ['sfx', 'boom'], ['flash', '#fff'], ['swap', 'M3', '..'], ['swap', 'M4', '..'], ['set', 5, 1, 'Mz'],

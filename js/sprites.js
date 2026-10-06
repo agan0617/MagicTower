@@ -374,6 +374,13 @@
       '..Vvssss', '..Vvvssm', '..Vvvvss', '.Vvvvvvv', 'Vvvvvvvv', 'Vvvvvvvv',
       'Vvvvvvvv', '.Vvvvvvv', '..Vvvvvv', '...Vvvvv',
     ] },
+    // 失控的指揮家（二階段的對話頭像，3.2.75 Ken 指定）：頭身比例與 maestro 一樣，只換表情——
+    // 眉骨壓下來的吊眼、咧到腮的大吼、上下排牙、暗紅口腔；配 pal maestroRage（紅輪廓、金眼）
+    maestroRage: { sym: true, rows: [
+      '.....V.V', '....Vvvv', '...Vvvvv', '..Vvvwww', '..Vvkkww', '..Vvkxkw',
+      '..VvkwRw', '..VvkRwR', '..Vvvwkk', '.Vvvvvvw', 'Vvvvvvvv', 'Vvvvvvvv',
+      'Vvvvvvvv', '.Vvvvvvv', '..Vvvvvv', '...Vvvvv',
+    ] },
     // 序章廣場上唱歌的鎮民：1／2 衣服、3 頭髮，換 pal 就是不同的人；Sing 是張嘴的那一格
     villager: { sym: true, rows: [
       '........', '.....kkk', '....k333', '...k3333', '...k33ss', '...kssss',
@@ -940,6 +947,34 @@
       '.....VvvwkkkkkkwvvV.VvV.',
       '......VvvwwwwwwvvV..VvV.',
       '.....VVvvvvvvvvvvVvvvvV.',
+      '...VVvvvvvvvvvvvvvvvvvV.',
+      '.VVvvvvvvvvvvvvvvvvvvvV.',
+      'VvvvvvvPvvvvvvvvPvvvvV..',
+      'VvvVvvvvPvvvvvvPvvvvV...',
+      'Vvv.VvvvvPvvvvPvvvvvV...',
+      'VvV.VvvvvvPvvPvvvvvV....',
+      'V.V..VvvvvvvvvvvvvvV....',
+      '.....VvvPvvvvvvPvvV.....',
+      '......VvvVvvvvVvvV......',
+      '.......V.vvVVvv.V.......',
+      '........V..vv..V........',
+    ] },
+    // 失控的指揮家（大，3.2.75 Ken 指定）：姿勢、指揮棒、煙都跟 maestroBig 一樣，只把微笑面具換成大吼——
+    // 壓下來的眉骨＋吊眼、咧到腮的大嘴、上下排牙、暗紅口腔，下巴掉下來一格；配 pal maestroRage
+    maestroRageBig: { size: 24, rows: [
+      '.......V.V.VV.V.V......w',
+      '......VvVvVvvVvVvV.....w',
+      '......VvvvvvvvvvvV....w.',
+      '.....VvvvvvvvvvvvvV...w.',
+      '.....VvvwwwwwwwwvvV.VVw.',
+      '.....VvkkwwwwwwkkvV.VvV.',
+      '.....VvkxkwwwwkxkvV.VvV.',
+      '.....VvwxkwwwwkxwvV.VvV.',
+      '.....VvkwRwRRwRwkvV.VvV.',
+      '.....VvkRRRRRRRRkvV.VvV.',
+      '.....VvvkRwRRwRkvvV.VvV.',
+      '......VvwkkkkkkwvV..VvV.',
+      '.....VVvvwwwwwwvvVvvvvV.',
       '...VVvvvvvvvvvvvvvvvvvV.',
       '.VVvvvvvvvvvvvvvvvvvvvV.',
       'VvvvvvvPvvvvvvvvPvvvvV..',

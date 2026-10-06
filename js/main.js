@@ -57,7 +57,7 @@
   }
   const PORTRAIT = {
     tink: ['heroDown'], doremi: ['fairy'], bard: ['bard'], golem: ['drumgolem'], siren: ['siren'],
-    maestro: ['maestro'], harpghost: ['harp'], frog: ['frog'], shadow: ['maestroBare'],
+    maestro: ['maestro'], maestroRage: ['maestroRage', 'maestroRage'], harpghost: ['harp'], frog: ['frog'], shadow: ['maestroBare'],
     porter: ['porter'], soldier: ['soldier'], guard: ['soldier', 'lastGuard'], pigeon: ['pigeon'], mirrorgirl: ['mirrorGirl'],
     echo: ['echoMirror'], astrologer: ['astrologer'], lost: ['fairy'], granny: ['granny'], thief: ['thief'],
     harpist: ['harpist'], metronome: ['metronome', 'metroA'], cousin: ['frogCousin'], apprentice: ['apprentice'], smith: ['smith'],
