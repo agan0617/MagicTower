@@ -61,7 +61,7 @@ function collect(st, opt) {
       reach.push([f, x, y]);
       const t0 = MT.tile(st, f, x, y);
       const hop = (nf, code) => {
-        if (nf < MT.BOTTOM || nf > TOPF) return;   // 小範圍模擬：TOPF 以上不去
+        if (nf < MT.BOTTOM || nf > MT.TOP) return;
         const p = MT.findTile(st, nf, code);
         if (!p) return;
         const k = nf + ',' + p[0] + ',' + p[1];
@@ -247,7 +247,7 @@ const GVN = +process.env.MT_GVN || 0;   // 沒看過整座塔的人眼中金幣�
 const TE = process.env.MT_TE != null ? +process.env.MT_TE : 2500;
 const CAP = +process.env.MT_CAP || 3000;   // 一隻怪最多算多少傷害
 // ahead＝'blind'：老手的判斷力（金幣經驗估價、真結局、找暗牆、怪值不值得打都跟 'all' 一樣），但不知道還沒去過的樓層有什麼。
-// 跟 'all' 比分數＝「知道後面樓層」值多少，用來量跨樓層規劃的深度（strategy-depth；量法與結論見 docs/DESIGN.md）
+// 跟 'all' 比分數＝「知道後面樓層」值多少，用來量跨樓層規劃的深度（strategy-depth；量法與結論見 DESIGN.md）
 const vet = ahead => ahead === 'all' || ahead === 'blind';
 const KF = process.env.MT_KF !== '0';   // 老手照「留到後面能開哪扇門」估鑰匙（keyFuture）；0＝照舊用固定價
 const KEEP = process.env.MT_KEEP !== '0';   // 老手知道要留一把金鑰匙拿音符；0＝關掉（量基準差距的組成用）
@@ -259,8 +259,6 @@ const RULE = process.env.MT_RULE === '1';
 // 盲高手眼中去過的樓層怪都死光了，攻防一文不值，只買血、金幣囤到通關——基準 42 個百分點的差距全是這個。
 // 真人沒看過樓上也知道「後面還有十層怪、攻防會用到」，所以給盲高手：每點攻／防值 FUT 點生命 ×（剩下幾層／總層數）
 const FUT = process.env.MT_FUT != null ? +process.env.MT_FUT : 200;
-const RESERVE = process.env.MT_RESERVE != null ? +process.env.MT_RESERVE : 2;   // 盲高手限量時留幾把銅鑰匙備用
-const SHORT = +process.env.MT_SHORT || 8000;   // 這層主線還缺一把鑰匙的罰則（原 4000，比 19F 大房間的 4865 小，連高手都會先開房間再卡死）
 
 /* 這隻怪值不值得打（3.2.55）：拿開局的地圖算「把這格堵住，會少走到哪些格子」＝牠守著的東西。
    守著樓梯、NPC、劇情道具（日記、圖鑑、鑿子…）＝必經，傷害照算；
@@ -408,62 +406,37 @@ function mainDoors(st, f) {
   for (let k = to.join(); k && prev.has(k); k = prev.get(k)) { const [x, y] = k.split(',').map(Number); if (MT.DOORS[m[y][x]]) out.push(k); }
   return out;
 }
-/* 老手眼中手上 c 色鑰匙的總值（keyFuture，strategy-depth 4）：從下一層走到頂樓逐層記帳——每層先把走廊撿得到的鑰匙加進來、
-   先付主線門、再用剩下的開那層最值錢的房間（商人在的那層加上庫存）。手上鑰匙的價值＝「帶著這幾把走」比「空手走」多開到的房間總值。
-   舊版把後面樓層所有鑰匙都當成能用在任何門的供給，所以不會為 19F 的大房間省鑰匙（F1：連高手都先開 19F 支線房然後上不了樓） */
+/* 老手眼中手上 c 色鑰匙的總值：後面樓層（還沒去過）的門照價值排，後面撿得到的鑰匙＋商人還買得到的先拿去開最好的那幾扇，
+   手上這幾把的價值＝接下來那幾扇。商人沒限量時最多值「賣價×5」（跟一般玩家的 kv 一樣） */
 function keyFuture(st, c, mf) {
-  const D = doorValues();
-  const walk = carry => {
-    let got = 0;
-    for (let f = mf + 1; f <= TOPF; f++) {
-      if (!D[f]) continue;
-      carry += D[f].keys[c];
-      for (const [sf, shop] of [[6, 'keys'], [13, 'keys2']]) if (f === sf && MT.SHOPS[shop][c] != null) { const l = MT.keyStockLeft(st, shop, c); carry += l === Infinity ? 99 : Math.max(0, l); }   // 商人那層把庫存算進供給
-      const doors = D[f].doors[c].slice().sort((a, b) => b - a);
-      for (const v of doors) {
-        if (v === MAIN) { carry--; continue; }   // 主線一定開（開不了＝這條路走不通，由 short 罰）
-        if (carry <= 0) break;
-        if (v <= 0) break;
-        carry--; got += v;
-      }
-      if (carry < 0) carry = 0;
-    }
-    return got;
-  };
-  const base = walk(0);
+  const D = doorValues(), opp = [];
+  let supply = 0;
+  for (let f = mf + 1; f <= MT.TOP; f++) { if (!D[f]) continue; opp.push(...D[f].doors[c]); supply += D[f].keys[c]; }
+  const left = Math.max(0, MT.keyStockLeft(st, 'keys', c));
+  if (left !== Infinity) supply += left;
+  const price = cheapest(st, c);
+  opp.sort((a, b) => b - a);
   let v = 0;
-  for (let i = 1; i <= st.keys[c]; i++) v += Math.max(1, walk(i) - walk(i - 1));   // 第 i 把的邊際價值（至少 1，免得同分亂花）
-  // 商人還買得到時，一把鑰匙不會比「現在去買一把」更值錢
-  if (st.visited.includes(6) && stockLeft(st, c) === Infinity) v = Math.min(v, st.keys[c] * cheapest(st, c) * 5);   // 限量時不設這個上限，不然會把「省給 19F 大房間」的價值蓋掉
+  for (let i = 0; i < st.keys[c]; i++) {
+    const j = supply + i;
+    let w = j < opp.length ? opp[j] : 0;
+    if (left === Infinity && st.visited.includes(6)) w = Math.min(w, price * 5);
+    v += Math.max(w, 1);   // 至少留一點價值，免得同分時亂花
+  }
   return v;
 }
 
 // 兩個商人裡最便宜的「下一把」價格：有 MT.keyPrice（鑰匙越買越貴，strategy-depth）就照它算，沒有就是定價
 const cheapest = (st, c) => Math.min(...['keys', 'keys2'].map(s => (MT.keyPrice ? MT.keyPrice(st, s, c) : MT.SHOPS[s][c]) || Infinity));
-// 兩個商人加起來還買得到幾把 c 色鑰匙（任一家不限量就是 Infinity；各自限量時加總）
-const stockLeft = (st, c) => {
-  const per = MT.KEY_STOCK_SHOP || {};
-  if (!['keys', 'keys2'].some(s => per[s] && per[s][c] != null)) return MT.keyStockLeft(st, 'keys', c);   // 合計限量（或不限）：只算一次，不能兩家相加
-  return ['keys', 'keys2'].reduce((a, s) => (MT.SHOPS[s][c] == null ? a : a + Math.max(0, MT.keyStockLeft(st, s, c))), 0);
-};
 /* 懂規則的盲高手眼中手上 c 色鑰匙的總值（MT_RULE=1）：跟盲高手一樣用固定價、商人買得到時以價格×5 為上限，
    差別只在「知道還會再漲」——上限用的不是現價而是再買 RULE_AHEAD 把之後的價格。沒有漲價機制時和盲高手完全一樣。
    （第一版用「去過樓層的門後價值平均×下一區倍率」當先驗，前期把鑰匙估到幾百、囤著不開門，鐵壁 20 局全滅、14 局卡 15F，0b 基準後拿掉） */
 const RULE_AHEAD = +process.env.MT_RULE_AHEAD || 3;
-// 懂規則的人另外知道「越後面的房間越值錢」（遊戲裡商人講的方向性提示，不是地圖；F4：護欄 1 從 35.9% 降到 6.8%）——
-// 鑰匙限量時，手上每把鑰匙至少值「下一區支線房間的平均價值」（照 doorValues 算的設計常數，不看特定房間）
-const RULE_ZONE = process.env.MT_RULE_ZONE !== '0';   // 預設開：遊戲裡 6F 商人已講「越往上的門後面越值得」，讀過說明的人就有這條；0＝關掉看沒提示時的差距
-let zoneAvgCache = null;
-function zoneAvg(c, z) {
-  if (!zoneAvgCache) { zoneAvgCache = {}; const D = doorValues(); for (const col of ['y', 'b', 'r']) { zoneAvgCache[col] = {}; for (let zz = 1; zz <= 4; zz++) { const vs = []; for (let f = 1; f <= MT.TOP; f++) if (D[f] && MT.zoneOf(f) === zz) for (const v of D[f].doors[col]) if (v !== MAIN && v > 0) vs.push(v); zoneAvgCache[col][zz] = vs.length ? vs.reduce((a, b) => a + b, 0) / vs.length : 0; } } }
-  return zoneAvgCache[c][Math.min(4, z)] || 0;
-}
 function ruleKeyValue(st, c, mf) {
   const early = { y: 150, b: 450, r: 900 }[c];
   const step = (MT.KEY_STEP || {})[c] || 0;
   const p6 = MT.keyPrice ? MT.keyPrice(st, 'keys', c) : MT.SHOPS.keys[c];   // 跟 kv 一樣照 6F 的價（不是兩家最便宜的），沒漲價時才會和盲高手一致
-  let v = st.visited.includes(6) && stockLeft(st, c) > 0 ? Math.min(early, (p6 + step * RULE_AHEAD) * 5) : early;
-  if (RULE_ZONE && stockLeft(st, c) !== Infinity && mf < TOPF) v = Math.max(v, zoneAvg(c, MT.zoneOf(mf) + 1) * 0.5);   // 打五折：只是「大概更值錢」的印象，不是精算
+  const v = st.visited.includes(6) && MT.keyStockLeft(st, 'keys', c) > 0 ? Math.min(early, (p6 + step * RULE_AHEAD) * 5) : early;
   return st.keys[c] * v;
 }
 
@@ -471,7 +444,7 @@ function ruleKeyValue(st, c, mf) {
    不然「上去看一眼」的局面會因為多算一整層怪的傷害而永遠排不到前面，盲高手就變成「不把這層清光絕不上樓」，
    基準量出 42 個百分點的差距其實是這個偏差（strategy-depth 0b）。真人不知道樓上有什麼也會先上去看 */
 function potential(st, ahead = true, horizon) {
-  const top = ahead === 'all' ? TOPF : ahead === 'blind' ? Math.min(maxFloor(st), horizon == null ? TOPF : horizon) : Math.min(TOPF, maxFloor(st) + (ahead ? 1 : 0));
+  const top = ahead === 'all' ? MT.TOP : ahead === 'blind' ? Math.min(maxFloor(st), horizon == null ? MT.TOP : horizon) : Math.min(MT.TOP, maxFloor(st) + (ahead ? 1 : 0));
   let dmg = 0;
   for (let f = 1; f <= top; f++) {
     const m = st.maps[f], seen = new Set();
@@ -489,11 +462,11 @@ function potential(st, ahead = true, horizon) {
   }
   const z = MT.zoneOf(maxFloor(st));
   // 鑰匙的價值：前期（還買不到）照稀缺估，買得到之後不超過「商人賣價×金幣價值」，免得一直買來囤
-  const kv = (c, early) => (st.visited.includes(6) && stockLeft(st, c) > 0 ? Math.min(early, (MT.keyPrice ? MT.keyPrice(st, 'keys', c) : MT.SHOPS.keys[c]) * 5) : early);
+  const kv = (c, early) => (st.visited.includes(6) && MT.keyStockLeft(st, 'keys', c) > 0 ? Math.min(early, (MT.keyPrice ? MT.keyPrice(st, 'keys', c) : MT.SHOPS.keys[c]) * 5) : early);
   // 主線上樓還要的鑰匙不夠：重罰（等於「這條路走不通」）
   let short = 0;
   const mf = maxFloor(st);
-  if (mf < TOPF) {
+  if (mf < MT.TOP) {
     const need = stairNeed(st, mf);
     if (need) short = Math.max(0, need.y - st.keys.y) + Math.max(0, need.b - st.keys.b) * 2 + Math.max(0, need.r - st.keys.r) * 4;
   }
@@ -509,33 +482,18 @@ function potential(st, ahead = true, horizon) {
   const kval = ahead === 'all' && KF ? ['y', 'b', 'r'].reduce((a, c) => a + keyFuture(st, c, mf), 0)
     : ahead === 'blind' && RULE ? ['y', 'b', 'r'].reduce((a, c) => a + ruleKeyValue(st, c, mf), 0)
     : st.keys.y * kv('y', 150) + st.keys.b * kv('b', 450) + st.keys.r * kv('r', 900);
-  const fut = ahead === 'blind' ? (st.atk + st.def) * FUT * (TOPF - mf) / TOPF : 0;
-  // 盲高手／懂規則：鑰匙限量（商人買不到或快買不到）時手上留 RESERVE 把銅鑰匙給上樓用——看到「剩 N 把」會留備用是常識，不是地圖知識。
-  // 高手也要：keyFuture 把後面樓層撿得到的鑰匙都算成供給，主線門的保留會被沖掉（11～15F 窗口裡高手 9 局卡 14F）
-  const reserve = vet(ahead) && mf < TOPF && stockLeft(st, 'y') !== Infinity && st.keys.y < RESERVE ? (RESERVE - st.keys.y) * 2000 : 0;
-  return lean + te + keep + fut - reserve + st.hp - dmg - short * SHORT + kval + st.gold * gv + st.exp * ev + (st.items.chisel || 0) * 300 * z;
+  const fut = ahead === 'blind' ? (st.atk + st.def) * FUT * (MT.TOP - mf) / MT.TOP : 0;
+  return lean + te + keep + fut + st.hp - dmg - short * 4000 + kval + st.gold * gv + st.exp * ev + (st.items.chisel || 0) * 300 * z;
 }
 
 function newRun(opt) {
   const st = MT.newGame();
   if (opt && opt.log) st.log = null;
-  if (FROM > 1) {   // 小範圍模擬：站在 FROM 層的下樓梯位置、樓梯封掉，能力照 ARRIVE 表
-    const A = ARRIVE[FROM];
-    if (!A) throw new Error('MT_FROM 只支援 ' + Object.keys(ARRIVE).join('/'));
-    const dd = MT.findTile(st, FROM, 'DD');
-    MT.setTile(st, FROM, dd[0], dd[1], '..');
-    Object.assign(st, { floor: FROM, x: dd[0], y: dd[1], hp: A.hp, atk: A.atk, def: A.def, lv: A.lv, exp: A.exp, gold: A.gold, visited: [FROM] });
-    st.keys = Object.assign({}, A.keys); Object.assign(st.items, A.items); st.layers = A.layers.slice();
-    if (A.skillLv) st.skill = { type: skillChoices[0], lv: A.skillLv };
-    return st;
-  }
   const id = MT.stepTrigger(st);
   if (id) MT.runScriptState(st, id);
   return st;
 }
-// 小範圍模擬的分數：跑到 TOPF 不是終點，攻防與資源都還要帶上去，所以不能只算生命——每點攻防算 100 血、金幣與經驗各算 1、鑰匙照固定價
-const miniScore = st => Math.round(st.hp + (st.atk + st.def) * 100 + st.gold + st.exp + st.keys.y * 150 + st.keys.b * 450 + st.keys.r * 900);
-const result = (st, extra) => Object.assign({ st, done: st.done, score: st.done ? (TOPF < MT.TOP ? miniScore(st) : MT.rating(st).score) : null, grade: st.done ? (TOPF < MT.TOP ? '-' : MT.rating(st).grade) : null }, extra || {});
+const result = (st, extra) => Object.assign({ st, done: st.done, score: st.done ? MT.rating(st).score : null, grade: st.done ? MT.rating(st).grade : null }, extra || {});
 
 /* 新手：門有鑰匙就開、怪挑最便宜的、祭壇只買生命、交易有錢就接、不找暗牆 */
 function solveWeak(opt = {}) {
@@ -555,7 +513,6 @@ function solveWeak(opt = {}) {
       || as.find(a => a.kind === 'buy' && (a.what === 'y' || a.what === 'b'));
     if (!pick) break;
     doAction(st, pick);
-    if (finished(st)) st.done = true;
   }
   return result(st);
 }
@@ -580,7 +537,6 @@ function solveMid(opt = {}) {
     }
     if (!best) break;
     doAction(st, best);
-    if (finished(st)) st.done = true;
   }
   return result(st);
 }
@@ -606,7 +562,6 @@ function solveStrong(opt = {}) {
         const s2 = clone(st);
         if (!doAction(s2, a)) continue;
         collect(s2, opt);
-        if (finished(s2)) s2.done = true;
         if (s2.done) { const sc = MT.rating(s2).score; if (!best || sc > best.score) best = { st: s2, score: sc }; continue; }
         const g = sig(s2);
         if (seen.has(g)) continue;
@@ -641,31 +596,11 @@ function rngOf(seed) {   // mulberry32
   let a = seed >>> 0;
   return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
 }
-/* 讀檔退回上一層（key-economy，Ken 指定）：一般玩家卡住（沒路可走又沒通關）時，退回「上一層剛到達時」的存檔重試，
-   亂數接續所以走法會不同——真人在 12F 發現鑰匙不夠會讀 11F 的檔少開幾扇門，不是直接算死。
-   次數 MT_RETRY（預設 1），四組都適用（MT_RETRY_ALL=0 時只給一般玩家）*/
-const RETRY = process.env.MT_RETRY != null ? +process.env.MT_RETRY : 1;
-const RETRY_ALL = process.env.MT_RETRY_ALL !== '0';   // 預設四組都會讀檔（Ken 2026-10-06 定：不然護欄 2 比的是「會不會讀檔」而不是「知不知道後面」）；0＝只有一般玩家讀檔
-/* 小範圍模擬（strategy-depth 4，Ken 指定）：MT_FROM＝從哪一層以標準抵達能力起跑（下樓梯封掉、下面樓層不算）、
-   MT_TOP＝到哪一層算完（那層的 Boss 打倒、或沒 Boss 時一踏上去）。幾秒跑完一局，拿來看「調什麼會動什麼」；
-   絕對數字對不上全塔目標，方向對了再跑全塔確認 */
-const TOPF = +process.env.MT_TOP || MT.TOP;
-const FROM = +process.env.MT_FROM || 0;
-// 標準抵達能力（高手與盲高手真人型到該層時的中間值，3.2.74 的軌跡）：血給得比高手厚一點，免得小範圍一開局就死
-const ARRIVE = {
-  6: { hp: 800, atk: 65, def: 48, lv: 6, exp: 0, gold: 150, keys: { y: 3, b: 2, r: 0 }, items: { book: 1, chisel: 1 }, layers: ['drums'] },
-  11: { hp: 1500, atk: 139, def: 110, lv: 15, exp: 0, gold: 300, keys: { y: 2, b: 1, r: 1 }, items: { book: 1, fly: 1, chisel: 1 }, layers: ['drums', 'strings'], skillLv: 1 },
-  16: { hp: 3000, atk: 221, def: 197, lv: 21, exp: 0, gold: 450, keys: { y: 3, b: 1, r: 1 }, items: { book: 1, fly: 1, chisel: 1 }, layers: ['drums', 'strings', 'flute'], skillLv: 2 },
-};
-const bossDead = (st, f) => !MT.NOFLY[f] || !MT.findTile(st, f, MT.NOFLY[f]);
-const finished = st => st.done || (TOPF < MT.TOP && maxFloor(st) >= TOPF && bossDead(st, TOPF));
 function solveHuman(opt = {}) {
   const width = opt.width || 4, noise = opt.noise || 0, rng = rngOf(opt.seed || 1);
   let beam = [newRun(opt)];
   collect(beam[0], opt);
   let committed = maxFloor(beam[0]), best = null, depth = 0, last = beam;
-  let retries = opt.retry != null ? opt.retry : (vet(opt.ahead) && !RETRY_ALL) ? 0 : RETRY;
-  const saves = [clone(beam[0])];   // 每層剛到達時的存檔（開局算第一份）
   while (beam.length && depth++ < 4000) {
     last = beam;
     const next = [], seen = new Set();
@@ -675,7 +610,6 @@ function solveHuman(opt = {}) {
         const s2 = clone(st);
         if (!doAction(s2, a)) continue;
         collect(s2, opt);
-        if (finished(s2)) s2.done = true;
         if (s2.done) { const sc = MT.rating(s2).score; if (!best || sc > best.score) best = { st: s2, score: sc }; continue; }
         const g = sig(s2);
         if (seen.has(g)) continue;
@@ -686,19 +620,12 @@ function solveHuman(opt = {}) {
     }
     next.sort((a, b) => b._p - a._p);
     // 最好的那個局面到了新樓層：存檔，從這裡重新開始試
-    if (next.length && maxFloor(next[0]) > committed) { committed = maxFloor(next[0]); beam = [next[0]]; saves.push(clone(next[0])); continue; }
+    if (next.length && maxFloor(next[0]) > committed) { committed = maxFloor(next[0]); beam = [next[0]]; continue; }
     const keep = next.slice(0, width), groups = new Map();
     for (const s of next) { const k = maxFloor(s) + ':' + (s.keys.y > 0 ? 1 : 0); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(s); }
     for (const g of groups.values()) for (const s of g.slice(0, Math.max(1, width >> 2))) if (!keep.includes(s)) keep.push(s);
     beam = keep;
     if (best && beam.every(s => s.hp + s.gold * 6 < best.score * 0.5)) break;
-    // 走投無路、還沒通關：讀上一層的檔重來（這層的存檔丟掉）
-    if (!beam.length && !best && retries > 0 && saves.length >= 2) {
-      retries--; saves.pop();
-      const back = clone(saves[saves.length - 1]);
-      back.retried = (back.retried || 0) + 1;   // 記在局面上，報表看得出這局讀過檔
-      beam = [back]; last = beam; committed = maxFloor(back);
-    }
   }
   if (best) return result(best.st);
   const far = last.slice().sort((a, b) => maxFloor(b) - maxFloor(a) || b._p - a._p)[0];
@@ -706,4 +633,4 @@ function solveHuman(opt = {}) {
 }
 
 function setSkills(list) { skillChoices = list; }
-module.exports = { doorValues, mainDoors, setSkills, logList, newRun, MT, clone, collect, frontier, actions, doAction, potential, solveWeak, solveMid, solveStrong, solveHuman, maxFloor };
+module.exports = { doorValues, setSkills, logList, newRun, MT, clone, collect, frontier, actions, doAction, potential, solveWeak, solveMid, solveStrong, solveHuman, maxFloor };

@@ -96,7 +96,7 @@
   MT.SKILL = {
     absorb: [1, 1.35, 1.5, 1.7],              // 防禦倍數（3.2.64 以前是「每下少受 20／35／50%」）
     absorbCap: [0, 90, 120, 100],              // 鐵壁加的防禦最多這麼多（3.2.68 Ken 指定：最穩、天花板最低；不讓有效防禦一路衝過最終魔王的攻擊。3.2.73 滿級 130→100）
-    reflect: [0, 0.76, 1.05, 3.8],            // 彈回去的比例（以那一下實際打到的傷害算）。3.2.73 滿級 200%→380%，但要 Lv30 才升得到：高手上限在鐵壁與連擊中間；3.3.0 Lv1／Lv2 80／110%→76／105%：限量鑰匙經濟下大愛心變大，血高型的一般玩家通關率衝到鐵壁之上（81% vs 69%），壓回「鐵壁最穩」（65／90% 掉到 36%、72／100% 掉到 55%，反應很陡）
+    reflect: [0, 0.8, 1.1, 3.8],              // 彈回去的比例（以那一下實際打到的傷害算）。3.2.73 滿級 200%→380%，但要 Lv30 才升得到：高手上限在鐵壁與連擊中間
     double: [[], [0.3], [0.6], [1, 1]],        // 每回合額外的攻擊（攻擊減怪物防禦的倍數）
     doubleGuard: 0.9,                          // 連擊＝全力進攻，戰鬥時防禦只算 90%
     doubleBurst: [1, 1], doubleBurstAt: 1.6,   // 滿級爆發：攻擊 ≥ 怪物防禦 ×1.6 時再多打這兩下（3.2.73 第二下 50%→100%，連擊上限最高）
@@ -421,13 +421,8 @@
     st.keys[what]--; st.gold += price;
     return true;
   };
-  // 限量鑰匙還剩幾把（沒限量回傳 Infinity）。MT.KEY_STOCK_SHOP[shop][what] 是每個商人各自的庫存（6F、13F 各一批，後段有補給點）；
-  // 沒有的話看 MT.KEY_STOCK[what]：兩個商人合計（金鑰匙用這個）
-  MT.keyStockLeft = (st, shop, what) => {
-    const per = (MT.KEY_STOCK_SHOP || {})[shop];
-    if (per && per[what] != null) return per[what] - (st.shops['stock:' + shop + ':' + what] || 0);
-    const n = (MT.KEY_STOCK || {})[what]; return n == null ? Infinity : n - (st.shops['keys:' + what] || 0);
-  };
+  // 限量鑰匙還剩幾把（沒限量回傳 Infinity）
+  MT.keyStockLeft = (st, shop, what) => { const n = (MT.KEY_STOCK || {})[what]; return n == null ? Infinity : n - (st.shops['keys:' + what] || 0); };   // 兩個商人合計
   // 這把鑰匙現在賣多少（3.3 鑰匙越買越貴）：定價＋KEY_STEP×已經買過的把數，兩個商人合計、不會重置；沒賣的回傳 null
   MT.keyBought = (st, what) => st.shops['keys:' + what] || 0;
   MT.keyPrice = (st, shop, what) => { const base = MT.SHOPS[shop][what]; return base == null ? null : base + ((MT.KEY_STEP || {})[what] || 0) * MT.keyBought(st, what); };
@@ -437,8 +432,7 @@
       if (price == null || st.gold < price) return false;   // 沒賣價＝這家不賣
       if (MT.keyStockLeft(st, shop, what) <= 0) return false;   // 限量的賣完了
       st.gold -= price; st.keys[what]++;
-      st.shops['keys:' + what] = MT.keyBought(st, what) + 1;   // 兩商人合計的計數（合計限量與漲價靠它）
-      st.shops['stock:' + shop + ':' + what] = (st.shops['stock:' + shop + ':' + what] || 0) + 1;   // 這個商人自己的計數（各自限量靠它；'keys:y' 是合計的，不能撞）
+      st.shops['keys:' + what] = MT.keyBought(st, what) + 1;   // 三色都計數（限量與漲價都靠它）
       return true;
     }
     const price = MT.shopPrice(st, shop);
@@ -485,7 +479,7 @@
     for (let p = S3.base + S3.step * n; gold >= p; p += S3.step) { gold -= p; bonus += S3.hp; }
     let exp = st.exp, lv = st.lv;
     for (let c = MT.lvCost(lv); exp >= c; c = MT.lvCost(++lv)) { exp -= c; bonus += MT.LEVEL.L2.hp; }
-    // 留到通關沒花的資源換算後再乘 MT.LEFTOVER（3.2.43 起 1.3，3.3.1 改回 1）
+    // 留到通關沒花的資源換算後再乘 MT.LEFTOVER（3.2.43 Ken 指定：留著要比花掉划算，先用 1.3）
     bonus = Math.floor(bonus * (MT.LEFTOVER || 1));
     const score = st.hp + bonus;
     const trueEnd = MT.isTrueEnding(st);
