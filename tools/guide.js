@@ -1,6 +1,7 @@
 /* 產生通關攻略（HTML）：讓高手自動玩家實際跑一次，把路線切成一段一段（連續在同一層的步驟算一段），
    每段畫出那時的地圖、標上步驟編號，附步驟表與怪物代價表；再加上規則、技能、隱藏要素等說明。
-   用法：node tools/guide.js <輸出的 html> [--width 4] [--skill absorb|reflect|double]
+   用法：node tools/guide.js <輸出的 html> [--width 4] [--skill absorb|reflect|double] [--ahead all] [--human 種子]
+   3.3.1 起用 --human 1 --width 8 --skill absorb --ahead all（約 10 分鐘，S＋真結局）
    產出是明文攻略，放到 agan0617.github.io 的 _private/magictower.html 再用那邊的 tools/encrypt.mjs 加密 */
 'use strict';
 const fs = require('fs');
@@ -24,7 +25,9 @@ const NPC_NAME = c => MT.t('npc_' + c) !== 'npc_' + c ? MT.t('npc_' + c) : MT.t(
 console.error(`高手（寬度 ${width}）跑路線中…`);
 const t0 = Date.now();
 const ai = process.argv.indexOf('--ahead'), ahead = ai > 0 ? (process.argv[ai + 1] === 'all' ? 'all' : Number(process.argv[ai + 1]) > 0) : undefined;   // --ahead all：知道整座塔的老手路線（3.2.55）
-const run = S.solveStrong({ width, log: true, ahead });
+// --human SEED：改用真人型高手（noise 300）跑——3.3.0 鑰匙限量後 strong 拿不到真結局，完美玩家的最好成績是 human --ahead all --width 8 種子 1（3.3.1）
+const hi = process.argv.indexOf('--human');
+const run = hi > 0 ? S.solveHuman({ width, noise: 300, seed: Number(process.argv[hi + 1]) || 1, ahead, log: true }) : S.solveStrong({ width, log: true, ahead });
 if (!run.done) { console.error('高手沒通關，攻略產生不了'); process.exit(1); }
 const log = S.logList(run.st);
 console.error(`通關，分數 ${run.score}，${log.length} 筆紀錄，${((Date.now() - t0) / 1000).toFixed(0)} 秒`);
@@ -122,7 +125,7 @@ const NOTES = {
   4: '音叉祭壇在中上，前期買攻擊或防禦比買生命賺。左邊撿得到<b>第一把鑿子</b>；受傷的衛兵送防禦 +3（他被大蝙蝠咬了屁股）。',
   5: '鼓魔像（3×3）900 血、攻 78。Boss 還活著時不能飛走。左右各有一條連戰走廊通往補給，先算好再進 Boss 房。',
   6: '呱呱商人在中間賣鑰匙（銅 10／銀 50／金 100；<b>限量</b>：銅 10 把、銀 2 把、金 2 把，賣完就沒了）。他說的「越往上的門後面越值得」是真的，別在這一區把鑰匙花光。雙刀劍客登場：連擊，一回合打兩下，這一區開始防禦很值錢。右上的裂牆後面是大愛心和銀鑰匙。',
-  7: '老鐵匠也被捲進塔裡了：<b>100 金幣幫你把武器磨利，攻擊 +6</b>，塔裡的鑿子都是他塞的。上方走廊有夾擊石像，兩隻中間那格不要踩。下半部的暗牆 (7,8) 後面是第二把鑿子（路線沒走）。',
+  7: '老鐵匠也被捲進塔裡了：<b>100 金幣幫你把武器磨利，攻擊 +6</b>，塔裡的鑿子都是他塞的。上方走廊有夾擊石像，兩隻中間那格不要踩。第二把鑿子在下半部右邊 (8,8)。',
   8: '小偷用 30 金賣三把「撿到的」銅鑰匙（鑰匙圈上刻著王宮廚房）。獄卒長（2×2，連擊）守著鐵盾和大愛心；日記第二頁在右上。下半部一整排夾擊石像，先從側邊打掉一隻再走中間。',
   9: '銀劍在中間的金門後面。右側的信差鴿子送來國王寄的《風之羽》（請用爪子簽收）。右下的裂牆後面是紅色小劍、藍色小盾。',
   10: '弦之魔女（3×3）3200 血。打倒後豎琴之靈出現在 Boss 的位置，<b>碰它選技能</b>：選了就不能換，要到 12F 找老琴師鑑定才會生效。',
@@ -209,11 +212,11 @@ const html = `<!doctype html>
 <section id="skill">
 <h2>技能（10F 打倒弦之魔女後三選一）</h2>
 <table class="mt"><thead><tr><th>技能</th><th>效果（Lv1／2／3）</th><th>適合</th><th>弱在</th></tr></thead><tbody>
-<tr><td>鐵壁</td><td>戰鬥時防禦 ×1.35／×1.5／×1.7，最多 +90／+120／+130</td><td>防高型、最穩：前期就很可靠</td><td>魔法無視防禦，擋不了；防禦低時效果小</td></tr>
-<tr><td>反彈</td><td>被打的那一下彈回 80%／110%／200%，無視防禦；勇者 Lv25 才能升滿級</td><td>血高型：挨打換輸出，硬怪也打得動</td><td>還是要先挨打；防禦高到怪打不痛時沒效果</td></tr>
+<tr><td>鐵壁</td><td>戰鬥時防禦 ×1.35／×1.5／×1.7，最多 +90／+120／+100</td><td>防高型、最穩：前期就很可靠</td><td>魔法無視防禦，擋不了；防禦低時效果小</td></tr>
+<tr><td>反彈</td><td>被打的那一下彈回 76%／105%／380%，無視防禦；勇者 Lv30 才能升滿級</td><td>血高型：挨打換輸出，硬怪也打得動</td><td>還是要先挨打；防禦高到怪打不痛時沒效果</td></tr>
 <tr><td>連擊</td><td>每回合多打：+30%／+60%／兩下 100%；滿級且攻擊 ≥ 怪物防禦 ×1.6 再爆發兩下；戰鬥時防禦只算 90%；勇者 Lv26 才能升滿級</td><td>攻高型、看技術：滿級爆發，上限最高</td><td>前期弱，路線沒算好容易卡</td></tr>
 </tbody></table>
-<p>選完要到 <b>12F 老琴師</b>鑑定才生效；勇者 Lv12、Lv22 時再找他升級。三種個性不同：鐵壁最穩、反彈中庸、連擊看技術上限最高（一般玩家通關率 鐵壁 83%／反彈 67%／連擊 53%；高手前 10% 平均 鐵壁 16038／反彈 16558／連擊 18303（各 64 局）；一般玩家用該技能的通關率 鐵壁 12/16、反彈 9/16、連擊 12/16；這份路線選的是「${MT.t('skill_' + fin.skill.type)}」）。</p>
+<p>選完要到 <b>12F 老琴師</b>鑑定才生效；勇者 Lv12、Lv22 時再找他升級。三種個性不同：鐵壁最穩、反彈中庸、連擊看技術上限最高（一般玩家通關率 鐵壁 69%／反彈 64%／連擊 59%；高手通關者分數中位數 鐵壁 10804／反彈 11831／連擊 15401（各 64 局）；這份路線選的是「${MT.t('skill_' + fin.skill.type)}」）。</p>
 </section>
 
 <section id="tips">
@@ -248,8 +251,8 @@ ${bossRow('K3', '13F', '2×2，守銀盾')}${bossRow('EM', '15F', '3×3，打倒
 <section id="secret">
 <h2>隱藏要素</h2>
 <table class="mt"><thead><tr><th>種類</th><th>位置</th><th>說明</th></tr></thead><tbody>
-<tr><td>暗牆（直接走過去）</td><td>2F (0,3)、7F (7,8)、11F (10,6)、15F (7,1)、16F (10,12)、19F (4,11)（撞開後露出失落的音符）</td><td>看起來是牆，磚縫有一點點不一樣；用「查看」點牆會說「好像不太一樣」。國王、占星師會暗示</td></tr>
-<tr><td>裂牆（要鑿子）</td><td>1F (2,12)→B1、6F、9F、12F、14F、17F、19F</td><td>鑿子只有 4 把：4F、7F 暗牆後、12F 金門後、B1 奶奶</td></tr>
+<tr><td>暗牆（直接走過去）</td><td>2F (0,3)、15F (7,1)、16F (10,12)、19F (4,11)（撞開後露出失落的音符）</td><td>看起來是牆，磚縫有一點點不一樣；用「查看」點牆會說「好像不太一樣」。國王、占星師會暗示</td></tr>
+<tr><td>裂牆（要鑿子）</td><td>1F (2,12)→B1、6F、9F、12F、14F、17F、19F</td><td>鑿子只有 4 把：4F、7F、12F 金門後、B1 奶奶</td></tr>
 <tr><td>隱藏層 B1</td><td>1F 左下裂牆後的樓梯</td><td>${esc(NOTES[0])}${b1 ? `攻略路線在 ${FN(chapters.find(c => c.maps[0]).f)} 那一段順路下去。` : ''}</td></tr>
 </tbody></table>
 </section>

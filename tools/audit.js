@@ -7,6 +7,7 @@
    6. 左右內容重複：鏡射位置放一樣的怪、道具、門（超過 40% 列出來）
    7. 免費道具：從樓梯不付任何代價就撿得到的（超過 3 個列出來）
    8. 白踩的回音地板：不打任何怪就走得到（這層還沒打過，回音是 0，一上樓先踩過去就沒有取捨了）
+   9. 撞開沒用的暗牆：牆裡沒封道具，兩側也本來就互通（或只有一側）
    加 --sim：再用高手自動玩家跑一次，列出每層到達時紅寶石／藍寶石的價值比（攻擊比防禦值錢幾倍）*/
 'use strict';
 const S = require('./sim.js');
@@ -131,6 +132,20 @@ const roots = f => {
     if (!r.has(up.join())) rows.push(`${MT.floorName(f)} 不走暗牆到不了上樓梯`);
   }
   report('暗牆不在主線上', rows);
+}
+// 9. 撞開沒用的暗牆：牆裡沒封道具、兩側本來就互通（或只有一側）＝撞開什麼都沒有（3.3.1：7F、11F 各有一面，3.0.0 畫成死巷）
+{
+  const rows = [];
+  for (const f of floors) {
+    const m = st.maps[f];
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      if (m[y][x] !== 'Hw' || MT.hiddenItem(f, x, y)) continue;
+      const nb = D.map(([dx, dy]) => [x + dx, y + dy]).filter(([a, b]) => inb(a, b) && !['##', 'Hw', 'Cw'].includes(m[b][a]));
+      const r = nb.length ? flood(m, [nb[0]], c => (!blocks(c) || c === 'Gt') && c !== 'Hw' && c !== 'Cw') : new Set();
+      if (nb.every(p => r.has(p.join()))) rows.push(`${MT.floorName(f)} (${x},${y}) 撞開什麼都沒有`);
+    }
+  }
+  report('暗牆後面要有東西', rows);
 }
 // 6. 對稱：左右鏡射位置上放了一模一樣的怪、道具、門（牆壁對稱沒關係，內容一樣才等於「同一組選擇做兩次」）。
 //    Boss 層中間擺 Boss，對稱是刻意的，不算
