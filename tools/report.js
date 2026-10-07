@@ -35,11 +35,11 @@ const pass = g => { const a = rs.filter(r => r.g === g); return a.length ? a.fil
 const avg = g => mean(rs.filter(r => r.g === g).map(r => (r.done ? r.score : 0)));
 const gap = (h, l) => (avg(h) - avg(l)) / avg(h) * 100;
 const passSk = (g, sk) => { const a = rs.filter(r => r.g === g && r.skill === sk); return a.filter(r => r.done).length / a.length * 100; };
-// 技能上限（3.5 起，Ken 同意）：看各技能「最高那一段」——高手前 10% 平均與完美玩家最高分，連擊都要最高。
+// 技能上限：高手 PR90（通關者分數的第 90 百分位）連擊最高，完美玩家看中位數（下面）。頂端一律看 PR90、不看最高分（Ken 指定：最高分只是一局的偶然）。
 // 不再用高手中位數：技能表現分約等於每種技能一個固定加分，把完美鐵壁拉到 S，鐵壁、反彈的中位數一定會超過連擊
-const top10 = sk => { const s = rs.filter(r => r.g === 'pro' && r.skill === sk).map(r => (r.done ? r.score : 0)).sort((p, q) => q - p); return Math.round(mean(s.slice(0, Math.max(1, Math.round(s.length / 10))))); };
-const pbest = sk => Math.max(0, ...perfect.filter(r => r.skill === sk && r.done).map(r => r.score));
-const [fa, fr, fd] = ['absorb', 'reflect', 'double'].map(sk => passSk('gen', sk)), [ca, cr, cd] = ['absorb', 'reflect', 'double'].map(top10), [ba, br, bd] = ['absorb', 'reflect', 'double'].map(pbest);
+const pr90 = sk => pctl(rs.filter(r => r.g === 'pro' && r.skill === sk && r.done).map(r => r.score), 0.9);
+
+const [fa, fr, fd] = ['absorb', 'reflect', 'double'].map(sk => passSk('gen', sk)), [ca, cr, cd] = ['absorb', 'reflect', 'double'].map(pr90);
 const sOf = (a, sk) => a.filter(r => r.skill === sk && grade(r) === 'S').length;
 const ok = b => (b ? '✓' : '✗');
 out.push('', '| 指標 | 目標 | 結果 | |', '|---|---|---|---|');
@@ -51,12 +51,12 @@ if (hasG('blind')) out.push(`| 主目標（高手 vs 盲高手平均分差） | 
 if (hasG('rule')) out.push(`| 護欄 1（高手 vs 懂規則） | ≤34.3% | ${gap('pro', 'rule').toFixed(1)}% | ${ok(gap('pro', 'rule') <= 34.3)} |`);
 if (hasG('blind')) out.push(`| 護欄 2（盲高手通關 ≥ 一般） | 成立 | ${pass('blind').toFixed(0)}% vs ${pass('gen').toFixed(0)}% | ${ok(pass('blind') >= pass('gen'))} |`);
 out.push(`| 技能下限（一般通關率）鐵壁≥反彈≥連擊、兩端差 ≥8 | | ${fa.toFixed(0)}／${fr.toFixed(0)}／${fd.toFixed(0)}% | ${ok(fa >= fr && fr >= fd && fa - fd >= 8)} |`);
-out.push(`| 技能上限：高手前 10% 平均 連擊最高（連擊／反彈／鐵壁） | | ${cd}／${cr}／${ca} | ${ok(cd > cr && cd > ca)} |`);
+out.push(`| 技能上限：高手 PR90 連擊最高（連擊／反彈／鐵壁） | | ${cd}／${cr}／${ca} | ${ok(cd > cr && cd > ca)} |`);
 if (perfect.length) {
   const pmed = sk => med(perfect.filter(r => r.skill === sk && r.done).map(r => r.score)), [ma, mr, md] = ['absorb', 'reflect', 'double'].map(pmed);
   out.push(`| 完美中位數 連擊＞反彈＞鐵壁、相鄰差 ≥10%（連擊／反彈／鐵壁） | | ${md}／${mr}／${ma}（差 ${((md - mr) / md * 100).toFixed(1)}%／${((mr - ma) / mr * 100).toFixed(1)}%） | ${ok(md > mr && mr > ma && (md - mr) / md >= 0.1 && (mr - ma) / mr >= 0.1)} |`);
   out.push(`| 三種技能的完美玩家都打得到 S（鐵壁／反彈／連擊 拿 S 局數） | 各 ≥1 | ${['absorb', 'reflect', 'double'].map(sk => sOf(perfect, sk) + '/' + perfect.filter(r => r.skill === sk).length).join('／')} | ${ok(['absorb', 'reflect', 'double'].every(sk => sOf(perfect, sk) >= 1))} |`);
 }
 { const p = rs.filter(r => r.g === 'pro'), n = ['absorb', 'reflect', 'double'].reduce((a, sk) => a + sOf(p, sk), 0); out.push(`| 高手 S 少數 | ≤10% | ${(n / p.length * 100).toFixed(0)}% | ${ok(n / p.length <= 0.1)} |`); }
-if (perfect.length) { const best = Math.max(...perfect.filter(r => r.done).map(r => r.score), 0); out.push(`| 完美明顯拉開（最好成績 vs 高手第 94 百分位） | 明顯高 | ${best} vs ${Math.round(pctl(pro, 0.94))} | ${ok(best > pctl(pro, 0.94) * 1.15)} |`); }
+if (perfect.length) { const pp = pctl(perfect.filter(r => r.done).map(r => r.score), 0.9), hp = pctl(pro, 0.9); out.push(`| 完美明顯拉開（PR90 完美 vs 高手） | 高 ≥5% | ${pp} vs ${hp}（+${((pp - hp) / hp * 100).toFixed(1)}%） | ${ok(pp >= hp * 1.05)} |`); }
 console.log(out.join('\n'));
