@@ -150,12 +150,12 @@ blockquote { margin: 10px 0; padding: 6px 14px; border-left: 3px solid var(--acc
 <tr><td>2F</td><td>碰國王</td><td><code>bard</code></td><td class="wrap">國王送兩把銅鑰匙（王宮廚房的備用鑰匙），退到牆邊讓路；再碰時一直偷瞄左邊的牆（暗牆提示）</td></tr>
 <tr><td>3F</td><td>撿 P1</td><td><code>page1</code></td><td>日記第一頁</td></tr>
 <tr><td>4F</td><td>撿鑿子</td><td><code>chiselGet</code></td><td>老鐵匠的鑿子，可敲開裂牆</td></tr>
-<tr><td>5F</td><td>打倒鼓魔像</td><td><code>drumGet</code></td><td>大鼓、鼓聲回來、鐵門開</td></tr>
+<tr><td>5F</td><td>打倒鼓魔像</td><td><code>drumGet</code></td><td>大鼓、背景樂換成王子之歌（第 1 段）、鐵門開</td></tr>
 <tr><td>8F</td><td>撿 P2</td><td><code>page2</code></td><td>日記第二頁</td></tr>
 <tr><td>9F</td><td>碰信差鴿子</td><td><code>fd</code></td><td class="wrap">國王寄來《風之羽》（請用爪子簽收）</td></tr>
-<tr><td>10F</td><td>打倒弦之魔女</td><td><code>harpGet</code></td><td class="wrap">豎琴、和聲回來；豎琴之靈出現在 Boss 位置，碰它選技能</td></tr>
+<tr><td>10F</td><td>打倒弦之魔女</td><td><code>harpGet</code></td><td class="wrap">豎琴、王子之歌多回來第 2 段；豎琴之靈出現在 Boss 位置，碰它選技能</td></tr>
 <tr><td>12F</td><td>碰老琴師</td><td><code>（MT.sage）</code></td><td class="wrap">鑑定技能（生效）；Lv12、Lv22 時再碰可升級，台詞隨技能與等級改變</td></tr>
-<tr><td>15F</td><td>打倒回音之鏡</td><td><code>fluteGet</code></td><td>笛、笛聲回來</td></tr>
+<tr><td>15F</td><td>打倒回音之鏡</td><td><code>fluteGet</code></td><td>笛、王子之歌多回來第 3 段</td></tr>
 <tr><td>15F</td><td>撿 P3</td><td><code>page3</code></td><td class="wrap">日記第三頁（3.2.73 起藏在右上房間左邊的暗牆後，第二頁的線索「會說話的鏡子後面」），署名「王子巴索，十五歲」；失落音符的線索「最亮的盾牌旁邊的牆裡」</td></tr>
 <tr><td>19F</td><td>撿 FN</td><td><code>noteGet</code></td><td class="wrap">失落的音符：3.2.73 起封在金盾旁邊的暗牆 (4,11) 裡（<code>MT.HIDDEN_ITEMS</code>），撞開暗牆才露出來</td></tr>
 <tr><td>20F</td><td>第一次碰 M1</td><td><code>maestroDrum</code></td><td class="wrap">M1 無敵 → 用破音的歌聲唱 → 整塊 3×3 換成可打的 M2</td></tr>
@@ -496,8 +496,9 @@ S：分數 ≥ 19000 且真結局　A：≥ 13200　B：≥ 8500　其餘 C（3.
 </ul>
 <h3 id="s7-2">7.2 音樂與音效（<code>audio.js</code>）</h3>
 <ul>
-<li>全部 Web Audio 即時合成，沒有任何音檔</li>
-<li>分層配樂：一開始只有 base；打倒鼓魔像加 drums、弦之魔女加 strings、<b>回音之鏡加 winds（3.0 新增的笛聲部：三角波＋慢慢加深的顫音）</b>、結局加 lead。title、tower、boss 三首都有笛的副旋律</li>
+<li>Web Audio 即時合成；唯一的音檔是王子之歌 <code>audio/prince.mp3</code>（〈星光音樂盒〉原曲）</li>
+<li>王子之歌（詳見 <a href="prince-song.md">prince-song.md</a>）：同一段主題唱四遍、一遍比一遍完整。打倒鼓魔像後背景樂從塔內曲換成它，鼓魔像、弦之魔女、回音之鏡各找回一段，真結局才有第四段；背景樂循環「第 1 段到目前那段」。評價畫面從頭放一次（一般結局 3 段、真結局 4 段）</li>
+<li>分層配樂（合成的曲子）：<code>st.layers</code> 一開始只有 base，打倒鼓魔像加 drums、弦之魔女加 strings、回音之鏡加 winds、結局加 lead；王子之歌依它決定播到第幾段。塔內曲只在打倒鼓魔像前與標題畫面（全部樂器版）聽得到</li>
 <li>序章音效：<code>crackLaugh</code>（破音＋哄笑）、<code>heartbeat</code>（八下一下比一下快的心跳）、<code>clang</code>（3.0.2，第一鎚的打鐵聲）</li>
 <li>3.1.2 塔門：<code>doorCreak</code>／<code>doorGroan</code>（共用 <code>creak</code>：鋸齒波在窄帶通裡不規則抖＋摩擦沙沙聲，一短一長）、<code>doorThud</code>（門撞上牆的悶響，在塔裡迴盪三次）</li>
 <li>3.1：<code>echoHit</code>（上一場那一記悶響一聲比一聲遠）、<code>echoQuiet</code>（還沒打過，只有水面般的輕響）、<code>auraHit</code>（水晶被震到的嗡：兩個很近的高音互相打架）</li>
