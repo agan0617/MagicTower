@@ -478,7 +478,7 @@
      防刷：三種表現都跟戰鬥拖多長無關（反彈除外：多挨一下多彈一下，所以 k.reflect × 反彈比例上限 3.8 必須 < 1，多挨打一定虧）。
      k 照模擬定（3.5.0）：高手和完美玩家打到這幾隻 Boss 時能力差不多，所以這份分數約等於「選這個技能就加一個固定分」——
      鐵壁原本分數最低、加最多（中位約 7000），反彈約 3500，連擊約 700：三種技能的完美玩家都打得到 S，連擊最高分仍然最高 */
-  MT.SKILL_SCORE = { bosses: ['K3', 'EM', 'K4', 'M2', 'M3', 'M4'], k: { absorb: 0.55, reflect: 0.2, double: 0.05 } };
+  MT.SKILL_SCORE = { bosses: ['K3', 'EM', 'K4', 'M2', 'M3', 'M4'], k: { absorb: 0.55, reflect: 0.18, double: 0.05 } };
   // b：Boss 戰紀錄（MT.step 打之前記下的 能力＋技能），回傳這場的表現 0～1
   MT.bossPerf = function (b) {
     const st = { hp: b.hp, atk: b.atk, def: b.def, skill: { type: b.sk, lv: b.lv } }, st0 = { hp: b.hp, atk: b.atk, def: b.def, skill: null };

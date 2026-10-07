@@ -1,6 +1,6 @@
 /* 平衡總表（strategy-depth）：幾組真人型自動玩家平行跑，印出 Ken 的平衡目標各項與跨層規劃三個指標。
    用法：node tools/bench.js [--runs N（每組每種技能幾局，預設 20）] [--seed S] [--jobs J（預設 8）] [--groups gen,pro,blind,rule,...] [--out 檔] [--resume]
-         [--mt '{"KEY_RATE":{"y":1.3},"MAP_PATCH":{"11:0,1":"hp"}}'（覆蓋 MT 的數值試一組設定，不用改 data.js）] [--prio low/below/normal]
+         [--mt '{"KEY_RATE":{"y":1.3},"MAP_PATCH":{"11:0,1":"hp"}}'（覆蓋 MT 的數值試一組設定，不用改 data.js）] [--prio low/below/normal] [--skills reflect,double]
    組別（高手參數都是 width 2、noise 500）：
      gen    一般＝human --width 1 --noise 2000
      pro    高手＝--ahead all（知道整座塔）
@@ -61,7 +61,9 @@ const si = args.indexOf('--snap'); if (si >= 0) process.env.MT_SNAP = args[si + 
 const gi = args.indexOf('--groups'), groups = gi >= 0 ? args[gi + 1].split(',') : ['gen', 'pro', 'blind', 'rule'];
 for (const g of groups) if (!GROUPS[g]) { console.error('沒有這組：' + g); process.exit(1); }
 const queue = [];
-for (const g of groups) for (const sk of SKILLS) for (let s = seed0; s < seed0 + runs; s++) queue.push([g, sk, s]);
+// --skills a,b：只跑這幾種技能（技能數值只影響用那個技能的局，其他技能沿用舊數據）
+const ki = args.indexOf('--skills'), runSkills = ki >= 0 ? args[ki + 1].split(',') : SKILLS;
+for (const g of groups) for (const sk of runSkills) for (let s = seed0; s < seed0 + runs; s++) queue.push([g, sk, s]);
 const out = [];
 if (resume && fs.existsSync(outFile)) { for (const l of fs.readFileSync(outFile, 'utf8').split('\n')) if (l.trim()) out.push(JSON.parse(l)); }
 else fs.writeFileSync(outFile, '');
