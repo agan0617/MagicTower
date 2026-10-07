@@ -163,12 +163,12 @@ html[lang=en] #tTitle { font-size: clamp(40px, 12vmin, 76px); letter-spacing: 2p
 #cineText.speech #cineBody { color: #fff; }
 #cineBody .small { font-size: 14px; color: var(--muted); }
 #cineBody .btn { margin-top: 14px; }
-/* 通關畫面：評價框疊在結局畫面上方（3.2.44 Ken 指定：放下面要捲才看得完），框內太長自己捲 */
-#cine.ending #cineText { position: absolute; top: calc(var(--safe-t) + 40px); left: 50%; transform: translateX(-50%); margin: 0; box-sizing: border-box;
+/* 通關畫面：評價框疊在結局畫面上，垂直置中（3.7.3 Ken 指定；3.2.44 起疊在畫面上，放下面要捲才看得完），框內太長自己捲 */
+#cine.ending #cineText { position: absolute; top: calc(50% + (var(--safe-t) - var(--safe-b)) / 2); left: 50%; transform: translate(-50%, -50%); margin: 0; box-sizing: border-box;
   width: min(92vw, 560px); max-height: calc(100dvh - var(--safe-t) - var(--safe-b) - 20px); overflow-y: auto; background: rgba(16, 14, 34, 0.84); z-index: 2; }
 #cine.ending #cineCanvas { width: min(96vw, calc(100dvh - 40px)); }
 #cine.ending #cineText { animation: endSlide 0.6s ease-out both; }
-@keyframes endSlide { from { opacity: 0; transform: translate(-50%, -24px); } to { opacity: 1; transform: translate(-50%, 0); } }
+@keyframes endSlide { from { opacity: 0; transform: translate(-50%, calc(-50% - 24px)); } to { opacity: 1; transform: translate(-50%, -50%); } }
 #cine.ending .rankG { animation: rankPop 0.65s cubic-bezier(.2,1.6,.4,1) 0.25s both; }
 @keyframes rankPop { from { opacity: 0; transform: scale(2.4); } to { opacity: 1; transform: scale(1); } }
 #cineText.hide { visibility: hidden; }
