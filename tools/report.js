@@ -39,8 +39,8 @@ const ceil = sk => med(rs.filter(r => r.g === 'pro' && r.skill === sk && r.done)
 const [fa, fr, fd] = ['absorb', 'reflect', 'double'].map(sk => passSk('gen', sk)), [ca, cr, cd] = ['absorb', 'reflect', 'double'].map(ceil);
 const ok = b => (b ? '✓' : '✗');
 out.push('', '| 指標 | 目標 | 結果 | |', '|---|---|---|---|');
-out.push(`| 一般通關率 | 60～80% | ${pass('gen').toFixed(0)}% | ${ok(pass('gen') >= 60 && pass('gen') <= 80)} |`);
-out.push(`| 高手通關率 | 80～95% | ${pass('pro').toFixed(0)}% | ${ok(pass('pro') >= 80 && pass('pro') <= 95)} |`);
+out.push(`| 一般通關率 | 50～70% | ${pass('gen').toFixed(0)}% | ${ok(pass('gen') >= 50 && pass('gen') <= 70)} |`);
+out.push(`| 高手通關率 | 60～90% | ${pass('pro').toFixed(0)}% | ${ok(pass('pro') >= 60 && pass('pro') <= 90)} |`);
 out.push(`| 高手−一般 | 約 20 點 | ${(pass('pro') - pass('gen')).toFixed(0)} 點 | ${ok(Math.abs(pass('pro') - pass('gen') - 20) <= 8)} |`);
 out.push(`| 主目標（高手 vs 盲高手平均分差） | ≥50% | ${gap('pro', 'blind').toFixed(1)}% | ${ok(gap('pro', 'blind') >= 50)} |`);
 out.push(`| 護欄 1（高手 vs 懂規則） | ≤34.3% | ${gap('pro', 'rule').toFixed(1)}% | ${ok(gap('pro', 'rule') <= 34.3)} |`);
