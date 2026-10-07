@@ -2885,7 +2885,7 @@
     if (s.scene) { cineScene = s.scene; cineT0 = now(); cinePose = null; }
     if (s.pose) cinePose = s.pose;
     cineDots = s.dots ? now() : 0;
-    if (s.music) MT.Audio.play(s.music, ['base', 'drums', 'strings', 'lead']);
+    if (s.music) MT.Audio.play(s.music, s.layers || ['base', 'drums', 'strings', 'lead']);
     // sfx：一個音效名（sfxAt＝幾毫秒後才響），或 [[名稱, 毫秒], …] 一串對準畫面時間軸的音效；換場景就不再響
     if (s.sfx) {
       const sc = cineScene;
@@ -3118,14 +3118,16 @@
     // 評價在演出前算好、記進最佳紀錄，演出中途關掉也不會漏記
     const r = MT.rating(st);
     const newBest = MT.Sync.saveBest(Object.assign({}, r, { playMs: st.playMs, steps: st.steps, kills: st.kills }));
+    // 你的曲子（3.6 Ken 指定）：一般結局到第三段、真結局四段完整；3.7.6 起一進慶典這幕就放（原本放 ending 曲、到評價畫面才換），一路接到評價畫面
+    const princeLayers = ['base', 'drums', 'strings', 'winds'], layers = trueEnd ? princeLayers.concat('lead') : princeLayers;
     await playCine(trueEnd ? [
-      { scene: 'festivalTrue', text: 'et_1', music: 'ending', delay: 3000 },   // 畫面淡入得差不多才出字
+      { scene: 'festivalTrue', text: 'et_1', music: 'prince', layers, delay: 3000 },   // 畫面淡入得差不多才出字
       { text: 'et_2', keep: true },
       { text: 'et_3', keep: true },
       { text: 'et_4', keep: true },
       { text: 'ed_true_end', keep: true },
     ] : [
-      { scene: 'festival', text: 'ed_1', music: 'ending', delay: 3000 },
+      { scene: 'festival', text: 'ed_1', music: 'prince', layers, delay: 3000 },
       { text: 'ed_2', keep: true },
       { text: 'ed_3', keep: true },
       { text: 'ed_end', keep: true },
@@ -3145,9 +3147,7 @@
     sfx('harp');
     await sleep(4200);
     theEnd.remove();
-    // 你的曲子（3.6 Ken 指定）：評價畫面從頭放王子之歌，一般結局到第三段、真結局四段完整
-    const princeLayers = ['base', 'drums', 'strings', 'winds'];
-    MT.Audio.play('prince', trueEnd ? princeLayers.concat('lead') : princeLayers);
+    MT.Audio.play('prince', layers);   // 已經在放就只是接著放；略過演出時被停掉的話從這裡補上
     const rank = `<div class="rank" data-g="${r.grade}"><span class="rankLab">${esc(MT.t('rateTitle'))}</span><span class="rankG">${r.grade}</span>${newBest ? `<span class="rankNew">${esc(MT.t('rateNew'))}</span>` : ''}</div>`
       // 有選技能就列出技能表現分（3.5）：玩家通關後才知道 Boss 戰打得好也算分，教學與技能說明不寫（不劇透評價規則）
       + `<span class="small">${esc(r.skillType ? MT.t('rateCalcSkill', { hp: r.hp, bonus: r.bonus, what: MT.t('skillPts_' + r.skillType), pts: r.skill, score: r.score }) : MT.t('rateCalc', { hp: r.hp, bonus: r.bonus, score: r.score }))}</span><br>`
