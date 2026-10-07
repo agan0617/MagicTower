@@ -148,7 +148,7 @@ node tools/report.js run.jsonl [完美玩家.jsonl]
 
 其他工具：`tools/rooms.js <樓層>` 印出區域與相連的門怪（設計時最常用）、`tools/show.js <樓層>` 印地圖與怪物代價、`tools/count.js` 每層鑰匙／門／寶石數量、`tools/keyuse.js` 一局每層開門／撿／買鑰匙的流向、`tools/keycalc.js` 鑰匙帳。調平衡期間的地圖改動可以先寫在 `MT.MAP_PATCH`（'樓層:x,y' → 代碼，開新局時套用），定案後直接改地圖字串。
 
-## 目前的平衡狀態
+## 目前的平衡狀態（最近一次驗收：3.4.0）
 
 768 局驗收（`tools/bench.js`＋`tools/report.js`）：
 
