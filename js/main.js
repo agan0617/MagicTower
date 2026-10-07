@@ -1528,7 +1528,6 @@
   function openFly() {
     if (!st || mode !== 'game' || busy) return;
     if (!st.items.fly) { toast(MT.t('flyNeed')); return; }
-    if (!MT.canFly(st)) { sfx('error'); toast(MT.t('flyBlocked')); return; }
     let html = '<div class="floors">';
     for (let f = MT.BOTTOM; f <= MT.TOP; f++) {
       const ok = st.visited.includes(f);

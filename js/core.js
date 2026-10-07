@@ -216,8 +216,6 @@
   // 走進 (x, y) 這一格要付的生命（回音＋共鳴；夾擊另外算，它是扣目前生命的比例、不會致命）
   MT.hazardAt = (st, f, x, y) => (MT.tile(st, f, x, y) === 'Ec' ? MT.echoCost(st, f) : 0) + MT.auraAt(st, f, x, y);
 
-  // Boss 還活著的樓層不能用風之羽飛走
-  MT.canFly = st => !MT.NOFLY[st.floor] || !MT.findTile(st, st.floor, MT.NOFLY[st.floor]);
   MT.floorName = f => (f === 0 ? 'B1' : f + 'F');
 
   MT.shopPrice = (st, id) => MT.SHOPS[id].base + MT.SHOPS[id].step * st.shops[id];
@@ -383,7 +381,7 @@
 
   // 飛到去過的樓層：落在下樓梯（1F 落在起點）
   MT.flyTo = function (st, f) {
-    if (!st.items.fly || !st.visited.includes(f) || !MT.canFly(st)) return false;
+    if (!st.items.fly || !st.visited.includes(f)) return false;
     if (f === 1) { st.floor = 1; st.x = MT.START.x; st.y = MT.START.y; }
     else MT.goFloor(st, f, 'DD');
     return true;

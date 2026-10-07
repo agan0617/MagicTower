@@ -667,7 +667,7 @@ const ARRIVE = {
   11: { hp: 1500, atk: 139, def: 110, lv: 15, exp: 0, gold: 300, keys: { y: 2, b: 1, r: 1 }, items: { book: 1, fly: 1, chisel: 1 }, layers: ['drums', 'strings'], skillLv: 1 },
   16: { hp: 3000, atk: 221, def: 197, lv: 21, exp: 0, gold: 450, keys: { y: 3, b: 1, r: 1 }, items: { book: 1, fly: 1, chisel: 1 }, layers: ['drums', 'strings', 'flute'], skillLv: 2 },
 };
-const bossDead = (st, f) => !MT.NOFLY[f] || !MT.findTile(st, f, MT.NOFLY[f]);
+const bossDead = (st, f) => !MT.BOSS_FLOORS[f] || !MT.findTile(st, f, MT.BOSS_FLOORS[f]);
 const finished = st => st.done || (TOPF < MT.TOP && maxFloor(st) >= TOPF && bossDead(st, TOPF));
 function solveHuman(opt = {}) {
   const width = opt.width || 4, noise = opt.noise || 0, rng = rngOf(opt.seed || 1);
