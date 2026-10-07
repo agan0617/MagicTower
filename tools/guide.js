@@ -1,7 +1,8 @@
 /* 產生通關攻略（HTML）：讓高手自動玩家實際跑一次，把路線切成一段一段（連續在同一層的步驟算一段），
    每段畫出那時的地圖、標上步驟編號，附步驟表與怪物代價表；再加上規則、技能、隱藏要素等說明。
    用法：node tools/guide.js <輸出的 html> [--width 4] [--skill absorb|reflect|double] [--ahead all] [--human 種子]
-   攻略用完美玩家：--human 1 --width 8 --skill double --ahead all（約 4 分鐘；3.7.6 是 18501 分 A＋真結局），不用換種子挑分數
+   攻略要寫 S 的跑法：用完美玩家 --human <種子> --width 8 --skill <技能> --ahead all（約 3 分鐘），種子和技能從最近一次驗收的
+   perfect 組資料（bench.js 的 jsonl）挑 S＋真結局、分數最高的那局，不用另外試跑（3.7.7：--human 15 --skill double，22336 分 S）
    產出是明文攻略，放到 agan0617.github.io 的 _private/magictower.html 再用那邊的 tools/encrypt.mjs 加密 */
 'use strict';
 const fs = require('fs');
