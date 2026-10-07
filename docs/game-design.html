@@ -76,7 +76,7 @@ blockquote { margin: 10px 0; padding: 6px 14px; border-left: 3px solid var(--acc
 <header class="top">
   <h1>魔塔：失落的旋律　遊戲設計文件</h1>
   <div class="meta">依 3.2.74 撰寫　·　2026-10-06</div>
-  <div class="note">3.0.0 是關卡全面改版：20 層＋隱藏層 B1、經驗值與等級、三選一技能、大型 Boss、路上 NPC、暗牆與裂牆。3.0.2～3.0.5：序章加兩幕過場、加生命的道具改成愛心、標題畫面與選單加圖文教學。3.0.6 音效優化，3.0.7 最終 Boss 加強。<b>3.1.0：第 3 區加回音地板、第 4 區加共鳴水晶（跟位置有關的機制），新增真人型自動玩家並照它重定評價門檻。</b>3.1.1～3.2.73：樓梯不再擋路、進塔前第一人稱推開塔門與 1F 淡入、遇到才教＋資訊列「？」、收藏品圖鑑、有功能的 NPC 發金光、王子腳下光圈與箭頭、節拍之神改成鈴鐺、教學不再劇透（真結局條件、評價規則、道具用途與位置）。關卡設計規則與平衡流程另見 repo 根目錄的 <code>DESIGN.md</code>。</div>
+  <div class="note">3.0.0 是關卡全面改版：20 層＋隱藏層 B1、經驗值與等級、三選一技能、大型 Boss、路上 NPC、暗牆與裂牆。3.0.2～3.0.5：序章加兩幕過場、加生命的道具改成愛心、標題畫面與選單加圖文教學。3.0.6 音效優化，3.0.7 最終 Boss 加強。<b>3.1.0：第 3 區加回音地板、第 4 區加共鳴水晶（跟位置有關的機制），新增真人型自動玩家並照它重定評價門檻。</b>3.1.1～3.2.73：樓梯不再擋路、進塔前第一人稱推開塔門與 1F 淡入、遇到才教＋資訊列「？」、收藏品圖鑑、有功能的 NPC 發金光、王子腳下光圈與箭頭、節拍之神改成鈴鐺、教學不再劇透（真結局條件、評價規則、道具用途與位置）。關卡設計規則與平衡流程另見 <code>docs/DESIGN.md</code>。</div>
 </header>
 
 <!-- ───────────── 1 ───────────── -->
@@ -532,7 +532,7 @@ S：分數 ≥ 18300 且真結局　A：≥ 10400　B：≥ 6800　其餘 C（3.
 <li>版本號在兩處：<code>index.html</code> 的 <code>MT.VERSION</code>（設定頁顯示「網頁版 vX」）與 <code>sw.js</code> 的 <code>VERSION = 'mt-X'</code></li>
 <li><b>改版必須把 <code>sw.js</code> 的 VERSION 加一</b>，否則已開過的瀏覽器會繼續用快取裡的舊檔</li>
 <li>App 外殼版號由 User-Agent 的 <code>MagicTowerApp/x.y.z</code> 讀出，網頁更新不需重包 App</li>
-<li>改關卡或數值後依序跑 <code>node tools/check_reach.js</code>、<code>node tools/audit.js</code>、<code>node tools/solve.js</code>（新手／一般／真人型／高手四種自動玩家），細節見 <code>DESIGN.md</code></li>
+<li>改關卡或數值後依序跑 <code>node tools/check_reach.js</code>、<code>node tools/audit.js</code>、<code>node tools/solve.js</code>（新手／一般／真人型／高手四種自動玩家），細節見 <code>docs/DESIGN.md</code></li>
 <li>改關卡、數值或道具名稱後重產通關攻略：<code>node tools/guide.js &lt;輸出&gt; --width 4 --skill reflect</code>（這組拿得到 S）</li>
 </ul>
 
