@@ -90,7 +90,7 @@ blockquote { margin: 10px 0; padding: 6px 14px; border-left: 3px solid var(--acc
 <tr><td>語言</td><td class="wrap">繁體中文／English／日本語（介面與全部劇情）</td></tr>
 <tr><td>設計目標</td><td class="wrap">「會玩和不會玩要有明顯差距」：每一扇門、每一個房間都是取捨，怪物依打法分類（高攻、高防、高血、魔法、吸血、連擊、夾擊、破甲、共鳴），技能三選一讓同一張地圖有不同的最佳路線；後兩區各加一種走位機制（回音地板、共鳴），地圖不只是開門順序題。用自動玩家驗證：新手卡在 3F、一般卡在 5F、真人型八成通關（沒過的全卡在 4F，通關分數中位數約 14100）、高手通關約 17500～21800 分</td></tr>
 <tr><td>目標體驗</td><td class="wrap">「手機上單手點一點就能玩的經典魔塔」＋「一個青春期王子跟自己和解的短篇故事」。音樂隨劇情一層層回來（低音→鼓→和聲→笛→主旋律）；沿路的 NPC 與多蕾帶來幽默橋段；所有音樂、美術由程式產生，無任何外部素材</td></tr>
-<tr><td>版本</td><td class="wrap">網頁版 3.4.1（<code>index.html</code> 的 <code>MT.VERSION</code>、<code>sw.js</code> 的 <code>mt-3.4.1</code>）；存檔格式 v3（<code>MT.SAVE_V = 3</code>，2.x 存檔讀不了）</td></tr>
+<tr><td>版本</td><td class="wrap">網頁版 3.4.2（<code>index.html</code> 的 <code>MT.VERSION</code>、<code>sw.js</code> 的 <code>mt-3.4.2</code>）；存檔格式 v3（<code>MT.SAVE_V = 3</code>，2.x 存檔讀不了）</td></tr>
 </table></div>
 
 <!-- ───────────── 2 ───────────── -->
@@ -140,7 +140,7 @@ blockquote { margin: 10px 0; padding: 6px 14px; border-left: 3px solid var(--acc
 <tr><td>15F</td><td>踩 (5,5)</td><td><code>echoIntro</code></td><td class="wrap">回音之鏡：鏡子裡是七歲、唱得完美的自己。「留下來吧，在鏡子裡你永遠都唱得好聽」</td></tr>
 <tr><td>18F</td><td>踩 (10,10)</td><td><code>f18Voice</code></td><td>畫面變暗，指揮家的聲音勸他回去</td></tr>
 <tr><td>19F</td><td>踩 (0,0)</td><td><code>f19Doremi</code></td><td>多蕾道謝、提醒存檔</td></tr>
-<tr><td>20F</td><td>踩 (5,12)</td><td><code>f20Intro</code></td><td class="wrap">音樂停、指揮家開口；多蕾提醒先打倒兩隻休止符衛士</td></tr>
+<tr><td>20F</td><td>踩 (5,12)</td><td><code>f20Intro</code></td><td class="wrap">音樂停、指揮家開口；多蕾提醒休止符衛士守著兩邊的倉庫</td></tr>
 <tr><td>20F</td><td>踩 (5,3)</td><td><code>maestroIntro</code></td><td>對峙：「我可是你自己許的願」</td></tr>
 </table></div>
 <p>其他事件：</p>
@@ -218,7 +218,7 @@ damage  = drain + 怪物出手 × (連擊 ? 2 : 1) × monHit</code></pre>
 <h3>3.3 鑰匙與門</h3>
 <ul>
 <li>三級：銅（Yk／Yd）→ 銀（Bk／Bd）→ 金（Rk／Rd），每扇用掉 1 把。全塔門數遠多於鑰匙（銅門 159、銀門 17、金門 5；鑰匙 94／15／3），不可能全開</li>
-<li>鐵門（Gt）：指定格子的怪物都打倒就開（<code>MT.GATES</code>）：5F／10F／15F 的 (5,1) ← Boss；20F (5,4) ← 兩隻休止符衛士</li>
+<li>鐵門（Gt）：指定格子的怪物都打倒就開（<code>MT.GATES</code>）：5F／10F／15F 的 (5,1) ← Boss（20F 沒有鐵門）</li>
 <li>前期每層一上樓的區域放一把鑰匙，上樓路線只需 1～2 扇門；中後期越來越緊</li>
 <li>銅鑰匙刻意最緊（1～8F 地圖上 37 把對 69 扇銅門），不夠的用金幣買：6F 呱呱商人 10 金一把、8F 小偷 20 金三把（3.2.42 起；原本 30，跟 6F 一樣價沒有便宜到）、13F 表哥 8 金一把（3.2.59 起三種鑰匙都賣、都比 6F 便宜）。真人型自動玩家沒通關的全卡在 4F，原因就是銅鑰匙用光。前期銀門多半不在主線上，所以常出現「缺銅、銀用不掉」</li>
 <li>第一次因為沒鑰匙開不了門：多蕾提醒「腳下發金光、頭上有鑰匙記號的人會賣鑰匙」（<code>keyHint</code>，3.1.1，只講一次）</li>
@@ -358,7 +358,7 @@ S：分數 ≥ 18300 且真結局　A：≥ 10400　B：≥ 6800　其餘 C（3.
 <tr><td>nb</td><td>夜梟</td><td class="n">420</td><td class="n">286</td><td class="n">170</td><td class="n">45</td><td class="n">35</td><td class="wrap">16F×1、17F×2、19F×2</td><td><span class="tag">連擊</span></td></tr>
 <tr><td>dk</td><td>無聲刺客</td><td class="n">360</td><td class="n">352</td><td class="n">160</td><td class="n">50</td><td class="n">40</td><td class="wrap">16F×1、17F×3、19F×4</td><td><span class="tag">破甲</span> <span class="tag">先攻</span></td></tr>
 <tr><td>rc</td><td>共鳴水晶（3.1）</td><td class="n">500</td><td class="n">165</td><td class="n">190</td><td class="n">45</td><td class="n">35</td><td class="wrap">16F×2、17F×2、18F×2、19F×2</td><td class="wrap"><span class="tag">魔法</span> <span class="tag">共鳴 80</span></td></tr>
-<tr><td>rg</td><td>休止符衛士</td><td class="n">900</td><td class="n">363</td><td class="n">190</td><td class="n">70</td><td class="n">50</td><td>20F×2</td><td>—</td></tr>
+<tr><td>rg</td><td>休止符衛士</td><td class="n">2400</td><td class="n">500</td><td class="n">230</td><td class="n">70</td><td class="n">50</td><td>20F×2</td><td>—</td></tr>
 <tr><td>K4</td><td>回音指揮</td><td class="n">6000</td><td class="n">374</td><td class="n">185</td><td class="n">200</td><td class="n">150</td><td>18F×1</td><td><span class="tag boss">Boss</span> <span class="tag">魔法</span> 2×2</td></tr>
 <tr><td>M1</td><td>靜默指揮家</td><td class="n">9999</td><td class="n">350</td><td class="n">200</td><td class="n">0</td><td class="n">0</td><td>20F×1</td><td class="wrap"><span class="tag boss">Boss</span> <span class="tag">無敵</span> 3×3 碰到→<code>maestroDrum</code></td></tr>
 <tr><td>M2</td><td>靜默指揮家</td><td class="n">4800</td><td class="n">500</td><td class="n">200</td><td class="n">0</td><td class="n">0</td><td>20F（劇情放置）</td><td class="wrap"><span class="tag boss">Boss</span> 3×3 死亡→<code>maestroPhase2</code>（二階段）</td></tr>
@@ -430,7 +430,7 @@ S：分數 ≥ 18300 且真結局　A：≥ 10400　B：≥ 6800　其餘 C（3.
 <tr><td>17F</td><td class="n">4</td><td class="wrap">水晶吸血鬼×3、大巫師×3、無聲刺客×2、水晶重騎士×2、夜梟×2</td><td class="wrap">觀星台：小愛心（3.2.73 前是日記第三頁）、迷路的小精靈（送銀鑰匙）；裂牆後面是金鑰匙；共鳴水晶守著中間走廊與金鑰匙 (5,7)、右下房間 (8,9)</td></tr>
 <tr><td>18F</td><td class="n">4</td><td class="wrap">水晶吸血鬼×4、水晶重騎士×3、水晶魔像×3、大巫師×2、回音指揮</td><td class="wrap">回音長廊：指揮家的聲音；回音指揮（2×2）守著金劍；共鳴水晶守著東側主線 (10,5)、下方走廊 (4,12)</td></tr>
 <tr><td>19F</td><td class="n">4</td><td class="wrap">無聲刺客×4、水晶重騎士×2、夜梟×2、大巫師×2、水晶吸血鬼</td><td class="wrap">前廳：失落的音符封在金盾旁邊的暗牆 (4,11) 裡，金門後面改放大愛心（3.2.73）；金盾在最長的連戰走廊盡頭；最後的衛兵；共鳴水晶 (5,4) 罩住上方繞路的走廊、(5,9) 擋在最後的衛兵與裂牆（金盾的捷徑）前面</td></tr>
-<tr><td>20F</td><td class="n">4</td><td>休止符衛士×2、靜默指揮家</td><td class="wrap">靜默舞台：指揮家（3×3）；兩隻休止符衛士打倒才開鐵門</td></tr>
+<tr><td>20F</td><td class="n">4</td><td>休止符衛士×2、靜默指揮家</td><td class="wrap">靜默舞台：指揮家（3×3）；兩隻休止符衛士守著左右道具庫的入口，可以不打</td></tr>
 <tr><td>B1</td><td class="n">2</td><td class="wrap">胖老鼠×4、啞靈、骷髏隊長、紅袍巫師、塔之衛兵</td><td class="wrap">地下室（隱藏層）：小偷的老家，堆滿偷來的東西；胖老鼠（致敬胖老鼠工作室）</td></tr>
 </table></div>
 <p>設計規則（<code>tools/audit.js</code> 自動檢查）：沒有白開的房間、沒有多餘的門、NPC 不擋路、樓梯兩側直接互通、暗牆不在主線上、左右鏡射位置不放一樣的內容（Boss 層例外）、每層免費道具最多 3 個、回音地板要先打過怪才到得了（3.1）。</p>
@@ -638,8 +638,9 @@ S：分數 ≥ 18300 且真結局　A：≥ 10400　B：≥ 6800　其餘 C（3.
 <tr><td>3.2.75</td><td>2026-10-06</td><td class="wrap">二階段 Boss「失控的指揮家」換成更邪惡的形象（Ken 指定）：原本只是一階段的圖換色（紅輪廓、金眼），臉還是微笑面具；現在有自己的圖 <code>maestroRageBig</code>——姿勢、指揮棒、煙都與一階段相同，面具換成大吼（壓低的眉骨＋吊眼、咧到腮的大嘴、上下排牙、暗紅口腔、下巴掉下一格），左右對稱。二階段「吵死了，全部閉嘴」與結局開頭「為什麼……你還要唱」兩句改用同一張吼叫的對話頭像 <code>maestroRage</code>（頭身比例與一階段頭像相同），講者名三語「失控的指揮家」。設計過程中試過的半張面具、拿掉指揮棒改張牙舞爪、正中裂縫三版都被否決</td></tr>
 <tr><td>3.4.0</td><td>2026-10-07</td><td class="wrap"><b>鑰匙不限購、每買一把貴一倍</b>（Ken 指定，以 3.2.75 為底；這是 B 方案，A 方案在 key-double 分支）：銅、銀、金三色不限購，每買一把該色下一把 ×2（兩家共用計數、撿到的不算），起步價 6F 銅 25／銀 125／金 250、13F 八折 20／100／200；鑰匙不能賣（拿掉 13F 表哥收購，三語台詞與說明改寫，商店顯示下一把價格與「每買一把，下一把貴一倍」）。從 3.3.0 沿用：補 8 把主線走廊鑰匙（主線自給）、第 4 區房間分級（16F／17F／18F 8 格）、占星師的方向性提示、反彈 Lv1／Lv2 76／105%；不沿用：硬限量、36 把房內鑰匙換寶石、商人各自限量、第 3～4 區獎勵加大（撿到的鑰匙就開得了約八成房間，加大的話一般玩家 85%、技能下限不成立）。鐵壁滿級防禦上限 100→120（原本比 Lv2 低，升滿級打最終魔王反而多受傷）。剩餘資源換算分數 ×1.3→×1（同 3.3.1）。驗收 768 局：一般 71%（鐵壁 86／反彈 86／連擊 42）、高手 92%、盲高手 88%、懂規則 68%、完美最好 23263；主目標 21.6%（目標 ≥50% 未達）、護欄 1 21.8%／護欄 2 成立、技能上下限成立。評價門檻 S 18300／A 10400／B 6800。</td></tr>
 <tr><td>3.4.1</td><td>2026-10-07</td><td class="wrap">拿掉 Boss 層禁飛（Ken 指定）：Boss 還活著的樓層也能用風之羽飛走；三語的「飛不走」提示、圖鑑說明與信差鴿子台詞一併改掉。<code>MT.NOFLY</code> 改名 <code>MT.BOSS_FLOORS</code>，只剩稽核與模擬器判斷 Boss 層用。</td></tr>
+<tr><td>3.4.2</td><td>2026-10-07</td><td class="wrap">（Ken 指定）4F 右側銀門改成牆（那間房上方另有銅門可進，銀門只是更貴的第二入口）。20F 拿掉鐵門：兩隻休止符衛士移到左右道具庫的入口 (3,5)／(7,5)，可以不打就去打指揮家；衛士加強成生命 2400、攻擊 500、防禦 230（原 900／363／190），打一隻的代價約等於門後的大愛心＋攻／防。多蕾的提醒台詞三語改寫。</td></tr>
 </table></div>
-<p class="muted">2026-09-30 首版至 2026-10-07 的 3.4.1。</p>
+<p class="muted">2026-09-30 首版至 2026-10-07 的 3.4.2。</p>
 
 </main>
 </body>
