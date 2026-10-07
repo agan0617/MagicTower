@@ -692,7 +692,7 @@
     if (f === 10 && st.flags['trig:10:sirenIntro'] && bossAlive('SR')) return 'boss';
     if (f === 15 && st.flags['trig:15:echoIntro'] && bossAlive('EM')) return 'boss';
     if (f === 20 && st.flags['trig:20:f20Intro'] && !st.done) return MT.findTile(st, f, 'M3') || MT.findTile(st, f, 'M4') ? 'finale2' : 'finale';   // 最終決戰專屬曲（3.2.46）
-    return 'tower';
+    return st.layers.includes('drums') ? 'prince' : 'tower';   // 打倒鼓魔像之後換王子之歌（3.6 Ken 指定）
   }
   const playMusic = name => MT.Audio.play(name, st ? st.layers : ['base']);
 
@@ -3043,6 +3043,9 @@
     sfx('harp');
     await sleep(4200);
     theEnd.remove();
+    // 你的曲子（3.6 Ken 指定）：評價畫面從頭放王子之歌，一般結局到第三段、真結局四段完整
+    const princeLayers = ['base', 'drums', 'strings', 'winds'];
+    MT.Audio.play('prince', trueEnd ? princeLayers.concat('lead') : princeLayers);
     const rank = `<div class="rank" data-g="${r.grade}"><span class="rankLab">${esc(MT.t('rateTitle'))}</span><span class="rankG">${r.grade}</span>${newBest ? `<span class="rankNew">${esc(MT.t('rateNew'))}</span>` : ''}</div>`
       // 有選技能就列出技能表現分（3.5）：玩家通關後才知道 Boss 戰打得好也算分，教學與技能說明不寫（不劇透評價規則）
       + `<span class="small">${esc(r.skillType ? MT.t('rateCalcSkill', { hp: r.hp, bonus: r.bonus, what: MT.t('skillPts_' + r.skillType), pts: r.skill, score: r.score }) : MT.t('rateCalc', { hp: r.hp, bonus: r.bonus, score: r.score }))}</span><br>`
@@ -3051,7 +3054,8 @@
       + (r.grade === 'S' ? `<div class="sBonus"><b>${esc(MT.t('sTitle'))}</b><span class="small">${esc(MT.story('s_king'))}</span></div>` : '');   // 換算說明不寫在破關畫面（3.2.45 Ken 指定）
     // 回到標題的按鈕放在評價下面、水平置中；最下面是開發者資訊
     $('#cineBody').innerHTML = `<b>${esc(MT.story('ed_thanks'))}</b><br>${rank}<div class="endBtns"><button class="btn primary" id="endBack">${esc(MT.t('endAgain'))}</button></div>`
-      + `<span class="small">${esc(MT.t(trueEnd ? 'endTrue' : 'endNormal'))}　${esc(MT.t('endStats', { t: tstr, s: st.steps, k: st.kills }))}</span><br>${trueEnd ? '' : `<span class="small">${esc(MT.story('ed_hint'))}</span><br>`}`
+      + `<span class="small">${esc(MT.t(trueEnd ? 'endTrue' : 'endNormal'))}　${esc(MT.t('endStats', { t: tstr, s: st.steps, k: st.kills }))}</span><br>`
+      + `<span class="small">${esc(MT.t('princeSong', { n: trueEnd ? 4 : 3 }))}</span><br>${trueEnd ? '' : `<span class="small">${esc(MT.story('ed_hint'))}</span><br>`}`
       + `<span class="small credits">${esc(MT.t('credits'))}</span>`;
     $('#cine').classList.add('ending');
     $('#cineText').classList.remove('hide');

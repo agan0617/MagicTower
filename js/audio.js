@@ -1,4 +1,4 @@
-/* 音樂與音效：全部用 Web Audio 即時合成，沒有外部音檔。
+/* 音樂與音效：用 Web Audio 即時合成；唯一的例外是王子之歌（audio/prince.mp3，見 PRINCE）。
    塔裡的背景音樂分層：一開始只剩低音和零星的鐘聲（聲音被偷走了），
    打倒鼓魔像找回「鼓」、打倒弦之魔女找回「弦」、打倒回音之鏡找回「笛」，對應的聲部才會回來。 */
 (function (MT) {
@@ -123,6 +123,24 @@
   };
   SONGS.ending = Object.assign({}, SONGS.title, { bpm: 112 });
 
+  /* 王子之歌（3.6 Ken 指定）：唯一一首用音檔的曲子，〈星光音樂盒〉原曲。
+     同一段 8 小節主題唱四遍、一遍比一遍完整：打倒鼓魔像（5F）找回第一段、弦之魔女（10F）第二段、回音之鏡（15F）第三段，
+     真結局才有第四段（完整版）。背景樂循環「第一段到目前那段」，找回新的一段時不用重來，播到那裡就會接下去。
+     cuts＝每段在音檔裡開始的秒數（第一拍起音前 15ms，84 bpm、每段 22.86 秒）；接回開頭時舊的在接縫前 fade 秒淡出，
+     第四段播完就是曲尾，讓餘音自然收掉。gain：音檔比合成的曲子大聲，壓到差不多 */
+  const PRINCE = { url: 'audio/prince.mp3', cuts: [0, 22.841, 45.701, 68.562, 91.42], fade: 0.08, gain: 0.6 };
+  // 第幾段：看找回了哪些樂器（drums＝鼓、strings＝豎琴、winds＝笛、lead＝真結局）
+  const princeStage = () => wantLayers.includes('lead') ? 4 : wantLayers.includes('winds') ? 3 : wantLayers.includes('strings') ? 2 : 1;
+  let princeBuf = null, princeLoading = null;
+  function loadPrince() {
+    if (princeBuf || princeLoading) return princeLoading;
+    princeLoading = fetch(PRINCE.url).then(r => r.arrayBuffer())
+      .then(b => new Promise((ok, ng) => ctx.decodeAudioData(b, ok, ng)))   // 舊版 Safari 只吃 callback 寫法
+      .then(buf => { princeBuf = buf; })
+      .catch(() => { princeLoading = null; });                              // 抓不到（離線又沒快取）就沒有這首，下次再試
+    return princeLoading;
+  }
+
   let ctx = null, master, musicBus, sfxBus, noiseBuf;
   const vol = { music: 1, sfx: 1 };
   let cur = null;        // { name, song, layerGains, step, nextTime, timer }
@@ -141,6 +159,7 @@
       noiseBuf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
       const d = noiseBuf.getChannelData(0);
       for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      loadPrince();
       if (pending) { const p = pending; pending = null; MT.Audio.play(p.name, p.layers); }
     },
     suspend() { if (ctx && ctx.state === 'running') ctx.suspend(); },
@@ -160,6 +179,7 @@
       if (name === 'none') { stopSong(0.8); return; }
       if (cur && cur.name === name) { applyLayers(); return; }
       stopSong(0.4);
+      if (name === 'prince') { playPrince(); return; }
       const song = SONGS[name];
       if (!song) return;
       const tracks = song.tracks.map(t => ({ t, notes: split(t.notes), gain: ctx.createGain() }));
@@ -187,8 +207,38 @@
   };
   let pending = null;
 
+  // 王子之歌：從頭播，播到目前那段的結尾就接回開頭（音檔還沒抓好就等抓好再開始）
+  function playPrince() {
+    const me = cur = { name: 'prince', gain: ctx.createGain(), srcs: [] };
+    me.gain.gain.value = PRINCE.gain; me.gain.connect(musicBus);
+    const from = t0 => {
+      const src = ctx.createBufferSource(), g = ctx.createGain();
+      src.buffer = princeBuf; src.connect(g); g.connect(me.gain);
+      src.start(t0);
+      src.onended = () => { me.srcs = me.srcs.filter(x => x.src !== src); try { g.disconnect(); } catch (e) { /* 已經斷了 */ } };
+      me.srcs.push(me.now = { src, g, t0 });
+    };
+    const go = () => {
+      if (cur !== me || !princeBuf) return;
+      from(ctx.currentTime + 0.08);
+      me.timer = setInterval(() => {
+        const st = princeStage(), now = me.now;
+        const end = Math.max(now.t0 + PRINCE.cuts[st], ctx.currentTime + 0.05);
+        if (ctx.currentTime < end - 0.3) return;
+        // 接縫：前三段的結尾緊接著下一段的第一拍，要在那之前淡掉；第四段後面只剩餘音，放著讓它自己收
+        if (st < 4) {
+          now.g.gain.setValueAtTime(1, end - PRINCE.fade);
+          now.g.gain.linearRampToValueAtTime(0, end);
+          now.src.stop(end + 0.02);
+        }
+        from(end);
+      }, 100);
+    };
+    if (princeBuf) go(); else (loadPrince() || Promise.resolve()).then(go);
+  }
+
   function applyLayers(instant) {
-    if (!cur) return;
+    if (!cur || !cur.tracks) return;   // 王子之歌沒有聲部，找回的段落在下一次接縫時才生效
     for (const x of cur.tracks) {
       const on = cur.name !== 'tower' || x.t.layer === 'base' || wantLayers.includes(x.t.layer);
       const v = on ? x.t.vol * (cur.song.gain || 1) : 0;
@@ -201,6 +251,14 @@
     if (!cur) return;
     const old = cur; cur = null;
     clearInterval(old.timer);
+    if (old.srcs) {
+      old.gain.gain.setTargetAtTime(0, ctx.currentTime, fade / 3);
+      setTimeout(() => {
+        old.srcs.forEach(x => { try { x.src.stop(); } catch (e) { /* 已經停了 */ } });
+        try { old.gain.disconnect(); } catch (e) { /* 已經斷了 */ }
+      }, fade * 1000 + 600);
+      return;
+    }
     for (const x of old.tracks) {
       x.gain.gain.setTargetAtTime(0, ctx.currentTime, fade / 3);
       setTimeout(() => { try { x.gain.disconnect(); } catch (e) { /* 已經斷了 */ } }, fade * 1000 + 600);

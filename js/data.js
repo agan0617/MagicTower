@@ -688,13 +688,14 @@
       ['sfx', 'fanfare'],
       ['give', 'drum', 1],
       ['layer', 'drums'],
-      ['music', 'tower'],
+      ['music', 'prince'],   // 王子之歌多找回一段（3.6）
       ['narr', 'drum_got'],
       ['fairy', true],
       ['say', 'doremi', 'drum_1'],
       ['say', 'tink', 'drum_2'],
       ['say', 'tink', 'drum_2b'],
       ['say', 'doremi', 'drum_3'],
+      ['say', 'doremi', 'drum_song'],   // 王子之歌的引導（3.6）
       ['fairy', false],
     ],
     fd: [['say', 'pigeon', 'fd_1'], ['say', 'tink', 'fd_2'], ['say', 'pigeon', 'fd_3'], ['sfx', 'item'], ['give', 'fly', 1], ['fairy', true], ['say', 'doremi', 'fd_4'], ['fairy', false], ['leave']],
@@ -714,7 +715,7 @@
       ['sfx', 'fanfare'],
       ['give', 'harp', 1],
       ['layer', 'strings'],
-      ['music', 'tower'],
+      ['music', 'prince'],   // 王子之歌多找回一段（3.6）
       ['narr', 'harp_got'],
       ['set', 5, 3, 'Hs'],
       ['say', 'harpghost', 'harp_1'],
@@ -742,7 +743,7 @@
       ['sfx', 'fanfare'],
       ['give', 'flute', 1],
       ['layer', 'winds'],
-      ['music', 'tower'],
+      ['music', 'prince'],   // 王子之歌多找回一段（3.6）
       ['narr', 'flute_got'],
       ['fairy', true],
       ['say', 'doremi', 'flute_1'],

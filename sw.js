@@ -4,6 +4,7 @@ const FILES = [
   './', 'index.html', 'style.css', 'manifest.webmanifest',
   'js/data.js', 'js/core.js', 'js/sprites.js', 'js/audio.js', 'js/i18n.js', 'js/sync.js', 'js/main.js',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png',
+  'audio/prince.mp3',
 ];
 
 self.addEventListener('install', e => {
