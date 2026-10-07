@@ -644,6 +644,11 @@
     slowBeat: t => {
       for (const at of [0, 0.62]) { kick(t + at, sfxBus, 1.2); tone('triangle', 110, t + at, 0.18, 0.35, sfxBus, 60); noise(t + at, 0.14, 'lowpass', 400, 0.5, sfxBus); }
     },
+    // 戰鬥中血少（勇者生命掉到開打前的 1/3 以下，3.7.0）：一下「怦—咚」，音色同 gateHeart（手機喇叭也聽得到）
+    dangerBeat: t => {
+      kick(t, sfxBus, 1.0); tone('triangle', 120, t, 0.14, 0.3, sfxBus, 70); noise(t, 0.1, 'lowpass', 420, 0.45, sfxBus);
+      kick(t + 0.17, sfxBus, 0.7); tone('triangle', 100, t + 0.17, 0.12, 0.2, sfxBus, 62); noise(t + 0.17, 0.08, 'lowpass', 360, 0.3, sfxBus);
+    },
     victory: t => {
       [['e5', 0, 0.11], ['g5', 0.12, 0.11], ['c6', 0.24, 0.3], ['b5', 0.58, 0.11], ['c6', 0.72, 0.11], ['d6', 0.86, 0.3],
        ['e6', 1.2, 0.3], ['d6', 1.52, 0.11], ['e6', 1.66, 0.11], ['g6', 1.8, 0.9]]

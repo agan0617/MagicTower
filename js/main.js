@@ -1009,62 +1009,96 @@
     }
     // 最終 Boss（指揮家兩階段）：演得久一點、聚光燈、血少時畫面邊緣閃紅，二階段最後一擊慢動作（3.2.46 Ken 指定；鏡頭推近 3.2.48 拿掉，效果不好）
     const finale = ['M2', 'M3', 'M4'].includes(ev.tile), lastBlow = ev.tile === 'M3' || ev.tile === 'M4';
-    const heroGap0 = boss ? (finale ? 240 : 200) : 130, monGap0 = heroGap0 * 0.85;   // 雙方一來一往要看得出來
-    const cap = (boss ? (finale ? 14 : 8) : 4) * (heroGap0 + monGap0);
-    const full = seq.reduce((a, e) => a + (e.who === 'hero' ? heroGap0 : e.who === 'mon' ? monGap0 : 0), 0);
-    const k = full > cap ? cap / full : 1;
-    const heroGap = Math.max(18, heroGap0 * k), monGap = Math.max(14, monGap0 * k);
+    /* 戰鬥節奏（3.7.0 Ken 指定：原本太快沒張力，但時長要有上限）：照危險度＝這場扣的血 ÷ 開打前的生命決定快慢。
+       小怪不痛的快 20%、會痛的放慢（扣到一半血時每一下的間隔兩倍）；Boss 慢 25%，指揮家一階段照舊、二階段慢 25%。
+       上限：小怪 0.5 秒＋4 秒×危險度（最多 2.5 秒，不痛的 0.5 秒）、2×2 Boss 5 秒、3×3 Boss 7 秒、指揮家一階段 10 秒、二階段不壓縮。
+       超過上限時頭兩個來回與最後一個來回照常速，只壓中段（中段太短才整場等比例加速） */
+    const hpPre = st.hp + c.damage, danger = hpPre > 0 ? Math.min(1, c.damage / hpPre) : 0;
+    const pace = lastBlow ? 1.25 : finale ? 1 : boss ? 1.25 : c.damage > 0 ? 1 + Math.min(danger, 0.5) * 2 : 0.8;
+    const heroGap0 = (boss ? (finale ? 240 : 200) : 130) * pace, monGap0 = heroGap0 * 0.85;   // 雙方一來一往要看得出來
+    const cap = lastBlow ? Infinity : finale ? 10000 : boss ? (n >= 3 ? 7000 : 5000) : c.damage > 0 ? Math.min(2500, 500 + 4000 * danger) : 500;
+    const gaps = seq.map(e => (e.who === 'hero' ? heroGap0 : e.who === 'mon' ? monGap0 : 0));
+    const full = gaps.reduce((a, b) => a + b, 0);
+    if (full > cap) {
+      const live = [...seq.keys()].filter(j => gaps[j] > 0);
+      const keep = new Set([...live.slice(0, 4), ...live.slice(-2)]);   // 頭兩個來回、最後一個來回
+      const fixed = live.reduce((a, j) => a + (keep.has(j) ? gaps[j] : 0), 0);
+      const mid = cap - fixed >= cap * 0.3;
+      const k = mid ? (cap - fixed) / (full - fixed) : cap / full;
+      for (const j of live) if (!(mid && keep.has(j))) gaps[j] = Math.max(seq[j].who === 'hero' ? 18 : 14, gaps[j] * k);
+    }
+    // 最後一擊停格（3.7.0）：會痛的戰鬥（危險度 ≥ 0.1）與 Boss；二階段指揮家有自己的慢動作
+    const hitStop = !lastBlow && (boss || danger >= 0.1) ? 100 : 0;
     let lastSfx = 0;
-    const sfxT = nm => { const t = now(); if (k === 1 || t - lastSfx >= 70) { sfx(nm); lastSfx = t; } };   // 加速時音效不要疊成一團
-    let shown = st.hp + c.damage, monHp = m.hp, heroHits = 0, i = 0;
-    const setHp = v => { shown = Math.max(st.hp, v); $('#hHp').textContent = shown; };
+    const sfxT = (nm, gap) => { const t = now(); if (gap >= 70 || t - lastSfx >= 70) { sfx(nm); lastSfx = t; } };   // 加速時音效不要疊成一團
+    let shown = hpPre, monHp = m.hp, heroHits = 0, i = 0;
+    // 血少警訊（3.7.0）：勇者生命掉到開打前的 1/3 以下，畫面邊緣閃紅＋心跳（指揮家另外在 Boss 血剩 25% 時閃紅）
+    let lowHp = false, beatAt = 0, quiet = false;
+    const setHp = v => { shown = Math.max(st.hp, v); $('#hHp').textContent = shown; if (shown <= hpPre / 3) lowHp = true; };
+    const alarm = () => {
+      view.danger = lowHp || (finale && monHp <= m.hp * 0.25);
+      if (lowHp && !quiet && now() - beatAt >= 650) { sfx('dangerBeat'); beatAt = now(); }
+    };
     if (c.drain) {   // 吸血：開打前先吸走一截
       sfx('drain'); flash('#b0103a', 300);
       floatText(st.x, st.y > 0 ? st.y - 0.3 : st.y + 0.25, MT.t('drainText', { n: c.drain }), '#ff4a8a', 15);
-      setHp(shown - c.drain);
+      setHp(shown - c.drain); alarm();
       await sleep(420);
     }
     const lastHero = seq.map(e => e.who).lastIndexOf('hero');
     if (finale) view.spot = { x: (st.x + cx) / 2, y: (st.y + cy) / 2, t0: now() };
+    // 照預定時間點等（不是每次固定睡 gap）：setTimeout 每次會晚幾毫秒，Boss 戰幾十下累積起來會超出上限
+    let due = now();
+    const wait = async ms => { due += ms; const w = due - now(); if (w > 0) await sleep(w); };
     for (const [si, e] of seq.entries()) {
+      const gap = gaps[si];
       if (lastBlow && si === lastHero) {   // 最後一擊：音樂抽掉只剩心跳、時間變慢
+        quiet = true;
         MT.Audio.play('none'); sfx('slowBeat');
-        await sleep(1300);
+        await wait(1300);
       }
       if (e.who === 'hero') {
         monHp -= e.hit; view.dying.hp = monHp;
-        if (finale) view.danger = monHp <= m.hp * 0.25;
-        view.lunge = { dx, dy, t0: now(), dur: Math.min(140, heroGap) };
+        alarm();
+        view.lunge = { dx, dy, t0: now(), dur: Math.min(140, gap) };
         fxAt('slash', center(cx, cy), i++ % 2, 220);
-        sfxT(boss ? 'hitBig' : 'hit');   // 打 Boss 的每一下比較沉
+        sfxT(boss ? 'hitBig' : 'hit', gap);   // 打 Boss 的每一下比較沉
         view.dying.flash = now() + 120;
         floatText(cx + (i % 2 ? 0.14 : -0.14), by > 0 ? by - 0.45 : by + 0.25, '-' + e.hit, '#ffffff', 14);
         if (boss) shake(120, 5);
         if (lastBlow && si === lastHero) {   // 敲下去：白光、停格、長長的「噹——」（呼應序章第一鎚）
           flash('#ffffff', 900); shake(500, 14); sfx('clang');
-          await sleep(700);
+          await wait(700);
         }
-        await sleep(heroGap);
       } else if (e.who === 'mon') {
         if (e.hit > 0) {
-          sfxT('hurt'); view.hurt = now() + 120;
-          view.dying.lunge = { t0: now(), dur: Math.max(90, Math.min(160, monGap + 40)) };
+          sfxT('hurt', gap); view.hurt = now() + 120;
+          view.dying.lunge = { t0: now(), dur: Math.max(90, Math.min(160, gap + 40)) };
           view.knock = { dx: -dx, dy: -dy, t0: now() };
           fxAt('claw', center(st.x, st.y), heroHits % 2, 260);
           heroHits++;
           floatText(st.x + (heroHits % 2 ? 0.14 : -0.14), st.y > 0 ? st.y - 0.3 : st.y + 0.25, '-' + e.hit, '#ff6a6a', 14);
           setHp(shown - e.hit);
+          // 被打的震動照這一下扣掉開打前生命的幾成（3.7.0）：扣 5% 約 2、扣 20% 約 8、最多 12；太輕的不震
+          const amp = Math.min(12, (e.hit / hpPre) * 40);
+          if (amp >= 1.5) shake(140, amp);
         }
         if (e.refl) {   // 反彈：同一下彈回去，紫色數字
           monHp -= e.refl; view.dying.hp = Math.max(0, monHp); view.dying.flash = now() + 120;
-          sfxT('reflect');
+          sfxT('reflect', gap);
           floatText(cx, by > 0 ? by - 0.2 : by + 0.4, '↺' + e.refl, '#d9b8ff', 13);
         }
-        await sleep(monGap);
+        alarm();
       }
+      if (hitStop && si === seq.length - 1) {   // 最後一擊停格
+        view.dying.flash = now() + hitStop + 120; shake(hitStop + 60, 4);
+        await wait(hitStop);
+      }
+      if (gap) await wait(gap);
     }
     // 結算
-    if (finale) { if (view.spot) view.spot.out = now(); view.danger = false; }   // 聚光燈慢慢退掉
+    view.danger = false;
+    if (finale && view.spot) view.spot.out = now();   // 聚光燈慢慢退掉
     $('#hHp').textContent = hudVal('hp');
     if (c.damage > 0) floatText(st.x, st.y, '-' + c.damage, '#ff6a6a', 18);
     sfx('kill');
