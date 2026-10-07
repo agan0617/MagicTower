@@ -1,6 +1,7 @@
 /* 產生通關攻略（HTML）：讓高手自動玩家實際跑一次，把路線切成一段一段（連續在同一層的步驟算一段），
    每段畫出那時的地圖、標上步驟編號，附步驟表與怪物代價表；再加上規則、技能、隱藏要素等說明。
-   用法：node tools/guide.js <輸出的 html> [--width 4] [--skill absorb|reflect|double]
+   用法：node tools/guide.js <輸出的 html> [--width 4] [--skill absorb|reflect|double] [--ahead all] [--human 種子]
+   攻略用完美玩家：--human 1 --width 8 --skill double --ahead all（約 4 分鐘；3.7.6 是 18501 分 A＋真結局），不用換種子挑分數
    產出是明文攻略，放到 agan0617.github.io 的 _private/magictower.html 再用那邊的 tools/encrypt.mjs 加密 */
 'use strict';
 const fs = require('fs');
@@ -24,7 +25,9 @@ const NPC_NAME = c => MT.t('npc_' + c) !== 'npc_' + c ? MT.t('npc_' + c) : MT.t(
 console.error(`高手（寬度 ${width}）跑路線中…`);
 const t0 = Date.now();
 const ai = process.argv.indexOf('--ahead'), ahead = ai > 0 ? (process.argv[ai + 1] === 'all' ? 'all' : Number(process.argv[ai + 1]) > 0) : undefined;   // --ahead all：知道整座塔的老手路線（3.2.55）
-const run = S.solveStrong({ width, log: true, ahead });
+// --human SEED：改用完美玩家（真人型、noise 300，DESIGN.md〈驗收〉的 perfect 組）跑——鑰匙限量後 strong 拿不到 S
+const hi = process.argv.indexOf('--human');
+const run = hi > 0 ? S.solveHuman({ width, noise: 300, seed: Number(process.argv[hi + 1]) || 1, ahead, log: true }) : S.solveStrong({ width, log: true, ahead });
 if (!run.done) { console.error('高手沒通關，攻略產生不了'); process.exit(1); }
 const log = S.logList(run.st);
 console.error(`通關，分數 ${run.score}，${log.length} 筆紀錄，${((Date.now() - t0) / 1000).toFixed(0)} 秒`);
