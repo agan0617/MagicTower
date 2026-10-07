@@ -645,6 +645,9 @@
     slowBeat: t => {
       for (const at of [0, 0.62]) { kick(t + at, sfxBus, 1.2); tone('triangle', 110, t + at, 0.18, 0.35, sfxBus, 60); noise(t + at, 0.14, 'lowpass', 400, 0.5, sfxBus); }
     },
+    // 最後一擊的蓄力（3.7.5）：跟著心跳慢慢往上爬的嗡聲；衝刺：一聲短促的破風
+    charge: t => { tone('sine', 220, t, 1.3, 0.08, sfxBus, 880); tone('triangle', 330, t + 0.1, 1.2, 0.04, sfxBus, 1320); noise(t + 0.6, 0.7, 'bandpass', 3000, 0.08, sfxBus, 2); },
+    dash: t => { noise(t, 0.14, 'highpass', 2500, 0.45, sfxBus); tone('sawtooth', 900, t, 0.1, 0.06, sfxBus, 200); },
     // 戰鬥中血少（勇者生命掉到開打前的 1/3 以下，3.7.0）：一下「怦—咚」，音色同 gateHeart（手機喇叭也聽得到）
     dangerBeat: t => {
       kick(t, sfxBus, 1.0); tone('triangle', 120, t, 0.14, 0.3, sfxBus, 70); noise(t, 0.1, 'lowpass', 420, 0.45, sfxBus);

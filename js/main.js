@@ -18,7 +18,7 @@
   const view = {
     hx: 0, hy: 0, move: null, dir: 'down',
     fx: [], shake: 0, shakeUntil: 0, flash: null, fade: 0, fadeTo: 0, fadeT0: 0, fadeDur: 1,
-    fairy: false, fairyT: 0, dying: null, lunge: null, hurt: 0, banner: null, doorFade: null,
+    fairy: false, fairyT: 0, dying: null, lunge: null, special: null, hurt: 0, banner: null, doorFade: null,
   };
 
   const canvas = $('#map');
@@ -272,6 +272,30 @@
       ox += view.knock.dx * a; oy += view.knock.dy * a;
       if (k >= 1) view.knock = null;
     }
+    // 指揮家最後一擊（見 battle 的 finisher）：蓄力往後退、越後面抖得越厲害 → 衝刺留殘影 → 停在 Boss 面前 → 慢慢退回
+    const sp = view.special, ghosts = [];
+    let charge = 0;
+    if (sp) {
+      const e = t - sp.t0, back = 12, reach = TILE * 0.55;
+      let a;
+      if (e < sp.wind) {
+        charge = e / sp.wind;
+        a = -back * (1 - Math.pow(1 - Math.min(1, charge * 1.6), 2));
+        ox += (Math.random() - 0.5) * charge * 3; oy += (Math.random() - 0.5) * charge * 3;
+      } else if (!sp.hit) {
+        const k = Math.min(1, (e - sp.wind) / sp.dash);
+        a = -back + (reach + back) * k;
+        for (let j = 1; j <= 3; j++) ghosts.push(-(reach + back) * 0.22 * j);   // 殘影：離本體往回幾格
+      } else if (t - sp.hit < 700) {
+        a = reach;
+        if (t - sp.hit < 160) for (let j = 1; j <= 3; j++) ghosts.push(-(reach + back) * 0.22 * j * (1 - (t - sp.hit) / 160));
+      } else {
+        const k = Math.min(1, (t - sp.hit - 700) / 300);
+        a = reach * (1 - k * k * (3 - 2 * k));
+        if (k >= 1) view.special = null;
+      }
+      ox += sp.dx * a; oy += sp.dy * a;
+    }
     const d = st.dir;
     // 原地踏步：站著時慢慢左右腳輪流抬，走路時踩快一點
     const foot = Math.floor(t / (view.move ? 140 : 380)) % 2 ? 'A' : 'B';
@@ -299,6 +323,21 @@
       const glow = g.createRadialGradient(cx, cy, 4, cx, cy, TILE * 0.7);
       glow.addColorStop(0, `rgba(255,216,74,${0.35 + 0.15 * Math.sin(t / 300)})`); glow.addColorStop(1, 'rgba(255,216,74,0)');
       g.fillStyle = glow; g.fillRect(cx - TILE, cy - TILE, TILE * 2, TILE * 2);
+    }
+    if (charge > 0) {                         // 蓄力：劍上的金光越聚越亮，光點往王子身上收
+      const cx = x * TILE + ox + TILE / 2, cy = y * TILE + oy + TILE / 2;
+      const glow = g.createRadialGradient(cx, cy, 2, cx, cy, TILE * (0.4 + 0.5 * charge));
+      glow.addColorStop(0, `rgba(255,236,140,${0.25 + 0.5 * charge})`); glow.addColorStop(1, 'rgba(255,216,74,0)');
+      g.fillStyle = glow; g.fillRect(cx - TILE, cy - TILE, TILE * 2, TILE * 2);
+      if (Math.random() < 0.6) {
+        const an = Math.random() * Math.PI * 2, rr = TILE * (0.7 + Math.random() * 0.4), life = 420;
+        view.fx.push({ kind: 'spark', x: cx + Math.cos(an) * rr, y: cy + Math.sin(an) * rr, vx: -Math.cos(an) * rr / life, vy: -Math.sin(an) * rr / life, t0: t, life, color: Math.random() < 0.5 ? '#ffe066' : '#ffffff', size: 4 });
+      }
+    }
+    for (const [j, ga] of ghosts.entries()) {   // 衝刺殘影
+      g.save(); g.globalAlpha = 0.35 - j * 0.1;
+      g.drawImage(im, x * TILE + ox + sp.dx * ga, y * TILE + oy + sp.dy * ga + bob);
+      g.restore();
     }
     if (view.hurt > t && Math.floor(t / 50) % 2) g.globalAlpha = 0.35;
     g.drawImage(im, x * TILE + ox, y * TILE + oy + bob);
@@ -368,6 +407,19 @@
             g.beginPath(); g.moveTo(f.x - s * r + o, f.y - r); g.lineTo(f.x - s * r + o + s * 2 * r * p, f.y - r + 2 * r * p); g.stroke();
           }
         }
+        g.restore();
+      } else if (f.kind === 'bigslash') {
+        // 指揮家最後一擊的十字斬：金色大 X 兩筆接連劃開，外加一圈往外擴散的白光
+        const r = f.r, p1 = Math.min(1, k * 6), p2 = Math.min(1, Math.max(0, k * 6 - 0.6));
+        g.save(); g.globalAlpha = 1 - Math.max(0, k - 0.5) / 0.5; g.lineCap = 'round';
+        for (const [lw, col] of [[18, 'rgba(255,216,74,0.35)'], [8, '#ffe066'], [3, '#ffffff']]) {
+          g.lineWidth = lw; g.strokeStyle = col; g.beginPath();
+          g.moveTo(f.x - r, f.y - r); g.lineTo(f.x - r + 2 * r * p1, f.y - r + 2 * r * p1);
+          if (p2 > 0) { g.moveTo(f.x + r, f.y - r); g.lineTo(f.x + r - 2 * r * p2, f.y - r + 2 * r * p2); }
+          g.stroke();
+        }
+        g.globalAlpha = Math.max(0, 1 - k * 1.6); g.strokeStyle = '#ffffff'; g.lineWidth = 4;
+        g.beginPath(); g.arc(f.x, f.y, r * (0.3 + k * 1.4), 0, Math.PI * 2); g.stroke();
         g.restore();
       } else if (f.kind === 'note') {
         const dt = t - f.t0;
@@ -1045,19 +1097,38 @@
       setHp(shown - c.drain); alarm();
       await sleep(420);
     }
-    const lastHero = seq.map(e => e.who).lastIndexOf('hero');
+    const killIdx = seq.length - 1;   // 打倒 Boss 的那一下：通常是勇者出手；反彈技能可能是 Boss 出手被彈死
     if (finale) view.spot = { x: (st.x + cx) / 2, y: (st.y + cy) / 2, t0: now() };
     // 照預定時間點等（不是每次固定睡 gap）：setTimeout 每次會晚幾毫秒，Boss 戰幾十下累積起來會超出上限
     let due = now();
     const wait = async ms => { due += ms; const w = due - now(); if (w > 0) await sleep(w); };
+    /* 二階段指揮家的最後一擊（3.7.5 Ken 指定）：王子跟著心跳往後蓄力、劍上聚金光，再一口氣衝上去十字斬；
+       衝到 Boss 面前的那一瞬間才扣血，血條直接歸零不滑。之後停格、王子慢慢退回原位（畫法見 drawHero 的 view.special） */
+    const finisher = async (dmg, text, color) => {
+      const WIND = 1300, DASH = 110;
+      view.special = { dx, dy, t0: now(), wind: WIND, dash: DASH, hit: 0 };
+      sfx('charge');
+      await wait(WIND);
+      sfx('dash');
+      await wait(DASH);
+      monHp -= dmg; view.dying.hp = Math.max(0, monHp); view.dying.shown = view.dying.hp / view.dying.hpMax;
+      view.special.hit = now();
+      const [px, py] = center(cx, cy);
+      view.fx.push({ kind: 'bigslash', x: px, y: py, r: TILE * n * 0.5, t0: now(), life: 700 });
+      view.dying.flash = now() + 600;
+      floatText(cx, by > 0 ? by - 0.45 : by + 0.25, text, color, 22);
+      flash('#ffffff', 900); shake(500, 14); sfx('clang'); sfx('hitBig');   // 白光、停格、長長的「噹——」（呼應序章第一鎚）
+      alarm();
+      await wait(700);
+    };
     for (const [si, e] of seq.entries()) {
-      const gap = gaps[si];
-      if (lastBlow && si === lastHero) {   // 最後一擊：音樂抽掉只剩心跳、時間變慢
+      const gap = gaps[si], fin = lastBlow && si === killIdx;
+      if (fin) {   // 最後一擊：音樂抽掉只剩心跳、時間變慢
         quiet = true;
         MT.Audio.play('none'); sfx('slowBeat');
-        await wait(1300);
       }
-      if (e.who === 'hero') {
+      if (e.who === 'hero' && fin) await finisher(e.hit, '-' + e.hit, '#ffffff');
+      else if (e.who === 'hero') {
         monHp -= e.hit; view.dying.hp = monHp;
         alarm();
         view.lunge = { dx, dy, t0: now(), dur: Math.min(140, gap) };
@@ -1066,10 +1137,6 @@
         view.dying.flash = now() + 120;
         floatText(cx + (i % 2 ? 0.14 : -0.14), by > 0 ? by - 0.45 : by + 0.25, '-' + e.hit, '#ffffff', 14);
         if (boss) shake(120, 5);
-        if (lastBlow && si === lastHero) {   // 敲下去：白光、停格、長長的「噹——」（呼應序章第一鎚）
-          flash('#ffffff', 900); shake(500, 14); sfx('clang');
-          await wait(700);
-        }
       } else if (e.who === 'mon') {
         if (e.hit > 0) {
           sfxT('hurt', gap); view.hurt = now() + 120;
@@ -1083,7 +1150,8 @@
           const amp = Math.min(12, (e.hit / hpPre) * 40);
           if (amp >= 1.5) shake(140, amp);
         }
-        if (e.refl) {   // 反彈：同一下彈回去，紫色數字
+        if (e.refl && fin) await finisher(e.refl, '↺' + e.refl, '#d9b8ff');   // 被彈死：王子擋下這一下就順勢反擊
+        else if (e.refl) {   // 反彈：同一下彈回去，紫色數字
           monHp -= e.refl; view.dying.hp = Math.max(0, monHp); view.dying.flash = now() + 120;
           sfxT('reflect', gap);
           floatText(cx, by > 0 ? by - 0.2 : by + 0.4, '↺' + e.refl, '#d9b8ff', 13);
