@@ -3044,7 +3044,8 @@
     await sleep(4200);
     theEnd.remove();
     const rank = `<div class="rank" data-g="${r.grade}"><span class="rankLab">${esc(MT.t('rateTitle'))}</span><span class="rankG">${r.grade}</span>${newBest ? `<span class="rankNew">${esc(MT.t('rateNew'))}</span>` : ''}</div>`
-      + `<span class="small">${esc(MT.t('rateCalc', { hp: r.hp, bonus: r.bonus, score: r.score }))}</span><br>`
+      // 有選技能就列出技能表現分（3.5）：玩家通關後才知道 Boss 戰打得好也算分，教學與技能說明不寫（不劇透評價規則）
+      + `<span class="small">${esc(r.skillType ? MT.t('rateCalcSkill', { hp: r.hp, bonus: r.bonus, what: MT.t('skillPts_' + r.skillType), pts: r.skill, score: r.score }) : MT.t('rateCalc', { hp: r.hp, bonus: r.bonus, score: r.score }))}</span><br>`
       // 分數到 S 但沒真結局時不另外提示（3.2.72 Ken 指定：不劇透有真結局）
       // S 的額外獎勵（3.2.71 Ken 指定）：金色標語＋國王的一句話
       + (r.grade === 'S' ? `<div class="sBonus"><b>${esc(MT.t('sTitle'))}</b><span class="small">${esc(MT.story('s_king'))}</span></div>` : '');   // 換算說明不寫在破關畫面（3.2.45 Ken 指定）

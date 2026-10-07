@@ -40,7 +40,7 @@ if (args[0] === '--worker') {
   const o = { width: G.width, noise: G.noise, seed: +seed, ahead: G.ahead, snapFloor: +process.env.MT_SNAP || 0 };
   const r = S.solveHuman(o);
   const st = r.st;
-  process.stdout.write(JSON.stringify({ g, skill, seed: +seed, done: !!r.done, score: r.score || 0, grade: r.grade || '-', te: !!(r.done && S.MT.isTrueEnding(st)), floor: S.maxFloor(st), hp: st.hp, atk: st.atk, def: st.def, gold: st.gold, keys: st.keys, bought: { y: st.shops["keys:y"] || 0, b: st.shops["keys:b"] || 0, r: st.shops["keys:r"] || 0 }, retried: st.retried || 0, ...(o.snap ? { snap: o.snap } : {}) }));
+  process.stdout.write(JSON.stringify({ g, skill, seed: +seed, done: !!r.done, score: r.score || 0, grade: r.grade || '-', te: !!(r.done && S.MT.isTrueEnding(st)), floor: S.maxFloor(st), hp: st.hp, atk: st.atk, def: st.def, gold: st.gold, keys: st.keys, bought: { y: st.shops["keys:y"] || 0, b: st.shops["keys:b"] || 0, r: st.shops["keys:r"] || 0 }, retried: st.retried || 0, lv: st.lv, sklv: st.skill ? st.skill.lv : 0, boss: st.boss || [], ...(o.snap ? { snap: o.snap } : {}) }));
   process.exit(0);
 }
 

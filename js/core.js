@@ -256,6 +256,11 @@
       }
       const c = MT.calc(st, t);
       if (c.damage == null || c.damage >= st.hp) return Object.assign(ev, { type: 'cantFight', calc: c });
+      // Boss 戰紀錄（技能表現分用）：打之前的能力與這場的結果。用「接一個新陣列」而不是 push，模擬複製局面時才不會共用
+      if ((m.sp || []).includes('boss')) {
+        const sk = skillOf(st);
+        st.boss = (st.boss || []).concat([{ t, hp: st.hp, atk: st.atk, def: st.def, sk: sk ? sk.type : '', lv: sk ? sk.lv : 0, dmg: c.damage, turns: c.turns, refl: c.reflect * c.monActs * c.monStrikes }]);
+      }
       st.hp -= c.damage;
       if (!st.echo) st.echo = {};
       st.echo[st.floor] = c.damage;   // 這層的回音地板之後就照這場扣
@@ -464,7 +469,33 @@
   // 真結局：三頁日記全撿齊，並帶著失落的音符打倒指揮家
   MT.isTrueEnding = st => st.pages.length >= 3 && !!st.items.note;
 
-  /* 通關評價：剩餘生命＋剩下的金幣、鑰匙、經驗值折算成生命。
+  /* 技能表現分（3.5，Ken 指定：計分要認得三種技能各自的長處，三種技能的完美玩家都打得到 S）。
+     只看技能生效後的 Boss 戰（13F 鏡之騎士、15F 回音之鏡、18F 回音指揮、20F 指揮家兩個階段），每一場依「你選的技能」量一個 0～1 的表現：
+       鐵壁＝擋下幾成（每一下比沒有技能時少受幾成；魔法擋不了＝0）
+       反彈＝彈回去的傷害佔 Boss 生命幾成（最多 1）
+       連擊＝回合少了幾成（比沒有技能時）
+     這場的分數＝表現 × Boss 生命 × MT.SKILL_SCORE.k[技能]（越強的 Boss 越值錢）。
+     防刷：三種表現都跟戰鬥拖多長無關（反彈除外：多挨一下多彈一下，所以 k.reflect × 反彈比例上限 3.8 必須 < 1，多挨打一定虧）。
+     k 照模擬定（3.5.0）：高手和完美玩家打到這幾隻 Boss 時能力差不多，所以這份分數約等於「選這個技能就加一個固定分」——
+     鐵壁原本分數最低、加最多（中位約 7000），反彈約 3500，連擊約 700：三種技能的完美玩家都打得到 S，連擊最高分仍然最高 */
+  MT.SKILL_SCORE = { bosses: ['K3', 'EM', 'K4', 'M2', 'M3', 'M4'], k: { absorb: 0.55, reflect: 0.2, double: 0.05 } };
+  // b：Boss 戰紀錄（MT.step 打之前記下的 能力＋技能），回傳這場的表現 0～1
+  MT.bossPerf = function (b) {
+    const st = { hp: b.hp, atk: b.atk, def: b.def, skill: { type: b.sk, lv: b.lv } }, st0 = { hp: b.hp, atk: b.atk, def: b.def, skill: null };
+    const m = MT.MONSTERS[b.t], c = MT.calc(st, b.t), c0 = MT.calc(st0, b.t);
+    if (c.damage == null) return 0;
+    if (b.sk === 'absorb') { const r0 = MT.monHitRaw(st0, m); return r0 > 0 ? 1 - MT.monHitRaw(st, m) / r0 : 1; }
+    if (b.sk === 'reflect') return Math.min(1, c.reflect * c.monActs * c.monStrikes / m.hp);
+    if (b.sk === 'double') return c0.damage == null ? 1 : Math.max(0, 1 - c.turns / c0.turns);
+    return 0;
+  };
+  MT.bossPts = b => (b.lv > 0 && MT.SKILL_SCORE.bosses.includes(b.t) ? Math.round(MT.bossPerf(b) * MT.MONSTERS[b.t].hp * (MT.SKILL_SCORE.k[b.sk] || 0)) : 0);
+  // 這一局目前拿到的技能表現分
+  MT.skillScore = st => (st.boss || []).reduce((a, b) => a + MT.bossPts(b), 0);
+  // 用現在的能力去打 code 這隻 Boss 會拿幾分（模擬玩家估價用）
+  MT.bossPtsNow = (st, code) => { const sk = skillOf(st); return sk ? MT.bossPts({ t: code, hp: st.hp, atk: st.atk, def: st.def, sk: sk.type, lv: sk.lv }) : 0; };
+
+  /* 通關評價：剩餘生命＋剩下的金幣、鑰匙、經驗值折算成生命＋技能表現分。
      金幣照 16F 水晶祭壇當下的價格換生命，鑰匙先照呱呱商人的價格換金幣，經驗值照節拍之神換等級的生命，
      等於幫玩家把資源花完，不用最後跑回去買血。
      門檻（MT.RATING）用 tools/solve.js 的新手／一般／高手三種自動玩家的成績定；S 還要真結局 */
@@ -479,10 +510,11 @@
     for (let c = MT.lvCost(lv); exp >= c; c = MT.lvCost(++lv)) { exp -= c; bonus += MT.LEVEL.L2.hp; }
     // 留到通關沒花的資源換算後再乘 MT.LEFTOVER（3.2.43 Ken 指定：留著要比花掉划算，先用 1.3）
     bonus = Math.floor(bonus * (MT.LEFTOVER || 1));
-    const score = st.hp + bonus;
+    const skill = MT.skillScore(st);
+    const score = st.hp + bonus + skill;
     const trueEnd = MT.isTrueEnding(st);
     const grade = score >= R.S && trueEnd ? 'S' : score >= R.A ? 'A' : score >= R.B ? 'B' : 'C';
-    return { hp: st.hp, bonus, score, grade, trueEnd, needTrue: score >= R.S && !trueEnd };
+    return { hp: st.hp, bonus, skill, skillType: st.skill ? st.skill.type : '', score, grade, trueEnd, needTrue: score >= R.S && !trueEnd };
   };
 
   /* 存檔補上新版加的欄位（2.0.0 起只讀得了 v2 存檔，1.x 的地圖修補都用不到了） */

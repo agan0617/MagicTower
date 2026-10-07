@@ -478,7 +478,8 @@ function ruleKeyValue(st, c, mf) {
    基準量出 42 個百分點的差距其實是這個偏差（strategy-depth 0b）。真人不知道樓上有什麼也會先上去看 */
 function potential(st, ahead = true, horizon) {
   const top = ahead === 'all' ? TOPF : ahead === 'blind' ? Math.min(maxFloor(st), horizon == null ? TOPF : horizon) : Math.min(TOPF, maxFloor(st) + (ahead ? 1 : 0));
-  let dmg = 0;
+  // 技能表現分（3.5）：已經拿到的照算；還沒打的 Boss 用現在的能力估這場能拿幾分（看得到幾層就估幾層，跟 dmg 一樣）
+  let dmg = 0, sks = MT.skillScore ? MT.skillScore(st) : 0;
   for (let f = 1; f <= top; f++) {
     const m = st.maps[f], seen = new Set();
     for (let y = 0; y < MT.H; y++) for (let x = 0; x < MT.W; x++) {
@@ -491,6 +492,7 @@ function potential(st, ahead = true, horizon) {
       let cap = CAP * MT.zoneOf(f);
       if (GUARD && vet(ahead)) { const gv0 = guardValues()[f]; const gw = gv0 && gv0[y * 100 + x]; if (gw != null) cap = Math.min(cap, gw); }
       dmg += c.damage == null ? cap : Math.min(c.damage, cap);
+      if (MT.bossPtsNow && c.damage != null && (mm.sp || []).includes('boss')) sks += MT.bossPtsNow(st, t);
     }
   }
   const z = MT.zoneOf(maxFloor(st));
@@ -521,7 +523,7 @@ function potential(st, ahead = true, horizon) {
   // 3.4 鑰匙不限量但越買越貴：買得到不代表買得起，一樣留備用（不然條件只認限量，倍率漲價時盲高手 20F 銅鑰匙 0、錢不夠，×1.45 只過 17%）
   const scarce = stockLeft(st, 'y') !== Infinity || ((MT.KEY_RATE || {}).y || 1) > 1;
   const reserve = vet(ahead) && mf < TOPF && scarce && st.keys.y < RESERVE ? (RESERVE - st.keys.y) * 2000 : 0;
-  return lean + te + keep + fut - reserve + st.hp - dmg - short * SHORT + kval + st.gold * gv + st.exp * ev + (st.items.chisel || 0) * 300 * z;
+  return sks + lean + te + keep + fut - reserve + st.hp - dmg - short * SHORT + kval + st.gold * gv + st.exp * ev + (st.items.chisel || 0) * 300 * z;
 }
 
 function newRun(opt) {
