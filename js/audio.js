@@ -125,8 +125,9 @@
 
   /* 王子之歌（3.6 Ken 指定）：唯一一首用音檔的曲子，〈星光音樂盒〉原曲。
      同一段 8 小節主題唱四遍、一遍比一遍完整：打倒鼓魔像（5F）找回第一段、弦之魔女（10F）第二段、回音之鏡（15F）第三段，
-     真結局才有第四段（完整版）。背景樂循環「第一段到目前那段」，找回新的一段時不用重來，播到那裡就會接下去。
-     cuts＝每段在音檔裡開始的秒數（第一拍起音前 15ms，84 bpm、每段 22.86 秒）；接回開頭時舊的在接縫前 fade 秒淡出，
+     真結局才有第四段（完整版）。背景樂只循環目前那一段（3.7.2 Ken 指定：LV3 就是一直放 LV3，不從第一段播起），
+     找回新的一段時不用重來，這一遍放完就換成新的那段。
+     cuts＝每段在音檔裡開始的秒數（第一拍起音前 15ms，84 bpm、每段 22.86 秒）；接回段首時舊的在接縫前 fade 秒淡出，
      第四段播完就是曲尾，讓餘音自然收掉。gain：音檔比合成的曲子大聲，壓到差不多 */
   const PRINCE = { url: 'audio/prince.mp3', cuts: [0, 22.841, 45.701, 68.562, 91.42], fade: 0.08, gain: 0.6 };
   // 第幾段：看找回了哪些樂器（drums＝鼓、strings＝豎琴、winds＝笛、lead＝真結局）
@@ -207,31 +208,31 @@
   };
   let pending = null;
 
-  // 王子之歌：從頭播，播到目前那段的結尾就接回開頭（音檔還沒抓好就等抓好再開始）
+  // 王子之歌：從目前那段的段首播，播到段尾就接回段首（音檔還沒抓好就等抓好再開始）
   function playPrince() {
     const me = cur = { name: 'prince', gain: ctx.createGain(), srcs: [] };
     me.gain.gain.value = PRINCE.gain; me.gain.connect(musicBus);
-    const from = t0 => {
+    const from = (t0, seg) => {
       const src = ctx.createBufferSource(), g = ctx.createGain();
       src.buffer = princeBuf; src.connect(g); g.connect(me.gain);
-      src.start(t0);
+      src.start(t0, PRINCE.cuts[seg - 1]);
       src.onended = () => { me.srcs = me.srcs.filter(x => x.src !== src); try { g.disconnect(); } catch (e) { /* 已經斷了 */ } };
-      me.srcs.push(me.now = { src, g, t0 });
+      me.srcs.push(me.now = { src, g, t0, seg });
     };
     const go = () => {
       if (cur !== me || !princeBuf) return;
-      from(ctx.currentTime + 0.08);
+      from(ctx.currentTime + 0.08, princeStage());
       me.timer = setInterval(() => {
-        const st = princeStage(), now = me.now;
-        const end = Math.max(now.t0 + PRINCE.cuts[st], ctx.currentTime + 0.05);
+        const now = me.now;
+        const end = Math.max(now.t0 + PRINCE.cuts[now.seg] - PRINCE.cuts[now.seg - 1], ctx.currentTime + 0.05);
         if (ctx.currentTime < end - 0.3) return;
         // 接縫：前三段的結尾緊接著下一段的第一拍，要在那之前淡掉；第四段後面只剩餘音，放著讓它自己收
-        if (st < 4) {
+        if (now.seg < 4) {
           now.g.gain.setValueAtTime(1, end - PRINCE.fade);
           now.g.gain.linearRampToValueAtTime(0, end);
           now.src.stop(end + 0.02);
         }
-        from(end);
+        from(end, princeStage());
       }, 100);
     };
     if (princeBuf) go(); else (loadPrince() || Promise.resolve()).then(go);

@@ -1,5 +1,5 @@
 /* 離線快取：先用快取秒開，背景抓新版，下次打開就是新的。改版時把 VERSION 加一。 */
-const VERSION = 'mt-3.7.1';
+const VERSION = 'mt-3.7.2';
 const FILES = [
   './', 'index.html', 'style.css', 'manifest.webmanifest',
   'js/data.js', 'js/core.js', 'js/sprites.js', 'js/audio.js', 'js/i18n.js', 'js/sync.js', 'js/main.js',
