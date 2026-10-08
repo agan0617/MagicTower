@@ -12,6 +12,7 @@
   let st = null;              // 遊戲狀態
   let mode = 'title';         // title／cine／game
   let busy = 0;               // >0 時不收移動指令（演出、對話、選單）
+  const finaleShow = () => st && st.floor === 20 && busy > 0;   // 最終演出（20F 的劇情與戰鬥）：不畫箭頭、怪物腳下的損失數字（3.7.9 Ken 指定）
   let lastAutoAt = 0;         // 這台裝置最後一次自動存檔的時間
   let playClock = 0;
 
@@ -215,7 +216,7 @@
       if (trade.text) label(trade.text, px + TILE - 10, py + 14 + bob, trade.color, 12);
       else g.drawImage(MT.sprite(trade[0], trade[1], 1), px + TILE - 18, py + 1 + bob);
     }
-    if (isMon && st.items.book) {
+    if (isMon && st.items.book && !finaleShow()) {
       const c = MT.calc(st, code);
       const txt = c.damage == null ? '???' : fmt(c.damage);
       label(txt, px + w / 2, py + w - 1, dmgColor(c), n > 1 ? 18 : 15);
@@ -316,8 +317,7 @@
     g.beginPath(); g.ellipse(fx0, fy0, TILE * 0.44, 7, 0, 0, Math.PI * 2); g.stroke();
     g.restore();
     if (view.heroAt !== st.floor + ',' + st.x + ',' + st.y) { view.heroAt = st.floor + ',' + st.x + ',' + st.y; view.heroStill = t; }
-    // 20F 的劇情與戰鬥（最終演出）不顯示箭頭（3.7.9 Ken 指定）
-    const showArrow = !view.move && !(st.floor === 20 && busy) && (t < (view.arrowUntil || 0) || t - (view.heroStill || t) > 3000);
+    const showArrow = !view.move && !finaleShow() &&(t < (view.arrowUntil || 0) || t - (view.heroStill || t) > 3000);
     g.save();
     if (tier >= 3) {                          // 最後一階：腳下一圈一明一暗的金色光暈
       const cx = x * TILE + ox + TILE / 2, cy = y * TILE + oy + TILE * 0.62;
