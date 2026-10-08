@@ -834,7 +834,7 @@
             break;
           case 'swap':
             MT.applyCmd(st, c);
-            if (c[2] === 'M2') { flash('#ffd84a', 600); sparkle(5, 1, 30); }
+            if (c[2] === 'M2') { flash('#ffd84a', 600); sparkle(5, 2, 30); }
             break;
           case 'branch':
             if ((c[1] === 'trueEnd' && MT.isTrueEnding(st)) || (c[1] === 'hasNote' && st.items.note)) await runScript(c[2]);

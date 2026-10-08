@@ -37,7 +37,7 @@
       shops: { shop1: 0, shop2: 0, shop3: 0 },
       secrets: 0,            // 找到的暗牆數
       echo: {},              // 每層「上一場戰鬥」損失的生命（回音地板照這個扣）：樓層 → 數字
-      mapV: 32,            // 地圖版本：舊存檔讀進來時，還沒去過的樓層換成這版的地圖（MT.migrate）
+      mapV: 33,            // 地圖版本：舊存檔讀進來時，還沒去過的樓層換成這版的地圖（MT.migrate）
       steps: 0, kills: 0, playMs: 0,
       done: false,
     };
@@ -461,7 +461,7 @@
       // 這層所有 c[1] 換成 c[2]（大型怪物整塊換）
       case 'swap': for (const row of st.maps[st.floor]) for (let x = 0; x < W; x++) if (row[x] === c[1]) row[x] = c[2]; break;
       // 最終 Boss 二階段：在原本 3×3 的位置放失控的指揮家（有失落的音符就是弱一點的 M4）
-      case 'phase2': { const code = st.items.note ? 'M4' : 'M3'; for (let y = 0; y < 3; y++) for (let x = 4; x < 7; x++) MT.setTile(st, st.floor, x, y, code); break; }
+      case 'phase2': { const code = st.items.note ? 'M4' : 'M3'; for (let y = 1; y < 4; y++) for (let x = 4; x < 7; x++) MT.setTile(st, st.floor, x, y, code); break; }
       case 'layer': if (!st.layers.includes(c[1])) st.layers.push(c[1]); break;
       case 'ending': st.done = true; break;
     }
@@ -534,6 +534,16 @@
       for (const f in open) for (const [x, y] of open[f]) if (st.maps[f] && st.maps[f][y][x] === '##') st.maps[f][y][x] = '..';
       for (const f of [10, 15]) { const m = st.maps[f]; if (m && m[10][5] === 'DD' && m[7][4] === '##') { m[10][5] = '..'; m[7][4] = 'DD'; } }
       st.mapV = 32;
+    }
+    // 3.7.11 20F 指揮家往下移一格：沒去過換新地圖；去過的把 (3..7,0..2) 整塊往下搬一列（打過、劇情換過的格子跟著搬），站在 (5,3) 的王子退到 (5,4)
+    if (st.mapV < 33) {
+      const m = st.maps[20];
+      if (!st.visited.includes(20)) st.maps[20] = parseFloor(MT.FLOORS[20], 20);
+      else if (m && m[3][4] === '##' && m[3][6] === '##') {
+        for (let x = 3; x <= 7; x++) { m[3][x] = m[2][x]; m[2][x] = m[1][x]; m[1][x] = m[0][x]; m[0][x] = '##'; }
+        if (st.floor === 20 && st.x === 5 && st.y === 3) st.y = 4;
+      }
+      st.mapV = 33;
     }
     // 3.2.64 怪物圖鑑改成只列打倒過的：舊存檔照「去過的樓層上原本有這隻怪、現在那格沒了」補記
     if (!st.beaten) {
