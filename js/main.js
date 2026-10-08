@@ -353,9 +353,14 @@
     }
     // 多蕾跟在旁邊
     if (view.fairy) {
-      // 告別中：越飄越高、越來越透明，飄得越來越慢
-      const lv = view.fairyLeave, lk = lv ? Math.min(1, (t - lv.t0) / lv.dur) : 0, rise = (1 - Math.pow(1 - lk, 2)) * TILE * 1.6;
-      const fx = x * TILE + 26 + Math.cos(t / 500) * 6 * (1 - lk), fy = y * TILE - 22 + Math.sin(t / 260) * 5 - rise;
+      // 告別中：越來越透明；還在阿爾特旁邊的話越飄越高、飄得越來越慢
+      const fl = view.fairyFly, lv = view.fairyLeave, lk = lv ? Math.min(1, (t - lv.t0) / lv.dur) : 0, rise = fl ? 0 : (1 - Math.pow(1 - lk, 2)) * TILE * 1.6;
+      let fx = x * TILE + 26 + Math.cos(t / 500) * 6 * (1 - lk), fy = y * TILE - 22 + Math.sin(t / 260) * 5 - rise;
+      if (fl) {   // fairyTo：飛到那一格，繞著他轉（橢圓軌道，中心是那一格）
+        const k = Math.min(1, (t - fl.t0) / fl.dur), e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+        const ox = fl.x * TILE + TILE / 2 - 12 + Math.cos(t / 420) * TILE * 0.6, oy = fl.y * TILE + TILE / 2 - 14 + Math.sin(t / 420) * TILE * 0.22;
+        fx += (ox - fx) * e; fy += (oy - fy) * e;
+      }
       if (lv) {
         g.save(); g.globalAlpha = 1 - lk;
         if (Math.random() < 0.35) view.fx.push({ kind: 'spark', x: fx + 12, y: fy + 14, vx: (x * TILE + TILE / 2 - fx - 12) / 900, vy: (y * TILE + TILE / 2 - fy - 14) / 900, t0: t, life: 900, color: '#fff6b0' });   // 光點飄向阿爾特
@@ -470,8 +475,12 @@
     // 劇本 fadeOut：那個人慢慢變透明、往上飄、散出光點
     if (view.fadeTile) {
       const f = view.fadeTile, k = Math.min(1, (t - f.t0) / f.dur);
-      g.save(); g.globalAlpha = 1 - k; g.translate(0, -k * TILE * 0.4); drawTile(f.code, f.x, f.y, t); g.restore();
-      if (k < 1 && Math.random() < 0.3) view.fx.push({ kind: 'spark', x: f.x * TILE + Math.random() * TILE, y: f.y * TILE + Math.random() * TILE, vx: 0, vy: -0.04, t0: t, life: 900, color: '#d9b8ff' });
+      // toHero（fairyHome）：不往上飄，光點改流向阿爾特
+      g.save(); g.globalAlpha = 1 - k; if (!f.toHero) g.translate(0, -k * TILE * 0.4); drawTile(f.code, f.x, f.y, t); g.restore();
+      if (k < 1 && Math.random() < (f.toHero ? 0.45 : 0.3)) {
+        const sx = f.x * TILE + Math.random() * TILE, sy = f.y * TILE + Math.random() * TILE;
+        view.fx.push({ kind: 'spark', x: sx, y: sy, vx: f.toHero ? (st.x * TILE + TILE / 2 - sx) / 900 : 0, vy: f.toHero ? (st.y * TILE + TILE / 2 - sy) / 900 : -0.04, t0: t, life: 900, color: '#d9b8ff' });
+      }
     }
     // 開門：門往上淡出
     if (view.doorFade) {
@@ -777,17 +786,29 @@
           }
           case 'fadeOut': {   // 地圖上某一格的人慢慢變透明、往上飄著消失，飄出光點（ms 毫秒）
             const [, fx, fy, ms] = c, code = MT.tile(st, st.floor, fx, fy);
+            if (code === '..') break;   // 已經不在了（真結局另一個阿爾特先跟多蕾一起回去了）
             MT.setTile(st, st.floor, fx, fy, '..');
             view.fadeTile = { code, x: fx, y: fy, t0: now(), dur: ms };
             await sleep(ms);
             view.fadeTile = null;
             break;
           }
-          case 'fairyFarewell': {   // 多蕾告別：3.6 秒慢慢上飄淡出，光點往阿爾特身上飄，最後一顆落下時「叮」
-            view.fairyLeave = { t0: now(), dur: 3600 };
-            await sleep(3600);
-            view.fairy = false; view.fairyLeave = null;
-            sfx('chime'); sparkle(st.x, st.y, 18, ['#fff6b0', '#ffe066', '#ffffff']);
+          case 'fairyTo': {   // 多蕾從阿爾特旁邊飛到地圖上某一格，到了就繞著那格飛（ms 毫秒）
+            view.fairyFly = { x: c[1], y: c[2], t0: now(), dur: c[3] };
+            sfx('fly');
+            await sleep(c[3]);
+            sparkle(c[1], c[2], 20, ['#fff6b0', '#ffe066', '#ffffff']);
+            break;
+          }
+          // 真結局：多蕾和那一格的人（另一個阿爾特）一起變透明，金、紫光點流進阿爾特身上，最後一顆落下時「叮」（3.7.9 Ken 指定）
+          case 'fairyHome': {
+            const [, fx, fy, ms] = c, code = MT.tile(st, st.floor, fx, fy);
+            MT.setTile(st, st.floor, fx, fy, '..');
+            view.fadeTile = { code, x: fx, y: fy, t0: now(), dur: ms, toHero: true };
+            view.fairyLeave = { t0: now(), dur: ms };
+            await sleep(ms);
+            view.fadeTile = null; view.fairy = false; view.fairyLeave = null; view.fairyFly = null;
+            sfx('chime'); sparkle(st.x, st.y, 24, ['#fff6b0', '#ffe066', '#d9b8ff', '#ffffff']);
             await sleep(1400);
             break;
           }
@@ -3085,7 +3106,7 @@
     hudGen++; for (const k of HUD_KEYS) hudHold[k] = 0;   // 上一局還在飛的數字不要帶過來
     mode = 'game'; busy = 0;
     $('#title').hidden = true; $('#cine').hidden = true; $('#stage').classList.remove('under');
-    view.fairy = false; view.move = null; view.dying = null; view.fx = []; view.fade = 0; view.fadeTo = 0; view.fadeCur = 0;
+    view.fairy = false; view.fairyFly = null; view.fairyLeave = null; view.move = null; view.dying = null; view.fx = []; view.fade = 0; view.fadeTo = 0; view.fadeCur = 0;
     view.tier = null;   // 讀進來的存檔本來就強的話，不要當成剛變身
     autoPath = null; clearRoute(); setLook(false);
     playClock = Date.now();
