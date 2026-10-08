@@ -37,7 +37,7 @@
       shops: { shop1: 0, shop2: 0, shop3: 0 },
       secrets: 0,            // 找到的暗牆數
       echo: {},              // 每層「上一場戰鬥」損失的生命（回音地板照這個扣）：樓層 → 數字
-      mapV: 33,            // 地圖版本：舊存檔讀進來時，還沒去過的樓層換成這版的地圖（MT.migrate）
+      mapV: 34,            // 地圖版本：舊存檔讀進來時，還沒去過的樓層換成這版的地圖（MT.migrate）
       steps: 0, kills: 0, playMs: 0,
       done: false,
     };
@@ -544,6 +544,12 @@
         if (st.floor === 20 && st.x === 5 && st.y === 3) st.y = 4;
       }
       st.mapV = 33;
+    }
+    // 3.7.12 20F 指揮家腳邊左右兩格 (3,3)／(7,3) 補成牆（那兩格走不到，只是裝飾）
+    if (st.mapV < 34) {
+      const m = st.maps[20];
+      if (m) for (const x of [3, 7]) if (m[3][x] === '..') m[3][x] = '##';
+      st.mapV = 34;
     }
     // 3.2.64 怪物圖鑑改成只列打倒過的：舊存檔照「去過的樓層上原本有這隻怪、現在那格沒了」補記
     if (!st.beaten) {
