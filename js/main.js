@@ -316,7 +316,8 @@
     g.beginPath(); g.ellipse(fx0, fy0, TILE * 0.44, 7, 0, 0, Math.PI * 2); g.stroke();
     g.restore();
     if (view.heroAt !== st.floor + ',' + st.x + ',' + st.y) { view.heroAt = st.floor + ',' + st.x + ',' + st.y; view.heroStill = t; }
-    const showArrow = !view.move && (t < (view.arrowUntil || 0) || t - (view.heroStill || t) > 3000);
+    // 20F 的劇情與戰鬥（最終演出）不顯示箭頭（3.7.9 Ken 指定）
+    const showArrow = !view.move && !(st.floor === 20 && busy) && (t < (view.arrowUntil || 0) || t - (view.heroStill || t) > 3000);
     g.save();
     if (tier >= 3) {                          // 最後一階：腳下一圈一明一暗的金色光暈
       const cx = x * TILE + ox + TILE / 2, cy = y * TILE + oy + TILE * 0.62;
