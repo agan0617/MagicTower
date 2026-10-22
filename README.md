@@ -95,3 +95,13 @@ token 只存在那台裝置的瀏覽器（localStorage）裡；手機弄丟時�
 | `tools/make_icons.py` | 產生圖示 |
 
 改版時記得把 `sw.js` 的 `VERSION` 加一，否則已經開過的瀏覽器會繼續用快取裡的舊檔。
+
+## 版權
+
+Copyright © 2026 agan0617. All rights reserved. 保留所有權利，詳見 [LICENSE](LICENSE)。
+
+使用的第三方素材（依各自授權）：
+
+- **GitHub REST API**：雲端存檔同步到使用者的私有 repo，GitHub 服務條款（https://docs.github.com/rest）
+
+本作品是個人製作的非官方作品，與 魔塔（Tower of the Sorcerer）經典玩法 沒有關係；相關名稱與商標屬原權利人所有。
